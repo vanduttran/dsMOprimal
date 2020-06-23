@@ -31,3 +31,32 @@ tr <- function(x) {
 trscale <- function(x) {
     return (x/sqrt(tr(crossprod(x))))
 }
+
+#' @title Cross login
+#'
+#' Cross login # rather on client side
+#' @param server ..
+#' @param url
+#' 
+#' @export
+crossLogin <- function(server, url) {
+    url <- dsCDISC:::.decode.arg(url)
+    myDf <- data.frame(server=server,
+                       url=url,
+                       user='test',
+                       password='test123',
+                       table='test.TEST')
+    opal::datashield.login(myDf)
+}
+
+
+#' @title Cross aggregate
+#'
+#' Cross aggregate # rather on client side
+#' @param server
+#' @param func
+#' @export
+crossAggregate <- function(servers, func, wait = F, async = T) {
+    func <- dsCDISC:::.decode.arg(func)
+    opal::datashield.aggregate(servers, as.symbol(func), wait, async)
+}

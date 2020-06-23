@@ -8,6 +8,11 @@ Authors@R:
            email = "thuong.tran@sib.swiss",
            comment = c(ORCID = "0000-0003-2074-5029"))
 Description: Server side functions for integrating sum of squares and cross products matrices.
+AssignMethods:
+    randomData,
+    trscale,
+    crossLogin,
+    crossAggregate
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
