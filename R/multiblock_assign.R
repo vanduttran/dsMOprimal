@@ -54,8 +54,10 @@ crossLogin <- function(logins) {
 #' @title Cross aggregate
 #'
 #' Cross aggregate # rather on client side
-#' @param servers
-#' @param func
+#' @param servers Server names
+#' @param func Function to execute
+#' @param wait See opal::datashield.aggreate options. Default: FALSE.
+#' @param async See opal::datashield.aggreate options. Default: TRUE.
 #' @export
 crossAggregate <- function(servers, func, wait = F, async = T) {
     func <- dsCDISC:::.decode.arg(func)
