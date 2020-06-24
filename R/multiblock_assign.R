@@ -13,39 +13,40 @@ randomData <- function(nrow, ncol) {
 #' @title Trace
 #'
 #' Trace of a matrix
-#' @param x A symmetric numeric matrix
+#' @param x A symmetric numeric matrix or data frame.
 #' @return tr(x)
 tr <- function(x) {
     if (nrow(x) != ncol(x)) {
     	stop("x should be symmetric.")
     }
-    return (sum(diag(x)))
+    y <- apply(x, c(1,2), as.numeric)
+    return (sum(diag(y)))
 }
 
 #' @title Matrix scaling
 #'
 #' Scale a matrix to trace of 1
-#' @param x A numeric matrix
+#' @param x A numeric matrix or data frame.
 #' @return A scaled matrix with tr(xx') = 1
 #' @export
 trscale <- function(x) {
-    return (x/sqrt(tr(crossprod(x))))
+    y <- apply(x, c(1,2), as.numeric)
+    return (y/sqrt(tr(crossprod(y))))
 }
 
 #' @title Cross login
 #'
 #' Cross login # rather on client side
-#' @param server ..
-#' @param url
+#' @param logins An encoded dataframe with server, url, user, password, and table fields.
 #' 
 #' @export
-crossLogin <- function(server, url) {
-    url <- dsCDISC:::.decode.arg(url)
-    myDf <- data.frame(server=server,
-                       url=url,
-                       user='test',
-                       password='test123',
-                       table='test.TEST')
+crossLogin <- function(logins) {
+    loginfo <- dsCDISC:::.decode.arg(logins)
+    myDf <- data.frame(server=loginfo$server,
+                       url=loginfo$url,
+                       user=loginfo$user,
+                       password=loginfo$password,
+                       table=loginfo$table)
     opal::datashield.login(myDf)
 }
 
@@ -53,7 +54,7 @@ crossLogin <- function(server, url) {
 #' @title Cross aggregate
 #'
 #' Cross aggregate # rather on client side
-#' @param server
+#' @param servers
 #' @param func
 #' @export
 crossAggregate <- function(servers, func, wait = F, async = T) {
