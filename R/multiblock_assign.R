@@ -34,11 +34,11 @@ trscale <- function(x) {
     return (y/sqrt(tr(crossprod(y))))
 }
 
+
 #' @title Cross login
 #'
 #' Cross login # rather on client side
 #' @param logins An encoded dataframe with server, url, user, password, and table fields.
-#' 
 #' @export
 crossLogin <- function(logins) {
     loginfo <- dsCDISC:::.decode.arg(logins)
@@ -54,12 +54,27 @@ crossLogin <- function(logins) {
 #' @title Cross aggregate
 #'
 #' Cross aggregate # rather on client side
-#' @param servers Server names
-#' @param func Function to execute
+#' @param opal An opal object or list of opal objects.
+#' @param expr An encoded expression to evaluate.
 #' @param wait See opal::datashield.aggreate options. Default: FALSE.
 #' @param async See opal::datashield.aggreate options. Default: TRUE.
 #' @export
-crossAggregate <- function(servers, func, wait = F, async = T) {
-    func <- dsCDISC:::.decode.arg(func)
-    opal::datashield.aggregate(servers, as.symbol(func), wait, async)
+crossAggregate <- function(opal, expr, wait = F, async = T) {
+    expr <- dsCDISC:::.decode.arg(expr)
+    opal::datashield.aggregate(opal, as.symbol(expr), wait, async)
+}
+
+
+#' @title Cross assign
+#'
+#' Cross assign # rather on client side
+#' @param opal An opal object or list of opal objects.
+#' @param symbol Name of an R symbol.
+#' @param value An encoded expression with allowed assign function calls.
+#' @param wait See opal::datashield.aggreate options. Default: FALSE.
+#' @param async See opal::datashield.aggreate options. Default: TRUE.
+#' @export
+crossAssign <- function(opal, symbol, value, wait = F, async = T) {
+    value <- dsCDISC:::.decode.arg(value)
+    opal::datashield.assign(opal, symbol, as.symbol(value), wait, async)
 }
