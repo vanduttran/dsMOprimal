@@ -12,7 +12,8 @@ AssignMethods:
     randomData,
     trscale,
     crossLogin,
-    crossAggregate
+    crossAggregate,
+    crossAssign
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
