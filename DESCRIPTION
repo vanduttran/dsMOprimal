@@ -10,7 +10,7 @@ Authors@R:
 Description: Server side functions for integrating sum of squares and cross products matrices.
 AssignMethods:
     randomData,
-    trscale,
+    trscale
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
