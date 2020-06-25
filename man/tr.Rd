@@ -9,7 +9,7 @@ Trace of a matrix}
 tr(x)
 }
 \arguments{
-\item{x}{A symmetric numeric matrix}
+\item{x}{A symmetric numeric matrix or data frame.}
 }
 \value{
 tr(x)

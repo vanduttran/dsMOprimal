@@ -9,7 +9,7 @@ Scale a matrix to trace of 1}
 trscale(x)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A numeric matrix or data frame.}
 }
 \value{
 A scaled matrix with tr(xx') = 1
