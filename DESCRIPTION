@@ -11,9 +11,6 @@ Description: Server side functions for integrating sum of squares and cross prod
 AssignMethods:
     randomData,
     trscale,
-    crossLogin,
-    crossAggregate,
-    crossAssign
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
