@@ -29,7 +29,12 @@ tr <- function(x) {
 #' @param x A numeric matrix or data frame.
 #' @return A scaled matrix with tr(xx') = 1
 #' @export
-trscale <- function(x) {
+trscale <- function(x, na.rm = TRUE) {
     y <- apply(x, c(1,2), as.numeric)
+    if (na.rm) {
+        y <- y[!is.na(rowSums(y)), , drop=F]
+    } else {
+        y[is.na(y)] <- 0
+    }
     return (y/sqrt(tr(crossprod(y))))
 }
