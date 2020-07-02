@@ -10,6 +10,7 @@ randomData <- function(nrow, ncol) {
     return (matrix(runif(nrow*ncol, min=0, max=1), nrow, ncol))
 }
 
+
 #' @title Trace
 #'
 #' Trace of a matrix
@@ -22,6 +23,7 @@ tr <- function(x) {
     y <- apply(x, c(1,2), as.numeric)
     return (sum(diag(y)))
 }
+
 
 #' @title Matrix scaling
 #'
@@ -36,5 +38,6 @@ trscale <- function(x, na.rm = TRUE) {
     } else {
         y[is.na(y)] <- 0
     }
+    y <- y[order(rownames(y)), ]
     return (y/sqrt(tr(crossprod(y))))
 }
