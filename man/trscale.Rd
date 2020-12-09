@@ -6,7 +6,7 @@
 
 Scale a matrix to trace of 1}
 \usage{
-trscale(x)
+trscale(x, na.rm = TRUE)
 }
 \arguments{
 \item{x}{A numeric matrix or data frame.}
