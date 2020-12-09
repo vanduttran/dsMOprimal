@@ -41,23 +41,23 @@ trscale <- function(x) {
 #' 
 #' @export
 crossLogin <- function(logins) {
-    loginfo <- dsCDISC:::.decode.arg(logins)
+    loginfo <- dsSwissKnife:::.decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
                        user=loginfo$user,
                        password=loginfo$password,
                        table=loginfo$table)
-    opal::datashield.login(myDf)
+    DSI::datashield.login(myDf)
 }
 
 
 #' @title Cross aggregate
 #'
 #' Cross aggregate # rather on client side
-#' @param servers
-#' @param func
+#' @param servers Servers
+#' @param func Function to excecute by servers
 #' @export
 crossAggregate <- function(servers, func, wait = F, async = T) {
-    func <- dsCDISC:::.decode.arg(func)
-    opal::datashield.aggregate(servers, as.symbol(func), wait, async)
+    func <- dsSwissKnife:::.decode.arg(func)
+    DSI::datashield.aggregate(servers, as.symbol(func), wait, async)
 }
