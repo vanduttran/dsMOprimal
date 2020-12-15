@@ -1,6 +1,6 @@
 Package: dsSSCP
 Title: Server Side Functions for Integrating Sum of Squares and Cross Products Matrices
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: 
     person(given = "Van Du T.",
            family = "Tran",
@@ -10,6 +10,7 @@ Authors@R:
 Description: Server side functions for integrating sum of squares and cross products matrices.
 AssignMethods:
     randomData,
+    center,
     trscale
 License: GPL-3
 Encoding: UTF-8

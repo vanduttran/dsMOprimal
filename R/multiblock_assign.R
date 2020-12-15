@@ -25,6 +25,24 @@ tr <- function(x) {
 }
 
 
+#' @title Matrix centering
+#'
+#' Center matrix columns to 0
+#' @param x A numeric matrix or data frame.
+#' @return A centered matrix with column mean = 0
+#' @export
+center <- function(x, na.rm = TRUE) {
+    y <- apply(x, c(1,2), as.numeric)
+    if (na.rm) {
+        y <- y[!is.na(rowSums(y)), , drop=F]
+    } else {
+        y[is.na(y)] <- 0
+    }
+    y <- y[order(rownames(y)), ]
+    return (scale(y, center=TRUE, scale=FALSE))
+}
+
+
 #' @title Matrix scaling
 #'
 #' Scale a matrix to trace of 1
