@@ -75,7 +75,7 @@ crossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    if (is.null(y)) return (crossprod(x))
+    if (is.null(y)) {print(x); return (crossprod(x))}
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
     cat("x: ", dim(x), "\n")
