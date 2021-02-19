@@ -184,13 +184,14 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 #' @export
 push <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     value <- dsSwissKnife:::.decode.arg(value)
-    if (!value.call && is.list(value)) {
+    if (value.call && is.list(value)) {
 	value <- do.call(rbind, value)
     	print(value)
     }
     variables <- dsSwissKnife:::.decode.arg(variables)
     DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
     datashield.errors()
+
     return (NULL)
 }
 
