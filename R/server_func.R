@@ -190,5 +190,6 @@ push <- function(opal, symbol, value, value.call, variables = NULL, wait = F, as
     }
     variables <- dsSwissKnife:::.decode.arg(variables)
     DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
+    return (NULL)
 }
 
