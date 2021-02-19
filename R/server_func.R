@@ -145,8 +145,8 @@ crossLogin <- function(logins) {
 
 #' @title Cross aggregate
 #'
-#' Cross aggregate # rather on client side
-#' @param opal An opal object or list of opal objects.
+#' Cross aggregate
+#' @param opal A list of opal objects.
 #' @param expr An encoded expression to evaluate.
 #' @param wait See DSI::datashield.aggreate options. Default: FALSE.
 #' @param async See DSI::datashield.aggreate options. Default: TRUE.
@@ -162,8 +162,8 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 
 #' @title Cross assign
 #'
-#' Cross assign # rather on client side
-#' @param opal An opal object or list of opal objects.
+#' Cross assign 
+#' @param opal A list of opal objects.
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R epxression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
@@ -173,6 +173,19 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @export
 crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     value <- dsSwissKnife:::.decode.arg(value)
+    if (!value.call && is.list(value)) value <- do.call(rbind, value)
     variables <- dsSwissKnife:::.decode.arg(variables)
     DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
 }
+
+#' @title Push
+#'
+#' Push the output of a function call to other servers 
+#' @param opal A list of opal objects.
+#' @export
+push <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
+    value <- dsSwissKnife:::.decode.arg(value)
+    variables <- dsSwissKnife:::.decode.arg(variables)
+    DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
+}
+
