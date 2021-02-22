@@ -177,6 +177,16 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
     DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
 }
 
+
+#' @title Cross push
+#' @export
+pushValue <- function(value) {
+    pid <- Sys.getpid()
+    save(value, file=paste0("/tmp/RtmpBCgKyI/",pid))
+    return (pid)
+}
+
+
 #' @title Push
 #'
 #' Push the output of a function call to other servers 
