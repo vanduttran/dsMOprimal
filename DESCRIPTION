@@ -14,12 +14,11 @@ AggregateMethods:
     tcrossProd,
     tripleProd,
     crossAssign,
-    push
+    pushValue
 AssignMethods:
     center,
     crossProd,
     crossLogin,
-    pushValue,
     crossAggregate
 License: GPL-3
 Encoding: UTF-8
