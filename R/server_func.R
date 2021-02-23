@@ -181,6 +181,8 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 #' @title Cross push
 #' @export
 pushValue <- function(value) {
+    print(value)
+    print(dsSwissKnife:::.decode.arg(value))
     pid <- Sys.getpid()
     save(value, file=paste0("/tmp/RtmpBCgKyI/",pid))
     return (pid)
