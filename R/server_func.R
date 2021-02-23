@@ -152,11 +152,23 @@ crossLogin <- function(logins) {
 #' @param async See DSI::datashield.aggreate options. Default: TRUE.
 #' @import DSI
 #' @export
+#crossAggregate <- function(opal, expr, wait = F, async = T) {
+#    expr <- dsSwissKnife:::.decode.arg(expr)
+#    ## only allow: crossProd, singularProd
+#    stopifnot(grepl("^crossProd\\(|^singularProd\\(", dsSwissKnife:::.decode.arg(expr)))
+#    DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
+#}
 crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
-    ## only allow: crossProd, singularProd
-    stopifnot(grepl("^crossProd\\(|^singularProd\\(", dsSwissKnife:::.decode.arg(expr)))
-    DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
+    if (grepl("^as.call", expr)) {
+        expr <- eval(str2expression(expr))
+        stopifnot(!is.call(expr))
+        DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
+    } else {
+        ## only allow: crossProd, singularProd
+        stopifnot(grepl("^crossProd\\(|^singularProd\\(", dsSwissKnife:::.decode.arg(expr)))
+        DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
+    }
 }
 
 
