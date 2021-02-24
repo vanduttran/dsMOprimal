@@ -221,10 +221,6 @@ pushValue <- function(value, name) {
 #'
 #' Push the output of a function call to other servers 
 #' @param opal A list of opal objects.
-#' @export
-push <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
-    value <- dsSwissKnife:::.decode.arg(value)
-    if (value.call && is.list(value)) {
 	value <- do.call(rbind, value)
     	print(value)
     }
