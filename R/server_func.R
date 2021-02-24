@@ -183,7 +183,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
-        stopifnot(grepl("^crossProd\\(|^singularProd\\(", dsSwissKnife:::.decode.arg(expr)))
+        stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr)) #dsSwissKnife:::.decode.arg(expr)))
         DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
     }
 }
@@ -212,7 +212,7 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 pushValue <- function(value, name) {
     print(value)
     pid <- Sys.getpid()
-    save(value, file=paste0("/tmp/RtmpBCgKyI/", name))
+    save(value, file=paste0("/tmp/RtmpBCgKyI/", dsSwissKnife:::.decode.arg(name)))
     return (pid)
 }
 
