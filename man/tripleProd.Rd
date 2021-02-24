@@ -6,7 +6,7 @@
 
 Calculate the triple product}
 \usage{
-tripleProd(x, y)
+tripleProd(x, pids)
 }
 \arguments{
 \item{x}{A numeric matrix}

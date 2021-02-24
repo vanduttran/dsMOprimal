@@ -113,14 +113,29 @@ tcrossProd <- function(x, y = NULL) {
 #' @param y A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))
 #' @return List of x %*% y %*% t(x)
 #' @export
-tripleProd <- function(x, y) {
-    print(head(y[[1]]))
-    print(class(y[[1]]))
-    if (!all(sapply(y, isSymmetric))) {
-        stop("y is not all symmetric.")
-    } else {
-        return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
-    }
+#tripleProd <- function(x, y) {
+#    print(head(y[[1]]))
+#    print(class(y[[1]]))
+#    if (!all(sapply(y, isSymmetric))) {
+#        stop("y is not all symmetric.")
+#    } else {
+#        return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
+#    }
+#}
+tripleProd <- function(x, pids) {
+    tp <- lapply(pids, function(pid) {
+        print(pid)
+        if (file.exists(paste0("/tmp/RtmpBCgKyI/",pid))) {
+            load(paste0("/tmp/RtmpBCgKyI/",pid))
+	    yd <- dsSwissKnife:::.decode.arg(value)
+            if (is.list(yd)) y <- do.call(rbind, yd)
+            stopifnot(isSymmetric(y))
+            return (tcrossprod(x, tcrossprod(x, y)))
+        } else {
+            return (NULL)
+        }
+    })
+    return (tp)
 }
 
 
@@ -194,11 +209,10 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 
 #' @title Cross push
 #' @export
-pushValue <- function(value) {
+pushValue <- function(value, name) {
     print(value)
-    print(dsSwissKnife:::.decode.arg(value))
     pid <- Sys.getpid()
-    save(value, file=paste0("/tmp/RtmpBCgKyI/",pid))
+    save(value, file=paste0("/tmp/RtmpBCgKyI/", name))
     return (pid)
 }
 
