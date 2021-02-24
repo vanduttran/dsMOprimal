@@ -164,7 +164,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
         expr <- eval(str2expression(expr))
         print(expr)
 	print(is.call(expr))
-        stopifnot(!is.call(expr))
+        stopifnot(is.call(expr))
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
