@@ -136,6 +136,7 @@ tripleProd <- function(x, pids) {
             return (NULL)
         }
     })
+    names(tp) <- pids
     return (tp)
 }
 
