@@ -123,6 +123,7 @@ tcrossProd <- function(x, y = NULL) {
 #    }
 #}
 tripleProd <- function(x, pids) {
+    pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
         print(pid)
         if (file.exists(paste0("/tmp/RtmpBCgKyI/",pid))) {
