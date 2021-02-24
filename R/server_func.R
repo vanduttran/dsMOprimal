@@ -217,21 +217,6 @@ pushValue <- function(value, name) {
 }
 
 
-#' @title Push
-#'
-#' Push the output of a function call to other servers 
-#' @param opal A list of opal objects.
-	value <- do.call(rbind, value)
-    	print(value)
-    }
-    variables <- dsSwissKnife:::.decode.arg(variables)
-    DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
-    datashield.errors()
-
-    return (NULL)
-}
-
-
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
 #'  then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.
