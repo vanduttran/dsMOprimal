@@ -113,16 +113,26 @@ tcrossProd <- function(x, y = NULL) {
 #' @param y A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))
 #' @return List of x %*% y %*% t(x)
 #' @export
-#tripleProd <- function(x, y) {
-#    print(head(y[[1]]))
-#    print(class(y[[1]]))
-#    if (!all(sapply(y, isSymmetric))) {
-#        stop("y is not all symmetric.")
-#    } else {
-#        return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
-#    }
-#}
-tripleProd <- function(x, pids) {
+tripleProd <- function(opals, x, y, mc.cores = 1) {
+    invisible(mclapply(names(opals), mc.cores=mc.cores, function(opn) {
+        logindata.opn <- logindata[logindata$server != opn, , drop=F]
+        logindata.opn$user <- logindata.opn$userserver
+        logindata.opn$password <- logindata.opn$passwordserver
+	opals.loc <- paste0("crossLogin('", dsSwissKnifeClient:::.encode.arg(logindata.opn), "')")
+        datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async = F)
+        
+    })
+}
+tripleProdrm <- function(x, y) {
+    print(head(y[[1]]))
+    print(class(y[[1]]))
+    if (!all(sapply(y, isSymmetric))) {
+        stop("y is not all symmetric.")
+    } else {
+        return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
+    }
+}
+tripleProdsl <- function(x, pids) {
     pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
         print(pid)
@@ -185,6 +195,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
+        print(expr)
         stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr)) #dsSwissKnife:::.decode.arg(expr)))
         DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
     }
@@ -239,3 +250,4 @@ pushValue <- function(value, name) {
 
 }
 
+ComDimFD <- function()
