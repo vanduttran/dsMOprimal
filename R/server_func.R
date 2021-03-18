@@ -113,16 +113,6 @@ tcrossProd <- function(x, y = NULL) {
 #' @param y A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))
 #' @return List of x %*% y %*% t(x)
 #' @export
-tripleProd <- function(opals, x, y, mc.cores = 1) {
-    invisible(mclapply(names(opals), mc.cores=mc.cores, function(opn) {
-        logindata.opn <- logindata[logindata$server != opn, , drop=F]
-        logindata.opn$user <- logindata.opn$userserver
-        logindata.opn$password <- logindata.opn$passwordserver
-	opals.loc <- paste0("crossLogin('", dsSwissKnifeClient:::.encode.arg(logindata.opn), "')")
-        datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async = F)
-        
-    })
-}
 tripleProdrm <- function(x, y) {
     print(head(y[[1]]))
     print(class(y[[1]]))
@@ -132,7 +122,7 @@ tripleProdrm <- function(x, y) {
         return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
     }
 }
-tripleProdsl <- function(x, pids) {
+tripleProd <- function(x, pids) {
     pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
         print(pid)
@@ -163,7 +153,8 @@ crossLogin <- function(logins) {
                        url=loginfo$url,
                        user=loginfo$user,
                        password=loginfo$password,
-                       driver=loginfo$driver)
+                       driver=loginfo$driver,
+		       options=loginfo$options)
     DSI::datashield.login(myDf)
     #x <- tryCatch(DSI::datashield.login(myDf), error=function(e) return (sessionInfo()))
     #save(x, file = '/srv_local/session.Rdata')
@@ -250,4 +241,4 @@ pushValue <- function(value, name) {
 
 }
 
-ComDimFD <- function()
+
