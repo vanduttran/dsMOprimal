@@ -18,3 +18,4 @@ Serialize to JSON, then encode base64,
  Used to encode non-scalar function arguments prior to sending to the opal server.
  There's a corresponding function in the server package calle .decode_args
 }
+\keyword{internal}
