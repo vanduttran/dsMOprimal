@@ -105,6 +105,12 @@ tcrossProd <- function(x, y = NULL) {
     return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
 }
 
+#' @title 
+pushTCrossProd <- function(x, y = NULL) {
+    if (is.null(y)) return (describe(as.big.matrix(tcrossprod(x))))
+    return (lapply(y, function(yy) describe(as.big.matrix(matrix(tcrossprod(x, yy))))))
+}
+
 
 #' @title Matrix triple product
 #'
@@ -112,6 +118,7 @@ tcrossProd <- function(x, y = NULL) {
 #' @param x A numeric matrix
 #' @param y A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))
 #' @return List of x %*% y %*% t(x)
+#' @import bigmemory
 #' @export
 #tripleProdrm <- function(x, y) {
 #    print(head(y[[1]]))
@@ -128,8 +135,9 @@ tripleProd <- function(x, pids) {
         print(pid)
         if (file.exists(paste0("/tmp/",pid))) {
             load(paste0("/tmp/",pid))
-	    yd <- dsSwissKnife:::.decode.arg(value)
-            if (is.list(yd)) y <- do.call(rbind, yd)
+            y <- as.matrix(attach.big.matrix(dscbigmatrix))
+            #yd <- dsSwissKnife:::.decode.arg(value)
+            #if (is.list(yd)) y <- do.call(rbind, yd)
             stopifnot(isSymmetric(y))
             return (tcrossprod(x, tcrossprod(x, y)))
         } else {
@@ -139,7 +147,23 @@ tripleProd <- function(x, pids) {
     names(tp) <- pids
     return (tp)
 }
-
+# tripleProd <- function(x, pids) {
+#     pids <- dsSwissKnife:::.decode.arg(pids)
+#     tp <- lapply(pids, function(pid) {
+#         print(pid)
+#         if (file.exists(paste0("/tmp/",pid))) {
+#             load(paste0("/tmp/",pid))
+#             yd <- dsSwissKnife:::.decode.arg(value)
+#             if (is.list(yd)) y <- do.call(rbind, yd)
+#             stopifnot(isSymmetric(y))
+#             return (tcrossprod(x, tcrossprod(x, y)))
+#         } else {
+#             return (NULL)
+#         }
+#     })
+#     names(tp) <- pids
+#     return (tp)
+# }
 
 #' @title Cross login
 #'
@@ -154,7 +178,7 @@ crossLogin <- function(logins) {
                        user=loginfo$user,
                        password=loginfo$password,
                        driver=loginfo$driver,
-		       options=loginfo$options)
+                       options=loginfo$options)
     DSI::datashield.login(myDf)
     #x <- tryCatch(DSI::datashield.login(myDf), error=function(e) return (sessionInfo()))
     #save(x, file = '/srv_local/session.Rdata')
@@ -212,14 +236,19 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 
 
 #' @title Cross push
+#' @import bigmemory
 #' @export
+# pushValuesave <- function(value, name) {
+#     print(value)
+#     pid <- Sys.getpid()
+#     save(value, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
+#     return (pid)
+# }
 pushValue <- function(value, name) {
-    print(value)
-    pid <- Sys.getpid()
-    save(value, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
-    return (pid)
+    dscbigmatrix <- describe(as.big.matrix(dsSwissKnife:::.decode.arg(value)))
+    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
+    return (NULL)
 }
-
 
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
@@ -228,7 +257,7 @@ pushValue <- function(value, name) {
 #'  There's a corresponding function in the server package calle .decode_args
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
-#'
+#' @keywords internal
 #'
 .encode.arg <- function(some.object){
   encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'));
