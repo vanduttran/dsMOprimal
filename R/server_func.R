@@ -245,7 +245,9 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 #     return (pid)
 # }
 pushValue <- function(value, name) {
+    print(value)
     dscbigmatrix <- describe(as.big.matrix(dsSwissKnife:::.decode.arg(value)))
+    print(dscbigmatrix)
     save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (NULL)
 }
