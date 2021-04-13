@@ -245,14 +245,12 @@ crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait 
 #     return (pid)
 # }
 pushValue <- function(value, name) {
-    print(value)
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
     stopifnot(isSymmetric(valued))
     dscbigmatrix <- describe(as.big.matrix(valued))
-    print(dscbigmatrix)
     save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
-    return (NULL)
+    return (dscbigmatrix)
 }
 
 #' @title Encode function  arguments

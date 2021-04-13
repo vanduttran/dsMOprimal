@@ -12,13 +12,13 @@ Imports: bigmemory
 Description: Server side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
     singularProd,
-    tcrossProd,
     tripleProd,
     crossAssign,
     pushValue
 AssignMethods:
     center,
     crossProd,
+    tcrossProd,
     crossLogin,
     crossAggregate
 License: GPL-3
