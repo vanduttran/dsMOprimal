@@ -101,8 +101,8 @@ tcrossProd <- function(x, y = NULL) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
     #yd <- dsSwissKnife:::.decode.arg(y)
-    if (is.null(y)) return (.encode.arg(tcrossprod(x)))
-    return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
+    if (is.null(y)) return (tcrossprod(x))
+    return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
 }
 
 #' @title 
@@ -205,7 +205,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
         print(expr)
-	print(is.call(expr))
+        print(is.call(expr))
         stopifnot(is.call(expr))
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
@@ -216,6 +216,13 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
     }
 }
 
+#' @export
+dscPush <- function(opal, expr, async = T) {
+  expr <- dsSwissKnife:::.decode.arg(expr)
+  stopifnot(grepl("^as.call", expr))
+  expr <- eval(str2expression(expr))
+  return (DSI::datashield.aggregate(conns=opal, expr=expr, async=async))
+}
 
 #' @title Cross assign
 #'
