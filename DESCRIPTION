@@ -15,7 +15,7 @@ AggregateMethods:
     tripleProd,
     crossAssign,
     pushValue,
-    pullPush
+    dscPush
 AssignMethods:
     center,
     crossProd,
