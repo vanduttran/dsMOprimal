@@ -216,6 +216,13 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
     }
 }
 
+#' @title Description of a pushed value
+#'
+#' @description Description of a pushed value
+#' @param opal A list of opal objects.
+#' @param expr An encoded expression to evaluate.
+#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @import DSI
 #' @export
 dscPush <- function(opal, expr, async = T) {
   expr <- dsSwissKnife:::.decode.arg(expr)
@@ -223,6 +230,7 @@ dscPush <- function(opal, expr, async = T) {
   expr <- eval(str2expression(expr))
   return (DSI::datashield.aggregate(conns=opal, expr=expr, async=async))
 }
+
 
 #' @title Cross assign
 #'
