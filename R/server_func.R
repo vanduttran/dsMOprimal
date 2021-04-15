@@ -173,6 +173,7 @@ tripleProd <- function(x, pids) {
 #' @export
 crossLogin <- function(logins) {
     require(DSOpal)
+    require(unixtools)
     loginfo <- dsSwissKnife:::.decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
