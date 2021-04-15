@@ -169,11 +169,9 @@ tripleProd <- function(x, pids) {
 #'
 #' Cross login # rather on client side
 #' @param logins An encoded dataframe with server, url, user, password, and driver fields.
-#' @import unixtools
 #' @export
 crossLogin <- function(logins) {
     require(DSOpal)
-    require(unixtools)
     loginfo <- dsSwissKnife:::.decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
