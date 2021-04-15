@@ -179,7 +179,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver,
                        options=loginfo$options)
-    force(DSI::datashield.login(myDf))
+    DSI::datashield.login(myDf)
     #x <- tryCatch(DSI::datashield.login(myDf), error=function(e) return (sessionInfo()))
     #save(x, file = '/srv_local/session.Rdata')
 }
