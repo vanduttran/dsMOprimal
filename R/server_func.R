@@ -44,7 +44,7 @@ center <- function(x, na.rm = TRUE) {
         y[is.na(y)] <- 0
     }
     y <- y[order(rownames(y)), ]
-    y <- head(y, 100)
+    y <- head(y, 1000)
     return (scale(y, center=TRUE, scale=FALSE))
 }
 
