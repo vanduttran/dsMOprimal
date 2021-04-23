@@ -49,9 +49,28 @@ center <- function(x, na.rm = TRUE) {
 }
 
 
+#' @title Matrix partition
+#' @description Partition a symmetric matrix into square blocks
+#' @param x A symmetric matrix
+#' @param sep A numeric vectors indicating sizes of square blocks
+#' @return List of blocks
+#' @keywords internal
+partitionMatrix <- function(x, sep) {
+    cssep <- cumsum(sep)
+    ind <- mclapply(1:length(sep), mc.cores=min(length(sep), detectCores()),  function(i) {
+        return (c(ifelse(i==1, 0, cssep[i-1])+1, cssep[i]))
+    })
+    parMat <- mclapply(1:length(ind), mc.cores=min(length(sep), detectCores()), function(i) {
+        lapply(i:length(ind), function(j) {
+            return (x[ind[[i]][1]:ind[[i]][2], ind[[j]][1]:ind[[j]][2]])
+        })
+    })
+    return (parMat)
+}
+
+
 #' @title Product of x' and first column of xx'
-#'
-#' Product of x' and first column of xx'
+#' @description Product of x' and first column of xx'
 #' @param x A numeric matrix
 #' @return t(x) %*% (x %*% t(x))[,1]
 #' @export
@@ -76,7 +95,7 @@ crossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
-    if (is.null(y)) {print(x); return (crossprod(x))}
+    if (is.null(y)) {return (crossprod(x))}
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
     cat("x: ", dim(x), "\n")
@@ -97,19 +116,26 @@ crossProd <- function(x, y = NULL) {
     ## }
 #    return (tcrossprod(x))
 #}
-tcrossProd <- function(x, y = NULL) {
+tcrossProd <- function(x, y = NULL, chunk=500) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
     #yd <- dsSwissKnife:::.decode.arg(y)
-    if (is.null(y)) return (tcrossprod(x))
+    #if (is.null(y)) return (tcrossprod(x))
+    if (is.null(y)) {
+        nblocks <- ceiling(nrow(x)/chunk)
+        sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
+        sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
+        return (partitionMatrix(tcrossprod(x), sep=sepblocks))
+    }
     return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
 }
 
+    
 #' @title 
 pushTCrossProd <- function(x, y = NULL) {
-    if (is.null(y)) return (describe(as.big.matrix(tcrossprod(x))))
-    return (lapply(y, function(yy) describe(as.big.matrix(matrix(tcrossprod(x, yy))))))
+    if (is.null(y)) return (tcrossprod(x))
+    return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
 }
 
 
