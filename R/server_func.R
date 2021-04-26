@@ -126,9 +126,14 @@ tcrossProd <- function(x, y = NULL, chunk=500) {
         nblocks <- ceiling(nrow(x)/chunk)
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-        return (partitionMatrix(tcrossprod(x), sep=sepblocks))
+        tcpblocks <- partitionMatrix(tcrossprod(x), sep=sepblocks)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                .encode.arg(tcp)
+            }))
+        }))
     }
-    return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
+    return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
 }
 
     
@@ -294,6 +299,7 @@ pushValue <- function(value, name) {
     save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (dscbigmatrix)
 }
+
 
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
