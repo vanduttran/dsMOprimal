@@ -44,7 +44,7 @@ center <- function(x, na.rm = TRUE) {
         y[is.na(y)] <- 0
     }
     y <- y[order(rownames(y)), ]
-    #y <- head(y, 100)
+    y <- head(y, 171)
     return (scale(y, center=TRUE, scale=FALSE))
 }
 
@@ -116,7 +116,7 @@ crossProd <- function(x, y = NULL) {
     ## }
 #    return (tcrossprod(x))
 #}
-tcrossProd <- function(x, y = NULL, chunk=500) {
+tcrossProd <- function(x, y = NULL, chunk=50) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
