@@ -116,7 +116,7 @@ crossProd <- function(x, y = NULL) {
     ## }
 #    return (tcrossprod(x))
 #}
-tcrossProd <- function(x, y = NULL, chunk=50) {
+tcrossProd <- function(x, y = NULL, chunk=500) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
     ## }
