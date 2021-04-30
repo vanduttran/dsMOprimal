@@ -53,6 +53,7 @@ center <- function(x, na.rm = TRUE) {
 #' @param x A symmetric matrix
 #' @param sep A numeric vectors indicating sizes of square blocks
 #' @return List of blocks
+#' @import parallel
 #' @keywords internal
 partitionMatrix <- function(x, sep) {
     cssep <- cumsum(sep)
