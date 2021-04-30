@@ -6,7 +6,7 @@
 
 Calculates the cross product x \%*\% t(x)}
 \usage{
-tcrossProd(x, y = NULL)
+tcrossProd(x, y = NULL, chunk = 500)
 }
 \arguments{
 \item{x}{A numeric matrix}

@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{singularProd}
 \alias{singularProd}
-\title{Product of x' and first column of xx'
-
-Product of x' and first column of xx'}
+\title{Product of x' and first column of xx'}
 \usage{
 singularProd(x)
 }
@@ -15,7 +13,5 @@ singularProd(x)
 t(x) %*% (x %*% t(x))[,1]
 }
 \description{
-Product of x' and first column of xx'
-
 Product of x' and first column of xx'
 }
