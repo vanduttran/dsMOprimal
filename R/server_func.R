@@ -37,7 +37,7 @@ colmeans <- function(x) {
 #' @return A centered matrix with column mean = 0
 #' @export
 center <- function(x, na.rm = TRUE) {
-    y <- apply(head(x, 101), c(1,2), as.numeric)
+    y <- apply(head(x[order(rownames(x)), ], 101), c(1,2), as.numeric)
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
     } else {
