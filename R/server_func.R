@@ -16,7 +16,7 @@ dsDim <- function(x) {
 #' @return Ranking of features
 #' @export
 dsRank <- function(x) {
-    return (apply(x, 1, rank))
+    return (t(apply(x, 1, rank)))
 }
 
 
