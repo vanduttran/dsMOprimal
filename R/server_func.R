@@ -1,4 +1,26 @@
-#' @title Row means
+#' @title Dimension
+#'
+#' Dimension of a matrix 
+#' @param x A matrix or data frame
+#' @return Dimension of x
+#' @export
+dsDim <- function(x) {
+    return (dim(x))
+}
+
+
+#' @title Ranking
+#'
+#' Ranking of features in each sample 
+#' @param x A matrix or data frame, samples in rows and features in columns
+#' @return Ranking of features
+#' @export
+dsRank <- function(x) {
+    return (apply(x, 1, rank))
+}
+
+
+#' @title Row means, deprecated
 #'
 #' Row means of linear transformations of a matrix 
 #' @param x A numeric matrix
@@ -34,9 +56,10 @@ colmeans <- function(x) {
 #'
 #' Center matrix columns to 0
 #' @param x A numeric matrix or data frame.
+#' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
 #' @return A centered matrix with column mean = 0
 #' @export
-center <- function(x, na.rm = TRUE) {
+center <- function(x, na.rm = FALSE) {
     #y <- apply(head(x[order(rownames(x)), ], 101), c(1,2), as.numeric)
     y <- apply(x, c(1,2), as.numeric)
     if (na.rm) {
