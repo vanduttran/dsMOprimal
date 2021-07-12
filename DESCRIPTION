@@ -11,13 +11,13 @@ Depends: DSI, dsSwissKnife, DSOpal
 Imports: bigmemory, parallel
 Description: Server side functions for integrating sum of squares and cross products matrices.
 AggregateMethods:
+    dsDim,
     singularProd,
     tripleProd,
     crossAssign,
     pushValue,
     dscPush
 AssignMethods:
-    dsDim,
     dsRank,
     center,
     crossProd,
