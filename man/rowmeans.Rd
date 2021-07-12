@@ -2,7 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{rowmeans}
 \alias{rowmeans}
-\title{Row means
+\title{Row means, deprecated
 
 Row means of linear transformations of a matrix}
 \usage{
@@ -17,7 +17,7 @@ rowmeans(x, y = NULL)
 Row means of x if y = NULL, or row means x %*% yy for each matrix yy in y otherwise
 }
 \description{
-Row means
+Row means, deprecated
 
 Row means of linear transformations of a matrix
 }

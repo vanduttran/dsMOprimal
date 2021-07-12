@@ -6,10 +6,12 @@
 
 Center matrix columns to 0}
 \usage{
-center(x, na.rm = TRUE)
+center(x, na.rm = FALSE)
 }
 \arguments{
 \item{x}{A numeric matrix or data frame.}
+
+\item{na.rm}{A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.}
 }
 \value{
 A centered matrix with column mean = 0
