@@ -1,13 +1,3 @@
-#' @title Dimension
-#'
-#' Dimension of a matrix 
-#' @param x A matrix or data frame
-#' @return Dimension of x
-#' @export
-dsDim <- function(x) {
-    return (dim(x))
-}
-
 
 #' @title Ranking
 #'
