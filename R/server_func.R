@@ -94,6 +94,23 @@ singularProd <- function(x) {
 }
 
 
+#' @title Loadings
+#' 
+#' Loadings of features in a new feature basis
+#' @param x A numeric matrix
+#' @param y A numeric matrix for the new basis of the same nrow to x.
+#' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
+#' @return operator(x, y)
+#' @export
+loadings <- function(x, y, operator = 'crossprod') {
+    stopifnot(operator %in% c('crossprod', 'cor'))
+    yd <- dsSwissKnife:::.decode.arg(y)
+    if (is.list(yd)) yd <- do.call(rbind, yd)
+    if (operator=='cor') return(cor(x, yd))
+    return (crossprod(x, yd))
+}
+
+
 #' @title Matrix cross product
 #' 
 #' Calculates the cross product t(x) \%*\% x
