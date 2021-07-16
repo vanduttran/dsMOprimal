@@ -2,20 +2,18 @@
 % Please edit documentation in R/server_func.R
 \name{tcrossProd}
 \alias{tcrossProd}
-\title{Matrix cross product
-
-Calculates the cross product x \%*\% t(x)}
+\title{Matrix cross product}
 \usage{
 tcrossProd(x, y = NULL, chunk = 500)
 }
 \arguments{
 \item{x}{A numeric matrix}
+
+\item{y}{A list of numeric matrices. Default, y = x.}
 }
 \value{
-x \%*\% t(x)
+\code{x \%*\% t(y)}
 }
 \description{
-Matrix cross product
-
-Calculates the cross product x \%*\% t(x)
+Calculates the cross product x \%*\% t(y)
 }
