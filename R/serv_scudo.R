@@ -20,16 +20,15 @@ dsRank <- function(x) {
 #' @param bottomWeight weight associated to bottom elements
 #' @return outWeiight matrix of the same dimension of expressionData
 #' @export
-computeWeights <- function(expressionData, indexMatrix, top, bottom, topWeight, bottomWeight){
-    
+computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topWeight = 10, bottomWeight= 0.1){
     
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
+    indexMatrix = apply(indexMatrix, c(1,2), as.numeric)
     indexMatrix_weight[indexMatrix<=bottom] <- bottomWeight 
     indexMatrix_weight[indexMatrix>=top] <- topWeight
-    
-    WeightexpressionData = expressionData * indexMatrix_weight
-    
-    return(outWeight)
+
+    WeightexpressionData = expressionData * indexMatrix_weight 
+    return(WeightexpressionData)
     
  }
 
