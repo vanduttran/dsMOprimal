@@ -14,6 +14,7 @@ AggregateMethods:
     singularProd,
     tripleProd,
     crossAssign,
+    pushSymmMatrix,
     pushValue,
     dscPush,
     loadings
