@@ -117,12 +117,6 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @param x A numeric matrix
 #' @return t(x) \%*\% x
 #' @export
-#crossProd <- function(x) {
-    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
-    ##     stop("x should be a matrix with two dimensions higher than 10.")
-    ## }
-#    return (crossprod(x))
-#}
 crossProd <- function(x, y = NULL) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
@@ -132,22 +126,37 @@ crossProd <- function(x, y = NULL) {
     if (is.list(yd)) yd <- do.call(rbind, yd)
     cat("x: ", dim(x), "\n")
     cat("y: ", dim(yd), "\n")
-    return (crossprod(x, yd)) #(lapply(y, function(yy) matrix(crossprod(x, yy))))
+    return (crossprod(x, yd))
+}
+
+#' @title Matrix cross product
+#' @description Calculates the cross product t(x) \%*\% y
+#' @param x A numeric matrix
+#' @param y A list of numeric matrices. Default, y = x.
+#' @return \code{t(x) \%*\% y}
+#' @export
+crossProdnew <- function(x, y = NULL, chunk=500) {
+    if (is.null(y)) {
+        nblocks <- ceiling(ncol(x)/chunk)
+        sepblocks <- rep(ceiling(ncol(x)/nblocks), nblocks-1)
+        sepblocks <- c(sepblocks, ncol(x) - sum(sepblocks))
+        tcpblocks <- partitionMatrix(crossprod(x), sep=sepblocks)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                .encode.arg(tcp)
+            }))
+        }))
+    }
+    return (lapply(y, function(yy) .encode.arg(matrix(crossprod(x, yy)))))
 }
 
 
 #' @title Matrix cross product
-#' 
-#' Calculates the cross product x \%*\% t(x)
+#' @description Calculates the cross product x \%*\% t(y)
 #' @param x A numeric matrix
-#' @return x \%*\% t(x)
+#' @param y A list of numeric matrices. Default, y = x.
+#' @return \code{x \%*\% t(y)}
 #' @export
-#tcrossProd <- function(x) {
-    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
-    ##     stop("x should be a matrix with two dimensions higher than 10.")
-    ## }
-#    return (tcrossprod(x))
-#}
 tcrossProd <- function(x, y = NULL, chunk=500) {
     ## if (is.null(dim(x)) || min(dim(x)) < 10) {
     ##     stop("x should be a matrix with two dimensions higher than 10.")
@@ -228,6 +237,7 @@ tripleProd <- function(x, pids) {
 #     names(tp) <- pids
 #     return (tp)
 # }
+
 
 #' @title Cross login
 #'
@@ -341,7 +351,6 @@ pushValue <- function(value, name) {
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
-#'
 .encode.arg <- function(some.object){
   encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'));
   # go fishing for '+', '/' and '=', opal rejects them :
