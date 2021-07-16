@@ -399,6 +399,25 @@ pushValue <- function(value, name) {
 }
 
 
+#' @title Sum matrices
+#' @description Compute the sum of a matrix and those stored in bigmemory
+#' @param x A symmetric matrix
+#' @param dsc A list of big memory descriptions
+#' @return Sum of x and those stored in dsc
+#' @import bigmemory
+#' @export
+sumMatrices <- function(x, dsc = NULL) {
+    stopifnot(isSymmetric(x))
+    dsclist <- dsSwissKnife:::.decode.arg(dsc)
+    dscmat <- lapply(dsclist, function(dscblocks) {
+        y <- as.matrix(attach.big.matrix(dscblocks))
+        stopifnot(isSymmetric(y))
+        return (y)
+    })
+    return (Reduce("+", c(x, dscmat))
+}
+
+
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
 #'  then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.

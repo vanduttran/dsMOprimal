@@ -26,6 +26,7 @@ AssignMethods:
     tcrossProd,
     crossLogin,
     crossAggregate,
+    sumMatrices,
     computeWeights
 License: GPL-3
 Encoding: UTF-8
