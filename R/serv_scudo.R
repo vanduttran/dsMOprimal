@@ -22,16 +22,12 @@ dsRank <- function(x) {
 #' @export
 computeWeights <- function(expressionData, indexMatrix, top, bottom, topWeight, bottomWeight){
     
-    outWeight = lapply(names(opals), function(x){
-    #x = names(opals)[1]
     
-    indexMatrix_weight= matrix(1, nrow(indexMatrix[[x]]), ncol(indexMatrix[[x]]))
-    indexMatrix_weight[indexMatrix[[x]]<=bottom] <- bottomWeight 
-    indexMatrix_weight[indexMatrix[[x]]>=top] <- topWeight
+    indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
+    indexMatrix_weight[indexMatrix<=bottom] <- bottomWeight 
+    indexMatrix_weight[indexMatrix>=top] <- topWeight
     
-    WeightexpressionData = expressionData[[x]] * indexMatrix_weight
-    
-    })
+    WeightexpressionData = expressionData * indexMatrix_weight
     
     return(outWeight)
     
