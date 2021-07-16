@@ -2,6 +2,7 @@
 
 export(center)
 export(colmeans)
+export(computeWeights)
 export(crossAggregate)
 export(crossAssign)
 export(crossLogin)
