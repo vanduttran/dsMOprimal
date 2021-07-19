@@ -22,6 +22,7 @@ dsRank <- function(x) {
 #' @export
 computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topWeight = 10, bottomWeight= 0.1){
     
+    top = as.numeric(top); bottom = as.numeric(bottom); topWeight = as.numeric(topWeight);bottomWeight = as.numeric(bottomWeight)
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     indexMatrix = apply(indexMatrix, c(1,2), as.numeric)
     indexMatrix_weight[indexMatrix<=bottom] <- bottomWeight 
