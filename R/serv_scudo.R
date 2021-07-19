@@ -24,12 +24,12 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     indexMatrix = apply(indexMatrix, c(1,2), as.numeric)
-    print(indexMatrix)
+    print(dim(indexMatrix))
     indexMatrix_weight[apply(indexMatrix, c(1,2), as.numeric)<=as.numeric(bottom)] <- bottomWeight 
     indexMatrix_weight[apply(indexMatrix, c(1,2), as.numeric)>=as.numeric(top)] <- topWeight
-    print(indexMatrix_weight)
+    print(dim(indexMatrix_weight))
     WeightexpressionData = expressionData * apply(indexMatrix_weight, c(1,2), as.numeric)
-    print(WeightexpressionData)
+    print(dim(WeightexpressionData))
     return(WeightexpressionData)
     
  }
