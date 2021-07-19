@@ -17,8 +17,7 @@ AggregateMethods:
     pushSymmMatrix,
     pushValue,
     dscPush,
-    loadings,
-    federateSSCPweight
+    loadings
 AssignMethods:
     dsRank,
     center,
