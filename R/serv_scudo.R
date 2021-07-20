@@ -33,18 +33,18 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
     print("................")
     
-    # I'm transposing original data matrix!!
+    # I'm transposing original WeightexpressionData to give it the same dimension of expressionData
     
     print(dim(expressionData)); print(dim(indexMatrix))
     WeightexpressionData = t(apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric))   
     print(dim(WeightexpressionData));
     
     print("............")
-    print(head(WeightexpressionData)); print(head(expressionData))
-    rownames(WeightexpressionData) = rownames(indexMatrix)
-    colnames(WeightexpressionData) = colnames(indexMatrix)
+    print(indexMatrix_weight[1:5, 1:5]); print(expressionData[1:5,1:5]); print(indexMatrix[1:5,1:5]);
+    rownames(WeightexpressionData) = as.vector(rownames(indexMatrix))
+    colnames(WeightexpressionData) = as.vector(colnames(indexMatrix))
    
-    print(rownames(WeightexpressionData));
+    print(rownames(WeightexpressionData[1:5]));typeof(rownames(WeightexpressionData[1:5]))
     print(colnames(WeightexpressionData)); 
     return(apply(WeightexpressionData,1, as.numeric))
     
