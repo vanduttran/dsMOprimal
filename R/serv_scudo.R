@@ -34,7 +34,7 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     print("................")
     
     # This line must be modified accordingly to the dimension of expressionData matrix
-    rownames(indexMatrix_weight)
+    print(length(rownames(indexMatrix_weight))); print(length(rownames(expressionData)))
     WeightexpressionData = apply(expressionData[,], 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
     print(dim(WeightexpressionData))
     return(WeightexpressionData)
