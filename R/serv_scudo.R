@@ -5,7 +5,11 @@
 #' @return Ranking of features
 #' @export
 dsRank <- function(x) {
-    return (t(apply(x, 1, rank)))
+    out = t(apply(x, 1, rank))
+    rownames(out) = rownames(x)
+    colnames(out) = colnames(x)
+
+    return(out)
 }
 
 
@@ -33,6 +37,8 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     print(dim(indexMatrix_weight))
     print("................")
     
+    rownames(indexMatrix_weight) = rownames(indexMatrix)
+    colnames(indexMatrix_weight) = colnames(indexMatrix)
     # This line must be modified accordingly to the dimension of expressionData matrix
     print(length(rownames(indexMatrix_weight))); print(length(rownames(expressionData)))
     WeightexpressionData = apply(expressionData[,], 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
