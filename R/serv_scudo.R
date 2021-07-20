@@ -26,7 +26,6 @@ dsRank <- function(x) {
 #' @export
 computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topWeight = 10, bottomWeight= 0.1){
      
-    indexMatrix = t(indexMatrix)
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     
     print(".....................")
@@ -36,9 +35,10 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     print("................")
     
     # I'm transposing original data matrix!!
+    
+    print(dim(WeightexpressionData)); print(dim(expressionData)); print(dim(indexMatrix))
     WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)   
 
-    print(dim(WeightexpressionData)); print(dim(expressionData)); print(dim(indexMatrix))
  
     rownames(WeightexpressionData) = rownames(indexMatrix)
     colnames(WeightexpressionData) = colnames(indexMatrix)
