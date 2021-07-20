@@ -31,15 +31,16 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     print(".....................")
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)<=as.numeric(bottom)] <- bottomWeight 
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
-    print(dim(indexMatrix_weight))
     print("................")
     
     # I'm transposing original data matrix!!
     
     print(dim(expressionData)); print(dim(indexMatrix))
-    WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)   
+    WeightexpressionData = t(apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric))   
     print(dim(WeightexpressionData));
- 
+    
+    print("............")
+    print(head(WeightexpressionData)); print(head(expressionData))
     rownames(WeightexpressionData) = rownames(indexMatrix)
     colnames(WeightexpressionData) = colnames(indexMatrix)
    
