@@ -41,10 +41,10 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     
     print("............")
     print(indexMatrix_weight[1:5, 1:5]); print(expressionData[1:5,1:5]); print(indexMatrix[1:5,1:5]);
-    rownames(WeightexpressionData) = as.vector(rownames(indexMatrix))
-    colnames(WeightexpressionData) = as.vector(colnames(indexMatrix))
+    rownames(WeightexpressionData) = rownames(expressionData)
+    colnames(WeightexpressionData) = colnames(expressionData)
    
-    print(rownames(WeightexpressionData[1:5]));typeof(rownames(WeightexpressionData[1:5]))
+    print(rownames(WeightexpressionData[1:5]));typeof(rownames(WeightexpressionData[1:5]));typeof(rownames(expressionData[1:5]))
     print(colnames(WeightexpressionData)); 
     return(apply(WeightexpressionData,1, as.numeric))
     
