@@ -1,4 +1,3 @@
-
 #' @title Ranking
 #'
 #' Ranking of features in each sample 

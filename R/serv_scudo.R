@@ -28,21 +28,16 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     indexMatrix = apply(indexMatrix, 1, as.numeric)
-    print(dim(indexMatrix))
-    print(typeof(indexMatrix));print(typeof(indexMatrix[5,5]));print(typeof(top)); print(typeof(topWeight))
     print(".....................")
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)<=as.numeric(bottom)] <- bottomWeight 
-    print(dim(indexMatrix_weight));print(head(indexMatrix_weight))
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
     print(dim(indexMatrix_weight))
     print("................")
     
-    rownames(indexMatrix_weight) = rownames(indexMatrix)
-    colnames(indexMatrix_weight) = colnames(indexMatrix)
     # This line must be modified accordingly to the dimension of expressionData matrix
-    print(length(rownames(indexMatrix_weight))); print(length(rownames(expressionData)))
-    WeightexpressionData = apply(expressionData[,], 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
-    print(dim(WeightexpressionData))
+    WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
+    print(dim(WeightexpressionData)); print(dim(expressionData)); print(dim(indexMatrix))
+    print(rownames(WeightexpressionData)); print(rownames(indexMatrix))
     rownames(WeightexpressionData) = rownames(indexMatrix)
     colnames(WeightexpressionData) = colnames(indexMatrix)
     
