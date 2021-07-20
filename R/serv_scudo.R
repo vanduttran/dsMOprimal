@@ -8,7 +8,7 @@ dsRank <- function(x) {
     out = t(apply(x, 1, rank))
     rownames(out) = rownames(x)
     colnames(out) = colnames(x)
-    print(head(out))
+    
     return(out)
 }
 
@@ -28,6 +28,8 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
      
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     
+
+    print(rownames(expressionData[1:3]));print(rownames(indexMatrix[1:3]))
     print(".....................")
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)<=as.numeric(bottom)] <- bottomWeight 
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
