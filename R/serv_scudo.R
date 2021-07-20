@@ -8,7 +8,7 @@ dsRank <- function(x) {
     out = t(apply(x, 1, rank))
     rownames(out) = rownames(x)
     colnames(out) = colnames(x)
-
+    print(head(out))
     return(out)
 }
 
@@ -25,24 +25,26 @@ dsRank <- function(x) {
 #' @return outWeiight matrix of the same dimension of expressionData
 #' @export
 computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topWeight = 10, bottomWeight= 0.1){
-    
+     
+    indexMatrix = t(indexMatrix)
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
-    indexMatrix = apply(indexMatrix, 1, as.numeric)
+    
     print(".....................")
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)<=as.numeric(bottom)] <- bottomWeight 
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
     print(dim(indexMatrix_weight))
     print("................")
     
-    # This line must be modified accordingly to the dimension of expressionData matrix
-    WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
+    # I'm transposing original data matrix!!
+    WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)   
+
     print(dim(WeightexpressionData)); print(dim(expressionData)); print(dim(indexMatrix))
-    print(rownames(WeightexpressionData)); print(rownames(indexMatrix))
+ 
     rownames(WeightexpressionData) = rownames(indexMatrix)
     colnames(WeightexpressionData) = colnames(indexMatrix)
-    
-    print(is(rownames(WeightexpressionData) == rownames(indexMatrix)))
-    print(is(colnames(WeightexpressionData) == colnames(indexMatrix)))
+   
+    print(rownames(WeightexpressionData));
+    print(colnames(WeightexpressionData)); 
     return(apply(WeightexpressionData,1, as.numeric))
     
  }
