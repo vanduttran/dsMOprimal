@@ -32,7 +32,10 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
     print(dim(indexMatrix_weight))
     print("................")
-    WeightexpressionData = apply(expressionData[c(1:101),], 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
+    
+    # This line must be modified accordingly to the dimension of expressionData matrix
+    rownames(indexMatrix_weight)
+    WeightexpressionData = apply(expressionData[,], 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)
     print(dim(WeightexpressionData))
     return(WeightexpressionData)
     
