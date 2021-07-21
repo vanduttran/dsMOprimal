@@ -32,14 +32,15 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
     
     # I'm transposing original WeightexpressionData to give it the same dimension of expressionData
-    
+    print(".........")
+    print(dim(expressionData)); print(dim(indexMatrix_weight));
     WeightexpressionData = t(apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric))   
-    
+    print(dim(WeightexpressionData))
+
     rownames(WeightexpressionData) = as.vector(rownames(expressionData))
     colnames(WeightexpressionData) = as.vector(colnames(expressionData))
     
     print("......")
-    print(dim(expressionData)); print(dim(WeightexpressionData));
     return(t(apply(WeightexpressionData,1, as.numeric)))
     
  }
@@ -87,8 +88,9 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
 
-    samples <- datashield.aggregate(opalborder, as.symbol('aggRownames(rawData)'), async=T)
-    
+    samples <- as.vector(datashield.aggregate(opalborder, as.symbol('aggRownames(rawData)'), async=T))
+    print("inside weightSSCP")
+    print(samples[1:15])
 
        ##- received by each from other nodes ----
     invisible(mclapply(names(opals), mc.cores=1, function(opn) {
