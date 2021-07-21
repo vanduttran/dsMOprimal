@@ -239,9 +239,9 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     }))
     datashield.logout(opals)
     
-    rownames(XXt) = samples
-    colnames(XXt) = samples
-
+    #rownames(XXt) = samples
+    #colnames(XXt) = samples
+    print(length(samples[[1]])+ length(samples[[2]]))
     return (XXt)
 }
 
