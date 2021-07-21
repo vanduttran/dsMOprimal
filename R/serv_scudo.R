@@ -52,11 +52,27 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
 #' @param expressionData A matrix or data frame, samples in rows and features in columns
 #' @return rownames of expressonData
 #' @export
-sampleNames <- function(expressionData){
-
-    return(rownames(expressionData))
+aggRownames <- function(expressionData){
+    
+    expD <- dsSwissKnife:::.decode.arg(expressionData)
+    return(rownames(expD))
 
 }
+
+#' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
+#' @return operator(x, y)
+#' @export
+loadings <- function(x, y, operator = 'crossprod') {
+    stopifnot(operator %in% c('crossprod', 'cor'))
+    yd <- dsSwissKnife:::.decode.arg(y)
+    if (is.list(yd)) yd <- do.call(rbind, yd)
+    if (operator=='cor') return(cor(x, yd))
+    return (crossprod(x, yd))
+}
+
+
+
+
 
 #' @title Federate SSCP on weighted data
 #' @description Function for computing the federated SSCP matrix
