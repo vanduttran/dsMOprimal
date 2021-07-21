@@ -59,20 +59,6 @@ aggRownames <- function(expressionData){
 
 }
 
-#' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
-#' @return operator(x, y)
-#' @export
-loadings <- function(x, y, operator = 'crossprod') {
-    stopifnot(operator %in% c('crossprod', 'cor'))
-    yd <- dsSwissKnife:::.decode.arg(y)
-    if (is.list(yd)) yd <- do.call(rbind, yd)
-    if (operator=='cor') return(cor(x, yd))
-    return (crossprod(x, yd))
-}
-
-
-
-
 
 #' @title Federate SSCP on weighted data
 #' @description Function for computing the federated SSCP matrix
@@ -101,7 +87,7 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
     datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(centeredData)'), async=T)
     datashield.assign(opals, "tcrossProdSelf", as.symbol('tcrossProd(centeredData, chunk=50)'), async=T)
 
-
+    samples <- datashield.aggregate(opalborder, as.symbol('aggRownames(rawData)'), async=T)
     
 
        ##- received by each from other nodes ----
@@ -250,6 +236,9 @@ federateSSCPweight <- function(loginFD, logins, querytab, queryvar, TOL = 1e-10)
         return (cbind(lower.opi, crossProdSelf[[opi]], upper.opi))
     }))
     datashield.logout(opals)
+    
+    rownames(XXt) = samples
+    colnames(XXt) = samples
 
     return (XXt)
 }
