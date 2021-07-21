@@ -29,27 +29,19 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     indexMatrix_weight= matrix(1, nrow(indexMatrix), ncol(indexMatrix))
     
 
-    print(rownames(expressionData[1:3]));print(rownames(indexMatrix[1:3]))
-    print(".....................")
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)<=as.numeric(bottom)] <- bottomWeight 
     indexMatrix_weight[apply(indexMatrix, 1, as.numeric)>=as.numeric(top)] <- topWeight
-    print("................")
     
     # I'm transposing original WeightexpressionData to give it the same dimension of expressionData
     
-    print(dim(expressionData)); print(dim(indexMatrix))
     WeightexpressionData = t(apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric))   
-    print(dim(WeightexpressionData));
     
-    print("............")
-    print(expressionData[1:5,1:5]);print(rownames(expressionData)) 
+    print(expressionData[1:5,1:5]);print(rownames(expressionData)); cat("type",typeof(rownames(expressionData))) 
     rownames(WeightexpressionData) = rownames(expressionData)
     colnames(WeightexpressionData) = colnames(expressionData)
-    print("-----------------")
+    print("......")
     print(WeightexpressionData[1:5,1:5]);print(rownames(WeightexpressionData)) 
     
-    print(rownames(WeightexpressionData[1:5]));typeof(rownames(WeightexpressionData[1:5]));typeof(rownames(expressionData[1:5]))
-    print(colnames(WeightexpressionData)); 
     return(apply(WeightexpressionData,1, as.numeric))
     
  }
