@@ -17,7 +17,8 @@ AggregateMethods:
     pushSymmMatrix,
     pushValue,
     dscPush,
-    loadings
+    loadings,
+    aggRownames
 AssignMethods:
     dsRank,
     center,
