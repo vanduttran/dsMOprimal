@@ -33,16 +33,39 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     
     # I'm transposing original WeightexpressionData to give it the same dimension of expressionData
     
-    WeightexpressionData = t(apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric))   
+    WeightexpressionData = apply(expressionData, 1, as.numeric) * apply(indexMatrix_weight, 1, as.numeric)   
     
     rownames(WeightexpressionData) = as.vector(rownames(expressionData))
     colnames(WeightexpressionData) = as.vector(colnames(expressionData))
     
     print("......")
     print(dim(expressionData)); print(dim(WeightexpressionData));
-    return(t(apply(WeightexpressionData,1, as.numeric)))
+    return(apply(WeightexpressionData,1, as.numeric))
     
  }
+
+
+
+#' @title computeWeights
+#'
+#' Weight most and least regulated features in original dataMatrix accordingly to ranking 
+#' @param expressionData A matrix or data frame, samples in rows and features in columns
+#' @param indexMatrix rank matrix of same dimension of expressionData matrix
+#' @param top which most regulated genes we consider
+#' @param bottom which least regulated genes we consider
+#' @param topWeight weight associated to top elements
+#' @param bottomWeight weight associated to bottom elements
+#' @return outWeiight matrix of the same dimension of expressionData
+#' @export
+sampleNames <- function(expressionData){
+
+    return(rownames(expressionData))
+
+ }
+
+
+
+
 
 
 
