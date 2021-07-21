@@ -49,7 +49,7 @@ colmeans <- function(x) {
 #' @return A centered matrix with column mean = 0
 #' @export
 center <- function(x, na.rm = FALSE) {
-
+    print(x[1:5,1:5]) 
     print("inside center function")
     print(rownames(x)[1:3])
     print(typeof(rownames(x))[1:3])

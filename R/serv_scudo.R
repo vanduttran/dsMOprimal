@@ -40,7 +40,7 @@ computeWeights <- function(expressionData, indexMatrix, top = 2, bottom= 2, topW
     colnames(WeightexpressionData) = colnames(expressionData)
     print("......")
     print(WeightexpressionData[1:5,1:5]);print(rownames(WeightexpressionData)[1:4]) 
-    print(typeof(rownames(WeightexpressionData)))
+    print(typeof(as.vector(rownames(WeightexpressionData))))
     return(apply(WeightexpressionData,1, as.numeric))
     
  }
