@@ -10,6 +10,16 @@ dsRank <- function(x) {
 }
 
 
+#' @title Matrix dimension
+#' @description Dimension of a data frame or matrix
+#' @param x A matrix or data frame
+#' @return Dimension of x
+#' @export
+dsDim <- function(x) {
+    return (dim(x))
+}
+
+
 #' @title Row means, deprecated
 #'
 #' Row means of linear transformations of a matrix 
