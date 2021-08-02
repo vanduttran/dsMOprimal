@@ -417,7 +417,7 @@ sumMatrices <- function(x, dsc = NULL) {
         stopifnot(isSymmetric(y))
         return (y)
     })
-    return (Reduce("+", c(x, dscmat)))
+    return (Reduce("+", c(x, dscmat))
 }
 
 
