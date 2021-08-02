@@ -6,8 +6,15 @@
 
 Cross assign}
 \usage{
-crossAssign(opal, symbol, value, value.call, variables = NULL,
-  wait = F, async = T)
+crossAssign(
+  opal,
+  symbol,
+  value,
+  value.call,
+  variables = NULL,
+  wait = F,
+  async = T
+)
 }
 \arguments{
 \item{opal}{A list of opal objects.}

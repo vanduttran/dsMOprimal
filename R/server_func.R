@@ -1,3 +1,4 @@
+
 #' @title Ranking
 #'
 #' Ranking of features in each sample 
@@ -49,10 +50,6 @@ colmeans <- function(x) {
 #' @return A centered matrix with column mean = 0
 #' @export
 center <- function(x, na.rm = FALSE) {
-    print(x[1:5,1:5]) 
-    print("inside center function")
-    print(rownames(x)[1:3])
-    print(typeof(rownames(x))[1:3])
     #y <- apply(head(x[order(rownames(x)), ], 101), c(1,2), as.numeric)
     y <- apply(x, c(1,2), as.numeric)
     if (na.rm) {
@@ -417,7 +414,7 @@ sumMatrices <- function(x, dsc = NULL) {
         stopifnot(isSymmetric(y))
         return (y)
     })
-    return (Reduce("+", c(x, dscmat))
+    return (Reduce("+", c(x, dscmat)))
 }
 
 
