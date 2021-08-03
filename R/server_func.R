@@ -234,12 +234,13 @@ pushSymmMatrix <- function(value) {
             })
             ## with the first layer of blocks
             tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+            rm(list=c("no1tcp"))
         } else {
             tcp <- uptcp[[1]]
         }
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        rm(list=c("matblocks", "uptcp", "no1tcp", "tcp"))
+        rm(list=c("matblocks", "uptcp", "tcp"))
     }
     return (dscbigmatrix)
 }
