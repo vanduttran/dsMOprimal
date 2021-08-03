@@ -425,11 +425,11 @@ sumMatrices <- function(x, dsc = NULL) {
     print(names(dsclist))
     dscmat <- lapply(dsclist, function(dscblocks) {
         print(class(dscblocks))
-        y <- as.matrix(attach.big.matrix(dscblocks))
-        stopifnot(isSymmetric(y))
-        return (y)
+        #y <- as.matrix(attach.big.matrix(dscblocks))
+        #stopifnot(isSymmetric(y))
+        #return (y)
     })
-    #return (NULL)
+    return (NULL)
     return (Reduce("+", c(x, dscmat)))
 }
 
