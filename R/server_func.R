@@ -139,6 +139,7 @@ crossProd <- function(x, y = NULL) {
     return (crossprod(x, yd))
 }
 
+
 #' @title Matrix cross product
 #' @description Calculates the cross product t(x) \%*\% y
 #' @param x A numeric matrix
@@ -362,6 +363,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @param opal A list of opal objects.
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @return Returned value of given expression on opal
 #' @import DSI
 #' @export
 dscPush <- function(opal, expr, async = T) {
@@ -419,11 +421,15 @@ pushValue <- function(value, name) {
 sumMatrices <- function(x, dsc = NULL) {
     stopifnot(isSymmetric(x))
     dsclist <- dsSwissKnife:::.decode.arg(dsc)
+    print(length(dsclist))
+    print(names(dsclist))
     dscmat <- lapply(dsclist, function(dscblocks) {
+        print(class(dscblocks))
         y <- as.matrix(attach.big.matrix(dscblocks))
         stopifnot(isSymmetric(y))
         return (y)
     })
+    #return (NULL)
     return (Reduce("+", c(x, dscmat)))
 }
 
