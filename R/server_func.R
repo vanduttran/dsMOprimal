@@ -421,16 +421,15 @@ pushValue <- function(value, name) {
 #' @export
 sumMatrices <- function(x, dsc = NULL) {
     stopifnot(isSymmetric(x))
-    dsclist <- dsSwissKnife:::.decode.arg(dsc)
+    dsclist <- dsc #dsSwissKnife:::.decode.arg(dsc)
     print(length(dsclist))
     print(names(dsclist))
     dscmat <- lapply(dsclist, function(dscblocks) {
         print(class(dscblocks))
-        #y <- as.matrix(attach.big.matrix(dscblocks))
-        #stopifnot(isSymmetric(y))
-        #return (y)
+        y <- as.matrix(attach.big.matrix(dscblocks))
+        stopifnot(isSymmetric(y))
+        return (y)
     })
-    return (NULL)
     return (Reduce("+", c(x, dscmat)))
 }
 
