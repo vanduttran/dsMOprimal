@@ -454,3 +454,100 @@ sumMatrices <- function(x, dsc = NULL) {
 }
 
 
+#' @title Federated covariance matrix
+#' @description Compute the covariance matrix for the virtual cohort
+#' @param logins Login information of the servers containing cohort data
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded variables from the table reference
+#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @import DSI parallel bigmemory
+#' @export
+federateCov <- function(x, loginFD, logins, querytab, queryvar) {
+    require(DSOpal)
+    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+
+    ## assign Cov matrix on each individual server
+    opals <- DSI::datashield.login(logins=logindata)
+    nNode <- length(opals)
+    DSI::datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    
+    ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
+    loginFDdata$user     <- loginFDdata$userserver
+    loginFDdata$password <- loginFDdata$passwordserver
+    print(loginFDdata)
+    DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
+    command <- paste0("dscPush(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
+    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        return (dscblocks[[1]])
+    })
+    print("OK")
+    return(crossProdSelfDSC)
+    print(names(crossProdSelfDSC))
+    print(names(crossProdSelfDSC[[1]]))
+    print(crossProdSelfDSC[[1]])
+    #print(.encode.arg(crossProdSelfDSC))
+    print(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')'))
+    DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')')))
+    return(crossProdSelfDSC)
+    
+    
+    
+    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        print(dscblocks)
+        return (as.matrix(attach.big.matrix(dscblocks[[1]]))) ## it is on server3, cannot read memory on server1!!!
+        ## retrieve the blocks as matrices: on FD
+        matblocks <- lapply(dscblocks[[1]], function(dscblock) {
+            lapply(dscblock, function(dsc) {
+                as.matrix(attach.big.matrix(dsc))
+            })
+        })
+        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        ## combine the blocks into one matrix
+        if (length(uptcp)>1) {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        } else {
+            tcp <- uptcp[[1]]
+        }
+        stopifnot(isSymmetric(tcp))
+        return (tcp)
+    })
+    gc(reset=F)
+    return (crossProdSelf)
+    # logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
+    # logindata.FD$user <- logindata.FD$userserver
+    # logindata.FD$password <- logindata.FD$passwordserver
+    # ##- received by FD from other nodes ----
+    # invisible(mclapply(setdiff(names(opals), nameFD), mc.cores=1, function(opn) {
+    #     opals.loc <- paste0("crossLogin('", .encode.arg(logindata.FD), "')")
+    #     datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
+    #     
+    #     command.opn <- paste0("crossAggregate(mates, '", 
+    #                           .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
+    #                           "', async=F)")
+    #     cat("Command: ", command.opn, "\n")
+    #     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
+    # }))
+    # datashield.symbols(opals)
+    
+    #-----
+    
+    
+}
+
+

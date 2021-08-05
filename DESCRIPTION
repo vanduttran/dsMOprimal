@@ -18,7 +18,8 @@ AggregateMethods:
     pushSymmMatrix,
     pushValue,
     dscPush,
-    loadings
+    loadings,
+    federateCov
 AssignMethods:
     dsRank,
     center,
