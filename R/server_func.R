@@ -485,7 +485,7 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                       "', async=T)")
     cat("Command: ", command, "\n")
-    crossProdSelfDSC <- DSI::datashield.aggregate(opals.else, as.symbol(command), async=T)
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
