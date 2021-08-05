@@ -464,7 +464,7 @@ sumMatrices <- function(x, dsc = NULL) {
         print(y)
         return (y)
     })
-    print(x+y)
+    print(Reduce("+", dscmat))
     return (Reduce("+", c(x, dscmat)))
 }
 
