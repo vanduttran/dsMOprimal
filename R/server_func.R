@@ -456,12 +456,15 @@ sumMatrices <- function(x, dsc = NULL) {
     dsclist <- dsc #dsSwissKnife:::.decode.arg(dsc)
     print(length(dsclist))
     print(names(dsclist))
+    print(x)
     dscmat <- lapply(dsclist, function(dscblocks) {
         print(class(dscblocks))
         y <- as.matrix(attach.big.matrix(dscblocks))
         stopifnot(isSymmetric(y))
+        print(y)
         return (y)
     })
+    print(x+y)
     return (Reduce("+", c(x, dscmat)))
 }
 
