@@ -189,6 +189,37 @@ tcrossProd <- function(x, y = NULL, chunk=500) {
 }
 
 
+#' @title Rebuild matrix from blocks
+#' @description Rebuild a matrix from its blocks
+#' @param chunks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
+#' @keywords internal
+rebuildMatrix <- function(blocks) {
+    ## decode matrix blocks
+    matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
+        mclapply(y, mc.cores=length(y), function(x) {
+            return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
+        })
+    })
+    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+    ## combine the blocks into one matrix
+    if (length(uptcp)>1) {
+        ## without the first layer of blocks
+        no1tcp <- lapply(2:length(uptcp), function(i) {
+            cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                t(matblocks[[j]][[i-j+1]])
+            })), uptcp[[i]])
+        })
+        ## with the first layer of blocks
+        tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        rm(list=c("no1tcp"))
+    } else {
+        tcp <- uptcp[[1]]
+    }
+    rm(list=c("matblocks", "uptcp"))
+    return (tcp)
+}
+
+
 #' @title Push a symmetric matrix
 #' @description Push symmetric matrix data into the federated server
 #' @param value An encoded value to be pushed
@@ -217,30 +248,31 @@ pushSymmMatrix <- function(value) {
         #     }))
         # })
         ## Possible solution: Rebuild the whole matrix here, and return its only allocation
-        matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
-            mclapply(y, mc.cores=length(y), function(x) {
-                return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
-            })
-        })
-        rm(list=c("valued"))
-        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        ## combine the blocks into one matrix
-        if (length(uptcp)>1) {
-            ## without the first layer of blocks
-            no1tcp <- lapply(2:length(uptcp), function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
-            ## with the first layer of blocks
-            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-            rm(list=c("no1tcp"))
-        } else {
-            tcp <- uptcp[[1]]
-        }
+        # matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
+        #     mclapply(y, mc.cores=length(y), function(x) {
+        #         return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
+        #     })
+        # })
+        # rm(list=c("valued"))
+        # uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+        # ## combine the blocks into one matrix
+        # if (length(uptcp)>1) {
+        #     ## without the first layer of blocks
+        #     no1tcp <- lapply(2:length(uptcp), function(i) {
+        #         cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+        #             t(matblocks[[j]][[i-j+1]])
+        #         })), uptcp[[i]])
+        #     })
+        #     ## with the first layer of blocks
+        #     tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+        #     rm(list=c("no1tcp"))
+        # } else {
+        #     tcp <- uptcp[[1]]
+        # }
+        tcp <- rebuildMatrix(valued)
         stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
-        rm(list=c("matblocks", "uptcp", "tcp"))
+        rm(list=c("tcp"))
     }
     return (dscbigmatrix)
 }
@@ -489,7 +521,7 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
         return (dscblocks[[1]])
     })
     print("OK")
-    return (sumMatrices(x, crossProdSelfDSC))
+    return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         print(dscblocks)
