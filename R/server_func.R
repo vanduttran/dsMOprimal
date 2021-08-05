@@ -479,7 +479,6 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
     ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
     loginFDdata$user     <- loginFDdata$userserver
     loginFDdata$password <- loginFDdata$passwordserver
-    print(loginFDdata)
     DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
     command <- paste0("dscPush(FD, '", 
                       .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
@@ -490,16 +489,7 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
         return (dscblocks[[1]])
     })
     print("OK")
-    return(crossProdSelfDSC)
-    print(names(crossProdSelfDSC))
-    print(names(crossProdSelfDSC[[1]]))
-    print(crossProdSelfDSC[[1]])
-    #print(.encode.arg(crossProdSelfDSC))
-    print(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')'))
-    DSI::datashield.assign(opals[nameFD], "crossProdAll", as.symbol(paste0('sumMatrices(crossProdSelf, ', crossProdSelfDSC, ')')))
-    return(crossProdSelfDSC)
-    
-    
+    return (sumMatrices(x, crossProdSelfDSC))
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         print(dscblocks)
