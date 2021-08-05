@@ -451,7 +451,7 @@ pushValue <- function(value, name) {
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
 #' @keywords internal
-sumMatrices <- function(x, dsc = NULL) {
+sumMatrices1 <- function(x, dsc = NULL) {
     stopifnot(isSymmetric(x))
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
@@ -460,7 +460,14 @@ sumMatrices <- function(x, dsc = NULL) {
     })
     return (Reduce("+", c(list(x), dscmat)))
 }
-
+sumMatrices <- function(dsc = NULL) {
+    dscmat <- lapply(dsc, function(dscblocks) {
+        y <- as.matrix(attach.big.matrix(dscblocks))
+        stopifnot(isSymmetric(y))
+        return (y)
+    })
+    return (Reduce("+", dscmat))
+}
 
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
@@ -482,6 +489,7 @@ sumMatrices <- function(x, dsc = NULL) {
 }
 
 
+## TODO make x internal
 #' @title Federated covariance matrix
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
@@ -491,7 +499,7 @@ sumMatrices <- function(x, dsc = NULL) {
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @import DSI parallel bigmemory
 #' @export
-federateCov <- function(x, loginFD, logins, querytab, queryvar) {
+federateCov <- function(loginFD, logins, querytab, queryvar) {
     require(DSOpal)
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
@@ -517,10 +525,12 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
+    #return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
+    return (sumMatrices(crossProdSelfDSC))
 }
 
 
+## TODO make x internal
 #' @title Federated PCA
 #' @description Perform the principal component analysis for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
@@ -530,7 +540,35 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @import DSI parallel bigmemory
 #' @export
-federatePCA <- function(x, loginFD, logins, querytab, queryvar) {
-    covmat <- federateCov(x, loginFD, logins, querytab, queryvar)
+federatePCA <- function(loginFD, logins, querytab, queryvar) {
+    covmat <- federateCov(loginFD, logins, querytab, queryvar)
     return (princomp(covmat=covmat))
+}
+
+
+#' @title Federated RCCA
+#' @description Perform the regularized canonical correlation analysis for the virtual cohort
+#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
+#' @param logins Login information of other servers containing cohort data
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar List of two vectors of encoded variables from the table reference
+#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @import DSI parallel bigmemory
+#' @keywords internal
+federateRCCA <- function(x, loginFD, logins, querytab, queryvar) {
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    stopifnot(length(queryvariables)==2 && (length(querytable)==1 || length(querytable)==2))
+
+    XX <- lapply(1:2, function(i) {
+        federateCov(loginFD,
+                    logins,
+                    ifelse(length(querytable)==2, querytable[i], querytable[1]),
+                    .encode.arg(queryvariables[[i]]))
+    })
+
+    
+    res <- geigen(Cxy, Cxx, Cyy)
+    names(res) <- c("cor", "xcoef", "ycoef")
+    return (res)
 }
