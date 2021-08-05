@@ -524,6 +524,7 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
         return (dscblocks[[1]])
     })
     print("OK")
+    print(rebuildMatrix(x))
     return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
     
     crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
