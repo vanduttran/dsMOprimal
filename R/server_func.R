@@ -450,21 +450,14 @@ pushValue <- function(value, name) {
 #' @param dsc A list of big memory descriptions
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
-#' @export
+#' @keywords internal
 sumMatrices <- function(x, dsc = NULL) {
     stopifnot(isSymmetric(x))
-    dsclist <- dsc #dsSwissKnife:::.decode.arg(dsc)
-    print(length(dsclist))
-    print(names(dsclist))
-    print(x)
-    dscmat <- lapply(dsclist, function(dscblocks) {
+    dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
         stopifnot(isSymmetric(y))
         return (y)
     })
-    print('Here')
-    print(c(list(x), dscmat))
-    print(Reduce("+", c(list(x), dscmat)))
     return (Reduce("+", c(list(x), dscmat)))
 }
 
@@ -491,7 +484,8 @@ sumMatrices <- function(x, dsc = NULL) {
 
 #' @title Federated covariance matrix
 #' @description Compute the covariance matrix for the virtual cohort
-#' @param logins Login information of the servers containing cohort data
+#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
+#' @param logins Login information of other servers containing cohort data
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
@@ -523,57 +517,20 @@ federateCov <- function(x, loginFD, logins, querytab, queryvar) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    print("OK")
-    print(rebuildMatrix(x))
     return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
-    
-    crossProdSelf <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
-        print(dscblocks)
-        return (as.matrix(attach.big.matrix(dscblocks[[1]]))) ## it is on server3, cannot read memory on server1!!!
-        ## retrieve the blocks as matrices: on FD
-        matblocks <- lapply(dscblocks[[1]], function(dscblock) {
-            lapply(dscblock, function(dsc) {
-                as.matrix(attach.big.matrix(dsc))
-            })
-        })
-        uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        ## combine the blocks into one matrix
-        if (length(uptcp)>1) {
-            ## without the first layer of blocks
-            no1tcp <- lapply(2:length(uptcp), function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
-            ## with the first layer of blocks
-            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-        } else {
-            tcp <- uptcp[[1]]
-        }
-        stopifnot(isSymmetric(tcp))
-        return (tcp)
-    })
-    gc(reset=F)
-    return (crossProdSelf)
-    # logindata.FD <- logindata[logindata$server == nameFD, , drop=F]
-    # logindata.FD$user <- logindata.FD$userserver
-    # logindata.FD$password <- logindata.FD$passwordserver
-    # ##- received by FD from other nodes ----
-    # invisible(mclapply(setdiff(names(opals), nameFD), mc.cores=1, function(opn) {
-    #     opals.loc <- paste0("crossLogin('", .encode.arg(logindata.FD), "')")
-    #     datashield.assign(opals[opn], 'mates', as.symbol(opals.loc), async=F)
-    #     
-    #     command.opn <- paste0("crossAggregate(mates, '", 
-    #                           .encode.arg(paste0("as.call(list(as.symbol('pushValue'), dsSSCP:::.encode.arg(crossProdSelf), dsSSCP:::.encode.arg('", opn, "')))")), 
-    #                           "', async=F)")
-    #     cat("Command: ", command.opn, "\n")
-    #     print(datashield.assign(opals[opn], "pidMate", as.symbol(command.opn), async=F))
-    # }))
-    # datashield.symbols(opals)
-    
-    #-----
-    
-    
 }
 
 
+#' @title Federated PCA
+#' @description Perform the principal component analysis for the virtual cohort
+#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
+#' @param logins Login information of other servers containing cohort data
+#' @param querytab Encoded name of a table reference in data repositories
+#' @param queryvar Encoded variables from the table reference
+#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @import DSI parallel bigmemory
+#' @export
+federatePCA <- function(x, loginFD, logins, querytab, queryvar) {
+    covmat <- federateCov(x, loginFD, logins, querytab, queryvar)
+    return (princomp(covmat=covmat))
+}
