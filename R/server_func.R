@@ -146,19 +146,28 @@ crossProd <- function(x, y = NULL) {
 #' @param y A list of numeric matrices. Default, y = x.
 #' @return \code{t(x) \%*\% y}
 #' @export
-crossProdnew <- function(x, y = NULL, chunk=500) {
+crossProdnew <- function(x, y = NULL, chunk = 500) {
+    nblocks <- ceiling(ncol(x)/chunk)
+    sepblocks <- rep(ceiling(ncol(x)/nblocks), nblocks-1)
+    sepblocks <- c(sepblocks, ncol(x) - sum(sepblocks))
     if (is.null(y)) {
-        nblocks <- ceiling(ncol(x)/chunk)
-        sepblocks <- rep(ceiling(ncol(x)/nblocks), nblocks-1)
-        sepblocks <- c(sepblocks, ncol(x) - sum(sepblocks))
         tcpblocks <- partitionMatrix(crossprod(x), sep=sepblocks)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
             }))
         }))
+    } else {
+        return (lapply(y, function(yy) {
+            tcpblocks <- partitionMatrix(crossprod(x, yy), sep=sepblocks)
+            return (lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    .encode.arg(tcp)
+                }))
+            }))
+        }))
     }
-    return (lapply(y, function(yy) .encode.arg(matrix(crossprod(x, yy)))))
+    #return (lapply(y, function(yy) .encode.arg(matrix(crossprod(x, yy)))))
 }
 
 
@@ -277,13 +286,6 @@ pushSymmMatrix <- function(value) {
     return (dscbigmatrix)
 }
 
-    
-#' @title 
-pushTCrossProd <- function(x, y = NULL) {
-    if (is.null(y)) return (tcrossprod(x))
-    return (lapply(y, function(yy) matrix(tcrossprod(x, yy))))
-}
-
 
 #' @title Matrix triple product
 #'
@@ -364,8 +366,8 @@ crossLogin <- function(logins) {
 #' Cross aggregate
 #' @param opal A list of opal objects.
 #' @param expr An encoded expression to evaluate.
-#' @param wait See DSI::datashield.aggreate options. Default: FALSE.
-#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @param wait See DSI::datashield.aggregate options. Default: FALSE.
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
 #crossAggregate <- function(opal, expr, wait = F, async = T) {
@@ -395,7 +397,7 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
 #' @description Description of a pushed value
 #' @param opal A list of opal objects.
 #' @param expr An encoded expression to evaluate.
-#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @return Returned value of given expression on opal
 #' @import DSI
 #' @export
@@ -412,10 +414,10 @@ dscPush <- function(opal, expr, async = T) {
 #' Cross assign 
 #' @param opal A list of opal objects.
 #' @param symbol Name of an R symbol.
-#' @param value A variable name or an R epxression with allowed assign function calls.
+#' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
-#' @param wait See DSI::datashield.aggreate options. Default: FALSE.
-#' @param async See DSI::datashield.aggreate options. Default: TRUE.
+#' @param wait See DSI::datashield.aggregate options. Default: FALSE.
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
 crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
@@ -446,7 +448,6 @@ pushValue <- function(value, name) {
 
 #' @title Sum matrices
 #' @description Compute the sum of a matrix and those stored in bigmemory
-#' @param x A symmetric matrix
 #' @param dsc A list of big memory descriptions
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
@@ -489,7 +490,6 @@ sumMatrices <- function(dsc = NULL) {
 }
 
 
-## TODO make x internal
 #' @title Federated covariance matrix
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
@@ -499,7 +499,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @import DSI parallel bigmemory
 #' @export
-federateCov <- function(loginFD, logins, querytab, queryvar) {
+federateCov1 <- function(loginFD, logins, querytab, queryvar) {
     require(DSOpal)
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
@@ -525,12 +525,49 @@ federateCov <- function(loginFD, logins, querytab, queryvar) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    #return (sumMatrices(rebuildMatrix(x), crossProdSelfDSC))
+    return (sumMatrices(crossProdSelfDSC))
+}
+federateCov <- function(loginFD, logins, querytable, queryvariables) {
+    require(DSOpal)
+    stopifnot((length(queryvariables)==1 || length(queryvariables)==2) && (length(querytable)==1 || length(querytable)==2))
+    if (length(querytable)==1) querytable <- rep(querytable, length(queryvariables))
+    
+    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    
+    #querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    #queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    
+    ## assign Cov matrix on each individual server
+    opals <- DSI::datashield.login(logins=logindata)
+    nNode <- length(opals)
+    if (length(queryvariables)==1) {
+        DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+    } else {
+        DSI::datashield.assign(opals, "rawData1", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "centeredData1", as.symbol('center(rawData1)'), async=T)
+        DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData1, list(centeredData2), chunk=50)'), async=T)
+    }
+    
+    ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
+    loginFDdata$user     <- loginFDdata$userserver
+    loginFDdata$password <- loginFDdata$passwordserver
+    DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
+    command <- paste0("dscPush(FD, '", 
+                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                      "', async=T)")
+    cat("Command: ", command, "\n")
+    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
+    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+        return (dscblocks[[1]])
+    })
     return (sumMatrices(crossProdSelfDSC))
 }
 
-
-## TODO make x internal
 #' @title Federated PCA
 #' @description Perform the principal component analysis for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
@@ -541,30 +578,31 @@ federateCov <- function(loginFD, logins, querytab, queryvar) {
 #' @import DSI parallel bigmemory
 #' @export
 federatePCA <- function(loginFD, logins, querytab, queryvar) {
-    covmat <- federateCov(loginFD, logins, querytab, queryvar)
+    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
+    covmat <- federateCov(loginFD, logins, querytable, queryvariables)
     return (princomp(covmat=covmat))
 }
 
 
 #' @title Federated RCCA
 #' @description Perform the regularized canonical correlation analysis for the virtual cohort
-#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
-#' @param logins Login information of other servers containing cohort data
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar List of two vectors of encoded variables from the table reference
-#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @param loginFD Login information of the FD server (one of the servers containing cohort data).
+#' @param logins Login information of servers containing cohort data.
+#' @param querytab Encoded value of a vector containing names of one or two table references in data repositories. If one, 
+#' the variables will be taken from the common table. Otherwise, the two sets of variables 
+#' will be taken from corresponding tables.
+#' @param queryvar Encoded value of a list of two variable sets from the table references.
 #' @import DSI parallel bigmemory
 #' @keywords internal
 federateRCCA <- function(x, loginFD, logins, querytab, queryvar) {
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     stopifnot(length(queryvariables)==2 && (length(querytable)==1 || length(querytable)==2))
-
+    ## if only one table is given, it is duplicated
+    if (length(querytable)==1) querytable <- rep(querytable, 2)
     XX <- lapply(1:2, function(i) {
-        federateCov(loginFD,
-                    logins,
-                    ifelse(length(querytable)==2, querytable[i], querytable[1]),
-                    .encode.arg(queryvariables[[i]]))
+        federateCov(loginFD, logins, .encode.arg(querytable[i]), .encode.arg(queryvariables[[i]]))
     })
 
     
