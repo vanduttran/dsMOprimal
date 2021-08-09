@@ -577,7 +577,8 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' will be taken from corresponding tables.
 #' @param queryvar Encoded value of a list of two variable sets from the table references.
 #' @return RCCA object
-#' @import DSI parallel bigmemory CCA
+#' @import DSI parallel bigmemory
+#' @importFrom fda geigen
 #' @export
 federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
@@ -589,7 +590,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     #return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
-    res <- geigen(Cxy, Cxx, Cyy)
+    res <- fda::geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
     return (res)
 }
