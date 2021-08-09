@@ -603,6 +603,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
+    return(list(Cxx=Cxx, Cyy=Cyy))
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
     res <- geigen(Cxy, Cxx, Cyy)
