@@ -494,8 +494,8 @@ sumMatrices <- function(dsc = NULL) {
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar Encoded variables from the table reference
+#' @param querytable Name of table references in data repositories
+#' @param queryvariables List of variable sets from the table references.
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
@@ -570,8 +570,8 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
 #' @description Perform the principal component analysis for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
-#' @param querytab Encoded name of a table reference in data repositories
-#' @param queryvar Encoded variables from the table reference
+#' @param querytab Encoded name of a table reference in data repositories.
+#' @param queryvar Encoded value of a list of a variable set from the table references.
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
 #' @return PCA object
 #' @import DSI parallel bigmemory
@@ -601,8 +601,8 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
-    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[[1]])
-    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[[2]])
+    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
+    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     res <- geigen(Cxy, Cxx, Cyy)
