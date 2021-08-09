@@ -80,14 +80,19 @@ center <- function(x, na.rm = FALSE) {
 #' @return List of blocks
 #' @import parallel
 #' @keywords internal
-partitionMatrix <- function(x, sep) {
-    cssep <- cumsum(sep)
-    ind <- mclapply(1:length(sep), mc.cores=min(length(sep), detectCores()),  function(i) {
-        return (c(ifelse(i==1, 0, cssep[i-1])+1, cssep[i]))
+partitionMatrix <- function(x, seprow, sepcol=seprow) {
+    stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
+    csseprow <- cumsum(seprow)
+    indrow <- mclapply(1:length(seprow), mc.cores=min(length(seprow), detectCores()),  function(i) {
+        return (c(ifelse(i==1, 0, csseprow[i-1])+1, csseprow[i]))
     })
-    parMat <- mclapply(1:length(ind), mc.cores=min(length(sep), detectCores()), function(i) {
-        lapply(i:length(ind), function(j) {
-            return (x[ind[[i]][1]:ind[[i]][2], ind[[j]][1]:ind[[j]][2]])
+    cssepcol <- cumsum(sepcol)
+    indcol <- mclapply(1:length(sepcol), mc.cores=min(length(sepcol), detectCores()),  function(i) {
+        return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
+    })
+    parMat <- mclapply(1:length(indrow), mc.cores=min(length(sepcol), detectCores()), function(i) {
+        lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
+            return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
         })
     })
     return (parMat)
@@ -147,11 +152,11 @@ crossProd <- function(x, y = NULL) {
 #' @return \code{t(x) \%*\% y}
 #' @export
 crossProdnew <- function(x, y = NULL, chunk = 500) {
-    nblocks <- ceiling(ncol(x)/chunk)
-    sepblocks <- rep(ceiling(ncol(x)/nblocks), nblocks-1)
-    sepblocks <- c(sepblocks, ncol(x) - sum(sepblocks))
+    nblocksrow <- ceiling(ncol(x)/chunk)
+    sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
+    sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
     if (is.null(y)) {
-        tcpblocks <- partitionMatrix(crossprod(x), sep=sepblocks)
+        tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -159,7 +164,10 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
         }))
     } else {
         return (lapply(y, function(yy) {
-            tcpblocks <- partitionMatrix(crossprod(x, yy), sep=sepblocks)
+            nblockscol <- ceiling(ncol(yy)/chunk)
+            sepblockscol <- rep(ceiling(ncol(yy)/nblockscol), nblockscol-1)
+            sepblockscol <- c(sepblockscol, ncol(yy) - sum(sepblockscol))
+            tcpblocks <- partitionMatrix(crossprod(x, yy), seprow=sepblocksrow, sepcol=sepblockscol)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     .encode.arg(tcp)
@@ -167,7 +175,6 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
             }))
         }))
     }
-    #return (lapply(y, function(yy) .encode.arg(matrix(crossprod(x, yy)))))
 }
 
 
@@ -177,17 +184,12 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
 #' @param y A list of numeric matrices. Default, y = x.
 #' @return \code{x \%*\% t(y)}
 #' @export
-tcrossProd <- function(x, y = NULL, chunk=500) {
-    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
-    ##     stop("x should be a matrix with two dimensions higher than 10.")
-    ## }
-    #yd <- dsSwissKnife:::.decode.arg(y)
-    #if (is.null(y)) return (tcrossprod(x))
+tcrossProd <- function(x, y = NULL, chunk = 500) {
     if (is.null(y)) {
         nblocks <- ceiling(nrow(x)/chunk)
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-        tcpblocks <- partitionMatrix(tcrossprod(x), sep=sepblocks)
+        tcpblocks <- partitionMatrix(tcrossprod(x), seprow=sepblocks)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -212,15 +214,19 @@ rebuildMatrix <- function(blocks) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
-        ## without the first layer of blocks
-        no1tcp <- lapply(2:length(uptcp), function(i) {
-            cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                t(matblocks[[j]][[i-j+1]])
-            })), uptcp[[i]])
-        })
-        ## with the first layer of blocks
-        tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-        rm(list=c("no1tcp"))
+        if (length(unique(sapply(uptcp, ncol)))==1) {
+            tcp <- do.call(rbind, uptcp)
+        } else {
+            ## without the first layer of blocks
+            no1tcp <- lapply(2:length(uptcp), function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+            rm(list=c("no1tcp"))
+        }
     } else {
         tcp <- uptcp[[1]]
     }
@@ -279,7 +285,7 @@ pushSymmMatrix <- function(value) {
         #     tcp <- uptcp[[1]]
         # }
         tcp <- rebuildMatrix(valued)
-        stopifnot(isSymmetric(tcp))
+        #stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
     }
@@ -464,7 +470,7 @@ sumMatrices1 <- function(x, dsc = NULL) {
 sumMatrices <- function(dsc = NULL) {
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
-        stopifnot(isSymmetric(y))
+        #stopifnot(isSymmetric(y))
         return (y)
     })
     return (Reduce("+", dscmat))
@@ -603,7 +609,6 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
-    return(list(Cxx=Cxx, Cyy=Cyy))
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
     res <- geigen(Cxy, Cxx, Cyy)
