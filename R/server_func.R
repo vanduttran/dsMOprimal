@@ -545,7 +545,9 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    return (sumMatrices(crossProdSelfDSC))
+    rescov <- sumMatrices(crossProdSelfDSC)
+    gc(reset=F)
+    return (rescov)
 }
 
 #' @title Federated PCA
