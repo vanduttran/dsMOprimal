@@ -81,6 +81,8 @@ center <- function(x, na.rm = FALSE) {
 #' @import parallel
 #' @keywords internal
 partitionMatrix <- function(x, seprow, sepcol=seprow) {
+    print("HERE")
+    print(x)
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
     indrow <- mclapply(1:length(seprow), mc.cores=min(length(seprow), detectCores()),  function(i) {
