@@ -82,6 +82,8 @@ center <- function(x, na.rm = FALSE) {
 #' @keywords internal
 partitionMatrix <- function(x, seprow, sepcol=seprow) {
     print("HERE")
+    print(class(x))
+    print(summary(x))
     print(x)
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
