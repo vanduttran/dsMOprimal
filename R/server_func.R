@@ -588,7 +588,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
-    return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
+    #return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
     res <- geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
     return (res)
