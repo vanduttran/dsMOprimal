@@ -21,13 +21,13 @@ crossAssign(
 
 \item{symbol}{Name of an R symbol.}
 
-\item{value}{A variable name or an R epxression with allowed assign function calls.}
+\item{value}{A variable name or an R expression with allowed assign function calls.}
 
 \item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
 
-\item{wait}{See DSI::datashield.aggreate options. Default: FALSE.}
+\item{wait}{See DSI::datashield.aggregate options. Default: FALSE.}
 
-\item{async}{See DSI::datashield.aggreate options. Default: TRUE.}
+\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
 Cross assign

@@ -13,9 +13,9 @@ crossAggregate(opal, expr, wait = F, async = T)
 
 \item{expr}{An encoded expression to evaluate.}
 
-\item{wait}{See DSI::datashield.aggreate options. Default: FALSE.}
+\item{wait}{See DSI::datashield.aggregate options. Default: FALSE.}
 
-\item{async}{See DSI::datashield.aggreate options. Default: TRUE.}
+\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
 Cross aggregate
