@@ -497,6 +497,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @export
 federateCov1 <- function(loginFD, logins, querytab, queryvar) {
@@ -529,14 +530,11 @@ federateCov1 <- function(loginFD, logins, querytab, queryvar) {
 }
 federateCov <- function(loginFD, logins, querytable, queryvariables) {
     require(DSOpal)
-    stopifnot((length(queryvariables)==1 || length(queryvariables)==2) && (length(querytable)==1 || length(querytable)==2))
+    stopifnot((length(queryvariables) %in% c(1,2)) && (length(querytable) %in% c(1,2)))
     if (length(querytable)==1) querytable <- rep(querytable, length(queryvariables))
     
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
-    
-    #querytable     <- dsSwissKnife:::.decode.arg(querytab)
-    #queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     
     ## assign Cov matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
@@ -575,6 +573,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
 #' @param querytab Encoded name of a table reference in data repositories
 #' @param queryvar Encoded variables from the table reference
 #' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @return PCA object
 #' @import DSI parallel bigmemory
 #' @export
 federatePCA <- function(loginFD, logins, querytab, queryvar) {
@@ -593,18 +592,18 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' the variables will be taken from the common table. Otherwise, the two sets of variables 
 #' will be taken from corresponding tables.
 #' @param queryvar Encoded value of a list of two variable sets from the table references.
-#' @import DSI parallel bigmemory
-#' @keywords internal
-federateRCCA <- function(x, loginFD, logins, querytab, queryvar) {
+#' @return RCCA object
+#' @import DSI parallel bigmemory CCA
+#' @export
+federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    stopifnot(length(queryvariables)==2 && (length(querytable)==1 || length(querytable)==2))
+    stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
-    XX <- lapply(1:2, function(i) {
-        federateCov(loginFD, logins, .encode.arg(querytable[i]), .encode.arg(queryvariables[[i]]))
-    })
-
+    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[[1]])
+    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[[2]])
+    Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     res <- geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
