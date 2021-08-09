@@ -163,18 +163,29 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
             }))
         }))
     } else {
-        return (lapply(y, function(yy) {
-            nblockscol <- ceiling(ncol(yy)/chunk)
-            sepblockscol <- rep(ceiling(ncol(yy)/nblockscol), nblockscol-1)
-            sepblockscol <- c(sepblockscol, ncol(yy) - sum(sepblockscol))
-            tcpblocks <- partitionMatrix(crossprod(x, yy), seprow=sepblocksrow, sepcol=sepblockscol)
-            return (lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp)
-                }))
+        nblockscol <- ceiling(ncol(y)/chunk)
+        sepblockscol <- rep(ceiling(ncol(y)/nblockscol), nblockscol-1)
+        sepblockscol <- c(sepblockscol, ncol(y) - sum(sepblockscol))
+        tcpblocks <- partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                .encode.arg(tcp)
             }))
         }))
     }
+    # else {
+    #     return (lapply(y, function(yy) {
+    #         nblockscol <- ceiling(ncol(yy)/chunk)
+    #         sepblockscol <- rep(ceiling(ncol(yy)/nblockscol), nblockscol-1)
+    #         sepblockscol <- c(sepblockscol, ncol(yy) - sum(sepblockscol))
+    #         tcpblocks <- partitionMatrix(crossprod(x, yy), seprow=sepblocksrow, sepcol=sepblockscol)
+    #         return (lapply(tcpblocks, function(tcpb) {
+    #             return (lapply(tcpb, function(tcp) {
+    #                 .encode.arg(tcp)
+    #             }))
+    #         }))
+    #     }))
+    # }
 }
 
 
@@ -242,9 +253,7 @@ rebuildMatrix <- function(blocks) {
 #' @return Description of the pushed value
 #' @export
 pushSymmMatrix <- function(value) {
-    print("symmetric")
     valued <- dsSwissKnife:::.decode.arg(value)
-    print("decoded")
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
         dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
@@ -458,15 +467,6 @@ pushValue <- function(value, name) {
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
 #' @keywords internal
-sumMatrices1 <- function(x, dsc = NULL) {
-    stopifnot(isSymmetric(x))
-    dscmat <- lapply(dsc, function(dscblocks) {
-        y <- as.matrix(attach.big.matrix(dscblocks))
-        stopifnot(isSymmetric(y))
-        return (y)
-    })
-    return (Reduce("+", c(list(x), dscmat)))
-}
 sumMatrices <- function(dsc = NULL) {
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
@@ -506,34 +506,6 @@ sumMatrices <- function(dsc = NULL) {
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @export
-federateCov1 <- function(loginFD, logins, querytab, queryvar) {
-    require(DSOpal)
-    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata      <- dsSwissKnife:::.decode.arg(logins)
-    querytable     <- dsSwissKnife:::.decode.arg(querytab)
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-
-    ## assign Cov matrix on each individual server
-    opals <- DSI::datashield.login(logins=logindata)
-    nNode <- length(opals)
-    DSI::datashield.assign(opals, "rawData", querytable, variables=queryvariables, async=T)
-    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
-    
-    ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
-    loginFDdata$user     <- loginFDdata$userserver
-    loginFDdata$password <- loginFDdata$passwordserver
-    DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
-    command <- paste0("dscPush(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
-                      "', async=T)")
-    cat("Command: ", command, "\n")
-    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
-        return (dscblocks[[1]])
-    })
-    return (sumMatrices(crossProdSelfDSC))
-}
 federateCov <- function(loginFD, logins, querytable, queryvariables) {
     require(DSOpal)
     stopifnot((length(queryvariables) %in% c(1,2)) && (length(querytable) %in% c(1,2)))
