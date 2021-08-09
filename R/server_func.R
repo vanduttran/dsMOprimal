@@ -530,7 +530,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
         DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
         DSI::datashield.assign(opals, "centeredData1", as.symbol('center(rawData1)'), async=T)
         DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData1, list(centeredData2), chunk=50)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData1, centeredData2, chunk=50)'), async=T)
     }
     
     ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
