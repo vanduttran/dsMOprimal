@@ -361,8 +361,7 @@ tripleProd <- function(x, pids) {
 
 
 #' @title Cross login
-#'
-#' Cross login # rather on client side
+#' @description Cross login
 #' @param logins An encoded dataframe with server, url, user, password, and driver fields.
 #' @export
 crossLogin <- function(logins) {
@@ -429,8 +428,7 @@ dscPush <- function(opal, expr, async = T) {
 
 
 #' @title Cross assign
-#'
-#' Cross assign 
+#' @description Cross assign 
 #' @param opal A list of opal objects.
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R expression with allowed assign function calls.
@@ -480,6 +478,7 @@ sumMatrices <- function(dsc = NULL) {
     return (Reduce("+", dscmat))
 }
 
+
 #' @title Encode function  arguments
 #' @description Serialize to JSON, then encode base64,
 #'  then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.
@@ -521,16 +520,17 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
     ## assign Cov matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
     nNode <- length(opals)
+    
+    DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
+    
     if (length(queryvariables)==1) {
-        DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
-        DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
         DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
     } else {
-        DSI::datashield.assign(opals, "rawData1", querytable[[1]], variables=queryvariables[[1]], async=T)
         DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
-        DSI::datashield.assign(opals, "centeredData1", as.symbol('center(rawData1)'), async=T)
         DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData1, centeredData2, chunk=50)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, centeredData2, chunk=50)'), async=T)
     }
     
     ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
@@ -545,10 +545,12 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
     crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
         return (dscblocks[[1]])
     })
-    rescov <- sumMatrices(crossProdSelfDSC)
+    rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
     gc(reset=F)
+    
     return (rescov)
 }
+
 
 #' @title Federated PCA
 #' @description Perform the principal component analysis for the virtual cohort
