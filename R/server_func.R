@@ -81,10 +81,6 @@ center <- function(x, na.rm = FALSE) {
 #' @import parallel
 #' @keywords internal
 partitionMatrix <- function(x, seprow, sepcol=seprow) {
-    print("HERE")
-    print(class(x))
-    print(summary(x))
-    print(x)
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
     indrow <- mclapply(1:length(seprow), mc.cores=min(length(seprow), detectCores()),  function(i) {
@@ -113,19 +109,20 @@ singularProd <- function(x) {
 }
 
 
+## TOCHECK: check y, check number of queries for security issue
 #' @title Loadings
-#' 
-#' Loadings of features in a new feature basis
+#' @description Loadings of features in a new feature basis
 #' @param x A numeric matrix
 #' @param y A numeric matrix for the new basis of the same nrow to x.
 #' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
 #' @return operator(x, y)
 #' @export
 loadings <- function(x, y, operator = 'crossprod') {
-    stopifnot(operator %in% c('crossprod', 'cor'))
+    stopifnot(operator %in% c('crossprod', 'cor', "prod"))
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
     if (operator=='cor') return(cor(x, yd))
+    if (operator=='prod') return(crossprod(t(x), yd))
     return (crossprod(x, yd))
 }
 
@@ -591,8 +588,71 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
-    #return(list(Cxx=Cxx, Cyy=Cyy, Cxy=Cxy))
+    
+    ## CCA core call
     res <- fda::geigen(Cxy, Cxx, Cyy)
+    
     names(res) <- c("cor", "xcoef", "ycoef")
+    rownames(res$xcoef) <- queryvariables[[1]]
+    rownames(res$ycoef) <- queryvariables[[2]]
+    res$names <- NULL
+    
+    ## canonical covariates
+    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    
+    ## assign Cov matrix on each individual server
+    opals <- DSI::datashield.login(logins=logindata)
+    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
+    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+    
+
+    ## loadings
+    cvx <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                    as.symbol("centeredDatax"),
+                                                    .encode.arg(res$xcoef),
+                                                    as.symbol("prod"))), async=T)
+    cvy <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                    as.symbol("centeredDatay"),
+                                                    .encode.arg(res$ycoef),
+                                                    as.symbol("prod"))), async=T)
+    xxscores <- lapply(names(opals), function(opn) {
+        xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+                                                            as.symbol("centeredDatax"),
+                                                            .encode.arg(cvx[[opn]]),
+                                                            as.symbol("crossprod"))), 
+                                   async=T)
+        return (xx[[1]])
+    })
+    yxscores <- lapply(names(opals), function(opn) {
+        yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+                                                            as.symbol("centeredDatay"),
+                                                            .encode.arg(cvx[[opn]]),
+                                                            as.symbol("crossprod"))), 
+                                   async=T)
+        return (yx[[1]])
+    })
+    xyscores <- lapply(names(opals), function(opn) {
+        xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+                                                            as.symbol("centeredDatax"),
+                                                            .encode.arg(cvy[[opn]]),
+                                                            as.symbol("crossprod"))), 
+                                   async=T)
+        return (xy[[1]])
+    })
+    yyscores <- lapply(names(opals), function(opn) {
+        yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+                                                            as.symbol("centeredDatay"),
+                                                            .encode.arg(cvy[[opn]]),
+                                                            as.symbol("crossprod"))), 
+                                   async=T)
+        return (yy[[1]])
+    })
+    res$scores <- list(corr.X.xscores=xxscores,
+                       corr.Y.xscores=yxscores,
+                       corr.X.yscores=xyscores,
+                       corr.Y.yscores=yyscores)
     return (res)
 }
