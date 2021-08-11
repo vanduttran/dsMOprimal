@@ -607,7 +607,6 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
     DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
     DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
-    return (res)
 
     ## loadings
     cvx <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
@@ -618,6 +617,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                                     as.symbol("centeredDatay"),
                                                     .encode.arg(res$ycoef),
                                                     as.symbol("prod"))), async=T)
+    return (res)
     xxscores <- lapply(names(opals), function(opn) {
         xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatax"),
