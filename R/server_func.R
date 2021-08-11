@@ -83,14 +83,14 @@ center <- function(x, na.rm = FALSE) {
 partitionMatrix <- function(x, seprow, sepcol=seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
-    indrow <- mclapply(1:length(seprow), mc.cores=min(length(seprow), detectCores()),  function(i) {
+    indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
         return (c(ifelse(i==1, 0, csseprow[i-1])+1, csseprow[i]))
     })
     cssepcol <- cumsum(sepcol)
-    indcol <- mclapply(1:length(sepcol), mc.cores=min(length(sepcol), detectCores()),  function(i) {
+    indcol <- mclapply(1:length(sepcol), mc.cores=max(2, min(length(sepcol), detectCores())),  function(i) {
         return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
     })
-    parMat <- mclapply(1:length(indrow), mc.cores=min(length(sepcol), detectCores()), function(i) {
+    parMat <- mclapply(1:length(indrow), mc.cores=max(2,min(length(sepcol), detectCores())), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
             return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
         })
@@ -118,18 +118,18 @@ singularProd <- function(x) {
 #' @return operator(x, y)
 #' @export
 loadings <- function(x, y, operator = 'crossprod') {
-    stopifnot(operator %in% c('crossprod', 'cor', "prod"))
+    operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
-    if (operator=='cor') return(cor(x, yd))
-    if (operator=='prod') return(crossprod(t(x), yd))
-    return (crossprod(x, yd))
+    return (switch(operator,
+           cor=cor(x, yd),
+           prod=crossprod(t(x), yd),
+           crossprod=crossprod(x, yd)))
 }
 
 
 #' @title Matrix cross product
-#' 
-#' Calculates the cross product t(x) \%*\% x
+#' @description Calculates the cross product t(x) \%*\% x
 #' @param x A numeric matrix
 #' @return t(x) \%*\% x
 #' @export
@@ -257,7 +257,7 @@ pushSymmMatrix <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
-        dscbigmatrix <- mclapply(valued, mc.cores=min(length(valued), detectCores()), function(x) {
+        dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
             x.mat <- do.call(rbind, x)
             stopifnot(ncol(x.mat)==1)
             return (describe(as.big.matrix(x.mat)))
@@ -539,7 +539,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables) {
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=min(length(crossProdSelfDSC), detectCores()), function(dscblocks) {
+    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
         return (dscblocks[[1]])
     })
     rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
@@ -579,18 +579,42 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @export
-federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0) {
+federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, Mfold = 0) {
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
+    
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     
+    ## assign centered data on each individual server
+    opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
+    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+    sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+    sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+    stopifnot(all(sizex==sizey))
+    
+    ## covariance matrices for the virtual cohort
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
-    Cxx <- Cxx + diag(lambda1, ncol(Cxx))
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
-    Cyy <- Cyy + diag(lambda2, ncol(Cyy))
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
+    
+    ## estimating the parameters of regularization
+    if (Mfold > 1) {
+        folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
+        for (m in 1:Mfold) {
+            omit <- folds[[m]]
+            result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE], 
+                         ncomp = 1, lambda1, lambda2, method = "ridge")
+        }
+    }
+    
+    ## add parameters of regularization
+    Cxx <- Cxx + diag(lambda1, ncol(Cxx))
+    Cyy <- Cyy + diag(lambda2, ncol(Cyy))
     
     ## CCA core call
     res <- fda::geigen(Cxy, Cxx, Cyy)
@@ -599,27 +623,16 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     rownames(res$xcoef) <- queryvariables[[1]]
     rownames(res$ycoef) <- queryvariables[[2]]
     res$names <- NULL
-    
-    
-    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata      <- dsSwissKnife:::.decode.arg(logins)
-    
-    ## assign Cov matrix on each individual server
-    opals <- DSI::datashield.login(logins=logindata)
-    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
-    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
-    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
 
     ## canonical covariates
     cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                    as.symbol("centeredDatax"),
-                                                    .encode.arg(res$xcoef),
-                                                    "prod")), async=T))
+                                                                   as.symbol("centeredDatax"),
+                                                                   .encode.arg(res$xcoef),
+                                                                   "prod")), async=T))
     cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                    as.symbol("centeredDatay"),
-                                                    .encode.arg(res$ycoef),
-                                                    "prod")), async=T))
+                                                                   as.symbol("centeredDatay"),
+                                                                   .encode.arg(res$ycoef),
+                                                                   "prod")), async=T))
 
     ## loadings: correlation between raw data and canonical covariates
     ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
