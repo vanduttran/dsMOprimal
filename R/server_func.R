@@ -587,9 +587,9 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
-    Cxx <- Cxx + diag(lambdata1, ncol(Cxx))
+    Cxx <- Cxx + diag(lambda1, ncol(Cxx))
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
-    Cyy <- Cyy + diag(lambdata2, ncol(Cyy))
+    Cyy <- Cyy + diag(lambda2, ncol(Cyy))
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     ## CCA core call
