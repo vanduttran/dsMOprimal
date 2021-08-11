@@ -609,16 +609,16 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
 
     ## loadings
-    cvx <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+    cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatax"),
                                                     .encode.arg(res$xcoef),
-                                                    "prod")), async=T)
-    cvy <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                    "prod")), async=T))
+    cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatay"),
                                                     .encode.arg(res$ycoef),
-                                                    "prod")), async=T)
-    print(class(cvx[[1]]))
-    print(dim(cvx[[1]]))
+                                                    "prod")), async=T))
+    #print(class(cvx[[1]]))
+    #print(dim(cvx[[1]]))
     # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
@@ -630,8 +630,8 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     ## cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
     invdiagcovx <- diag(1/sqrt(diag(Cxx)))
     invdiagcovy <- diag(1/sqrt(diag(Cyy)))
-    invdiagcovcvx <- diag(1/sqrt(diag(cov(do.call(rbind(cvx))))))
-    invdiagcovcvy <- diag(1/sqrt(diag(cov(do.call(rbind(cvy))))))
+    invdiagcovcvx <- diag(1/sqrt(diag(cov(cvx))))
+    invdiagcovcvy <- diag(1/sqrt(diag(cov(cvy))))
     
     xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
     # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
@@ -661,9 +661,12 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     #     return (yy[[1]])
     # }))
     yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
-    res$scores <- list(corr.X.xscores=xxscores,
+    res$scores <- list(xscores=cvx,
+                       yscores=cvy,
+                       corr.X.xscores=xxscores,
                        corr.Y.xscores=yxscores,
                        corr.X.yscores=xyscores,
                        corr.Y.yscores=yyscores)
+    
     return (res)
 }
