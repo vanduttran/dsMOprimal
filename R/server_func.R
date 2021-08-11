@@ -619,38 +619,48 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                                     "prod")), async=T)
     print(class(cvx[[1]]))
     print(dim(cvx[[1]]))
-    xxscores <- lapply(names(opals), function(opn) {
-        xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
-                                                            as.symbol("centeredDatax"),
-                                                            .encode.arg(cvx[[opn]]),
-                                                            "crossprod")), 
-                                   async=T)
-        return (xx[[1]])
-    })
-    yxscores <- lapply(names(opals), function(opn) {
-        yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
-                                                            as.symbol("centeredDatay"),
-                                                            .encode.arg(cvx[[opn]]),
-                                                            "crossprod")),
-                                   async=T)
-        return (yx[[1]])
-    })
-    xyscores <- lapply(names(opals), function(opn) {
-        xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
-                                                            as.symbol("centeredDatax"),
-                                                            .encode.arg(cvy[[opn]]),
-                                                            "crossprod")),
-                                   async=T)
-        return (xy[[1]])
-    })
-    yyscores <- lapply(names(opals), function(opn) {
-        yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
-                                                            as.symbol("centeredDatay"),
-                                                            .encode.arg(cvy[[opn]]),
-                                                            "crossprod")),
-                                   async=T)
-        return (yy[[1]])
-    })
+    # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
+    #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+    #                                                         as.symbol("centeredDatax"),
+    #                                                         .encode.arg(cvx[[opn]]),
+    #                                                         "crossprod")), 
+    #                                async=T)
+    #     return (xx[[1]])
+    # }))
+    ## cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
+    invdiagcovx <- diag(1/sqrt(diag(Cxx)))
+    invdiagcovy <- diag(1/sqrt(diag(Cyy)))
+    invdiagcovcvx <- diag(1/sqrt(diag(cov(do.call(rbind(cvx))))))
+    invdiagcovcvy <- diag(1/sqrt(diag(cov(do.call(rbind(cvy))))))
+    
+    xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
+    # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
+    #     yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+    #                                                         as.symbol("centeredDatay"),
+    #                                                         .encode.arg(cvx[[opn]]),
+    #                                                         "crossprod")),
+    #                                async=T)
+    #     return (yx[[1]])
+    # }))
+    yxscores <- invdiagcovy %*% t(Cxy) %*% res$xcoef %*% invdiagcovcvx
+    # xyscores <- Reduce('+', lapply(names(opals), function(opn) {
+    #     xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+    #                                                         as.symbol("centeredDatax"),
+    #                                                         .encode.arg(cvy[[opn]]),
+    #                                                         "crossprod")),
+    #                                async=T)
+    #     return (xy[[1]])
+    # }))
+    xyscores <- invdiagcovx %*% Cxy %*% res$ycoef %*% invdiagcovcvy
+    # yyscores <- Reduce('+', lapply(names(opals), function(opn) {
+    #     yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+    #                                                         as.symbol("centeredDatay"),
+    #                                                         .encode.arg(cvy[[opn]]),
+    #                                                         "crossprod")),
+    #                                async=T)
+    #     return (yy[[1]])
+    # }))
+    yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
     res$scores <- list(corr.X.xscores=xxscores,
                        corr.Y.xscores=yxscores,
                        corr.X.yscores=xyscores,
