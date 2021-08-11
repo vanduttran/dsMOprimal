@@ -579,14 +579,17 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @export
-federateRCCA <- function(loginFD, logins, querytab, queryvar) {
+federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0) {
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
+    
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
+    Cxx <- Cxx + diag(lambdata1, ncol(Cxx))
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
+    Cyy <- Cyy + diag(lambdata2, ncol(Cyy))
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     ## CCA core call
@@ -597,7 +600,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     rownames(res$ycoef) <- queryvariables[[2]]
     res$names <- NULL
     
-    ## canonical covariates
+    
     loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
     logindata      <- dsSwissKnife:::.decode.arg(logins)
     
@@ -608,7 +611,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
     DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
 
-    ## loadings
+    ## canonical covariates
     cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatax"),
                                                     .encode.arg(res$xcoef),
@@ -617,22 +620,21 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                                     as.symbol("centeredDatay"),
                                                     .encode.arg(res$ycoef),
                                                     "prod")), async=T))
-    #print(class(cvx[[1]]))
-    #print(dim(cvx[[1]]))
-    # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
-    #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
-    #                                                         as.symbol("centeredDatax"),
-    #                                                         .encode.arg(cvx[[opn]]),
-    #                                                         "crossprod")), 
-    #                                async=T)
-    #     return (xx[[1]])
-    # }))
-    ## cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
+
+    ## loadings: correlation between raw data and canonical covariates
+    ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
     invdiagcovx <- diag(1/sqrt(diag(Cxx)))
     invdiagcovy <- diag(1/sqrt(diag(Cyy)))
     invdiagcovcvx <- diag(1/sqrt(diag(cov(cvx))))
     invdiagcovcvy <- diag(1/sqrt(diag(cov(cvy))))
-    
+    # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
+    #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
+    #                                                         as.symbol("centeredDatax"),
+    #                                                         .encode.arg(cvx[[opn]]), ## cvx obtained without rbind
+    #                                                         "crossprod")), 
+    #                                async=T)
+    #     return (xx[[1]])
+    # }))
     xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
     # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
@@ -646,7 +648,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     # xyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
-    #                                                         .encode.arg(cvy[[opn]]),
+    #                                                         .encode.arg(cvy[[opn]]), ## cvy obtained without rbind
     #                                                         "crossprod")),
     #                                async=T)
     #     return (xy[[1]])
@@ -661,6 +663,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     #     return (yy[[1]])
     # }))
     yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
+    
     res$scores <- list(xscores=cvx,
                        yscores=cvy,
                        corr.X.xscores=xxscores,
