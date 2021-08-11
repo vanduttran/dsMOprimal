@@ -612,7 +612,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
     cvx <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatax"),
                                                     .encode.arg(res$xcoef),
-                                                    as.symbol("prod"))), async=T)
+                                                    "prod")), async=T)
     return (cvx)
     cvy <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatay"),
