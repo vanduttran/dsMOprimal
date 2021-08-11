@@ -617,7 +617,8 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                                     as.symbol("centeredDatay"),
                                                     .encode.arg(res$ycoef),
                                                     as.symbol("prod"))), async=T)
-    return (res)
+    print(class(cvx[[1]]))
+    print(dim(cvx[[1]]))
     xxscores <- lapply(names(opals), function(opn) {
         xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatax"),
@@ -626,6 +627,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                    async=T)
         return (xx[[1]])
     })
+    return (cvx)
     yxscores <- lapply(names(opals), function(opn) {
         yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatay"),
