@@ -613,27 +613,25 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
                                                     as.symbol("centeredDatax"),
                                                     .encode.arg(res$xcoef),
                                                     "prod")), async=T)
-    return (cvx)
     cvy <- datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                     as.symbol("centeredDatay"),
                                                     .encode.arg(res$ycoef),
-                                                    as.symbol("prod"))), async=T)
+                                                    "prod")), async=T)
     print(class(cvx[[1]]))
     print(dim(cvx[[1]]))
     xxscores <- lapply(names(opals), function(opn) {
         xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatax"),
                                                             .encode.arg(cvx[[opn]]),
-                                                            as.symbol("crossprod"))), 
+                                                            "crossprod")), 
                                    async=T)
         return (xx[[1]])
     })
-    
     yxscores <- lapply(names(opals), function(opn) {
         yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatay"),
                                                             .encode.arg(cvx[[opn]]),
-                                                            as.symbol("crossprod"))), 
+                                                            "crossprod")),
                                    async=T)
         return (yx[[1]])
     })
@@ -641,7 +639,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
         xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatax"),
                                                             .encode.arg(cvy[[opn]]),
-                                                            as.symbol("crossprod"))), 
+                                                            "crossprod")),
                                    async=T)
         return (xy[[1]])
     })
@@ -649,7 +647,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar) {
         yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
                                                             as.symbol("centeredDatay"),
                                                             .encode.arg(cvy[[opn]]),
-                                                            as.symbol("crossprod"))), 
+                                                            "crossprod")),
                                    async=T)
         return (yy[[1]])
     })
