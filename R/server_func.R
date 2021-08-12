@@ -65,9 +65,12 @@ center <- function(x, subset = NULL, na.rm = FALSE) {
     } else {
         y[is.na(y)] <- 0
     }
+    ## ordering
     y <- y[order(rownames(y)), ]
     y <- head(y, 101) # TOREMOVE
-    if (!is.null(subset)) y <- y[dsSwissKnife:::.decode.arg(subset), , drop=F]
+    ## subseting
+    subset <- dsSwissKnife:::.decode.arg(subset)
+    if (!is.null(subset)) y <- y[subset, , drop=F]
     
     return (scale(y, center=TRUE, scale=FALSE))
 }
@@ -506,7 +509,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @param logins Login information of other servers containing cohort data
 #' @param querytable Name of table references in data repositories
 #' @param queryvariables List of variable sets from the table references
-#' @param querysubset Encoded value of an index vector indicating the subset of individuals to consider. 
+#' @param querysubset An index vector indicating the subset of individuals to consider. 
 #' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
@@ -523,7 +526,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
     opals <- DSI::datashield.login(logins=logindata)
     DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
     #DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    DSI::datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset='", querysubset, "')")), async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset), "')")), async=T)
     size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
     
     if (length(queryvariables)==1) {
@@ -608,15 +611,15 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     ## estimating the parameters of regularization
-    # if (Mfold > 1) {
-    #     folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
-    #     for (m in 1:Mfold) {
-    #         omit <- folds[[m]]
-    #         
-    #         result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE], 
-    #                      ncomp = 1, lambda1, lambda2, method = "ridge")
-    #     }
-    # }
+    if (Mfold > 1) {
+        folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
+        for (m in 1:Mfold) {
+            omit <- folds[[m]]
+
+            result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE],
+                         ncomp = 1, lambda1, lambda2, method = "ridge")
+        }
+    }
     
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
