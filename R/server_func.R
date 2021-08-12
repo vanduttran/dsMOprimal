@@ -604,7 +604,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
     sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
     stopifnot(all(sizex==sizey))
-    
+    return(sizex)
     ## covariance matrices for the virtual cohort
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
