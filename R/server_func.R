@@ -509,7 +509,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @param logins Login information of other servers containing cohort data
 #' @param querytable Name of table references in data repositories
 #' @param queryvariables List of variable sets from the table references
-#' @param querysubset An index vector indicating the subset of individuals to consider. 
+#' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
 #' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
@@ -522,19 +522,33 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
     
-    ## assign Cov matrix on each individual server
+    ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
     DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
-    #DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    DSI::datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset), "')")), async=T)
+    if (is.null(querysubset)) {
+        DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    } else {
+        stopifnot(all(names(opals)==names(querysubset)))
+        mclapply(names(opals), function(opn) {
+            DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+        })
+    }
     size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
     
     if (length(queryvariables)==1) {
         DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
     } else {
         DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
-        #DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
-        DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset), "')")), async=T)
+        if (is.null(querysubset)) {
+            DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+        } else {
+            stopifnot(all(names(opals)==names(querysubset)))
+            mclapply(names(opals), function(opn) {
+                DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+            })
+        }
+        size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
+        stopifnot(all(size==size2))
         DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, centeredData2, chunk=50)'), async=T)
     }
     
@@ -587,7 +601,7 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @export
-federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, Mfold = 0) {
+federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, Mfold = 0, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
     require(DSOpal)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
@@ -597,7 +611,9 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     
     ## assign centered data on each individual server
+    ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    nNode <- length(opals)
     DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
     DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
     DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
@@ -605,23 +621,66 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
     sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
     stopifnot(all(sizex==sizey))
-    return(sizex)
+
+    ## estimating the parameters of regularization
+    if (Mfold > 1) {
+        # random Mfold partitions to leave out
+        names(sizex) <- names(opals)
+        Mfoldpart <- split(unlist(lapply(names(opals), function(opn) {
+            paste(opn, 1:sizex[opn], sep="_")
+        }))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
+        folds <- lapply(Mfoldpart, function(fl) {
+            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+                sort(as.numeric(sub(fl[grep(opn, fl)], pattern=paste0(opn,"_"), replacement='')))
+            }), names(opals))
+        })
+        # remaining individuals on each cohort
+        foldsrem <- lapply(folds, function(fl) {
+            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+                setdiff(1:sizex[opn], fl[[opn]])
+            }), names(opals))
+        })
+        xscore <- NULL
+        yscore <- NULL
+        grid <- expand.grid(grid1, grid2)
+        apply(grid, 1, function(lambda) {##TODO
+            for (m in 1:Mfold) {
+                ## covariance matrices for the virtual cohort
+                Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
+                Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
+                Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
+                ## add parameters of regularization
+                Cxx <- Cxx + diag(lambda1, ncol(Cxx))
+                Cyy <- Cyy + diag(lambda2, ncol(Cyy))
+                ## CCA core call
+                res <- fda::geigen(Cxy, Cxx, Cyy)
+                names(res) <- c("cor", "xcoef", "ycoef")
+                rownames(res$xcoef) <- queryvariables[[1]]
+                rownames(res$ycoef) <- queryvariables[[2]]
+                ## tuning scores
+                mclapply(names(opals), mc.cores=nNode, function(opn) {
+                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldsrem[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldsrem[[m]][[opn]]), "')")), async=T)
+                })
+                cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                               as.symbol("centeredDataxm"),
+                                                                               .encode.arg(res$xcoef[,1,drop=F]),
+                                                                               "prod")), async=T))
+                cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                               as.symbol("centeredDataym"),
+                                                                               .encode.arg(res$ycoef[,1,drop=F]),
+                                                                               "prod")), async=T))
+                xscore <- c(xscore, cvx)
+                yscore <- c(yscore, cvy)
+            }
+            cv.score <- cor(xscore, yscore, use = "pairwise")
+        })
+    }
     
     ## covariance matrices for the virtual cohort
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
-    
-    ## estimating the parameters of regularization
-    if (Mfold > 1) {
-        folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
-        for (m in 1:Mfold) {
-            omit <- folds[[m]]
-
-            result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE],
-                         ncomp = 1, lambda1, lambda2, method = "ridge")
-        }
-    }
     
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -629,7 +688,6 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     
     ## CCA core call
     res <- fda::geigen(Cxy, Cxx, Cyy)
-    
     names(res) <- c("cor", "xcoef", "ycoef")
     rownames(res$xcoef) <- queryvariables[[1]]
     rownames(res$ycoef) <- queryvariables[[2]]
