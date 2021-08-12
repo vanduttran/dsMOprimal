@@ -1,7 +1,5 @@
-
-#' @title Ranking
-#'
-#' Ranking of features in each sample 
+#' @title Ranking, deprecated
+#' @description Ranking of features in each sample 
 #' @param x A matrix or data frame, samples in rows and features in columns
 #' @return Ranking of features
 #' @export
@@ -53,14 +51,14 @@ colmeans <- function(x) {
 
 
 #' @title Matrix centering
-#'
-#' Center matrix columns to 0
+#' @description Center matrix columns to 0
 #' @param x A numeric matrix or data frame.
+#' @param subset Encoded value of an index vector indicating the subset of individuals to consider. 
+#' Default, NULL, all individuals are considered.
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
 #' @return A centered matrix with column mean = 0
 #' @export
-center <- function(x, na.rm = FALSE) {
-    #y <- apply(head(x[order(rownames(x)), ], 101), c(1,2), as.numeric)
+center <- function(x, subset = NULL, na.rm = FALSE) {
     y <- apply(x, c(1,2), as.numeric)
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
@@ -68,7 +66,9 @@ center <- function(x, na.rm = FALSE) {
         y[is.na(y)] <- 0
     }
     y <- y[order(rownames(y)), ]
-    y <- head(y, 101)
+    y <- head(y, 101) # TOREMOVE
+    if (!is.null(subset)) y <- y[dsSwissKnife:::.decode.arg(subset), , drop=F]
+    
     return (scale(y, center=TRUE, scale=FALSE))
 }
 
@@ -95,6 +95,7 @@ partitionMatrix <- function(x, seprow, sepcol=seprow) {
             return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
         })
     })
+    
     return (parMat)
 }
 
@@ -121,6 +122,7 @@ loadings <- function(x, y, operator = 'crossprod') {
     operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
+    
     return (switch(operator,
            cor=cor(x, yd),
            prod=crossprod(t(x), yd),
@@ -243,6 +245,7 @@ rebuildMatrix <- function(blocks) {
         tcp <- uptcp[[1]]
     }
     rm(list=c("matblocks", "uptcp"))
+    
     return (tcp)
 }
 
@@ -299,6 +302,7 @@ pushSymmMatrix <- function(value) {
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
     }
+    
     return (dscbigmatrix)
 }
 
@@ -501,32 +505,33 @@ sumMatrices <- function(dsc = NULL) {
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
 #' @param querytable Name of table references in data repositories
-#' @param queryvariables List of variable sets from the table references.
-#' @param nameFD Name of the server to federate, among those in logins. Default, the first one in logins.
+#' @param queryvariables List of variable sets from the table references
+#' @param querysubset Encoded value of an index vector indicating the subset of individuals to consider. 
+#' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @export
-federateCov <- function(loginFD, logins, querytable, queryvariables) {
+federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset = NULL) {
     require(DSOpal)
     stopifnot((length(queryvariables) %in% c(1,2)) && (length(querytable) %in% c(1,2)))
     if (length(querytable)==1) querytable <- rep(querytable, length(queryvariables))
     
-    loginFDdata    <- dsSwissKnife:::.decode.arg(loginFD)
-    logindata      <- dsSwissKnife:::.decode.arg(logins)
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata   <- dsSwissKnife:::.decode.arg(logins)
     
     ## assign Cov matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
-    nNode <- length(opals)
-    
     DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
-    DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    #DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+    DSI::datashield.assign(opals, "centeredData", as.symbol(paste0("center(rawData, subset='", querysubset, "')")), async=T)
     size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
     
     if (length(queryvariables)==1) {
         DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
     } else {
         DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
-        DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+        #DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+        DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0("center(rawData2, subset='", querysubset, "')")), async=T)
         DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, centeredData2, chunk=50)'), async=T)
     }
     
@@ -603,14 +608,15 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     ## estimating the parameters of regularization
-    if (Mfold > 1) {
-        folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
-        for (m in 1:Mfold) {
-            omit <- folds[[m]]
-            result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE], 
-                         ncomp = 1, lambda1, lambda2, method = "ridge")
-        }
-    }
+    # if (Mfold > 1) {
+    #     folds <- split(c(paste(names(opals)[1], 1:sizex[1], sep="_"), paste(names(opals)[2], 1:sizex[2], sep="_"))[sample(1:sum(sizex))], rep(1:Mfold, length = sum(sizex)))
+    #     for (m in 1:Mfold) {
+    #         omit <- folds[[m]]
+    #         
+    #         result = rcc(X[-omit, , drop = FALSE], Y[-omit, , drop = FALSE], 
+    #                      ncomp = 1, lambda1, lambda2, method = "ridge")
+    #     }
+    # }
     
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
