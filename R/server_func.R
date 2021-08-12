@@ -595,6 +595,11 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     
+    ## covariance matrices for the virtual cohort
+    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
+    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
+    Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
+    
     ## assign centered data on each individual server
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
@@ -605,10 +610,6 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
     stopifnot(all(sizex==sizey))
     return(sizex)
-    ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
-    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
-    Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
     
     ## estimating the parameters of regularization
     if (Mfold > 1) {
