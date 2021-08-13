@@ -595,6 +595,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
     stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    nNode <- length(opals)
     DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
     DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
     DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
