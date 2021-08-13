@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{crossProd}
 \alias{crossProd}
-\title{Matrix cross product
-
-Calculates the cross product t(x) \%*\% x}
+\title{Matrix cross product}
 \usage{
 crossProd(x, y = NULL)
 }
@@ -15,7 +13,5 @@ crossProd(x, y = NULL)
 t(x) \%*\% x
 }
 \description{
-Matrix cross product
-
 Calculates the cross product t(x) \%*\% x
 }

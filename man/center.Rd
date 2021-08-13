@@ -2,14 +2,15 @@
 % Please edit documentation in R/server_func.R
 \name{center}
 \alias{center}
-\title{Matrix centering
-
-Center matrix columns to 0}
+\title{Matrix centering}
 \usage{
-center(x, na.rm = FALSE)
+center(x, subset = NULL, na.rm = FALSE)
 }
 \arguments{
 \item{x}{A numeric matrix or data frame.}
+
+\item{subset}{Encoded value of an index vector indicating the subset of individuals to consider. 
+Default, NULL, all individuals are considered.}
 
 \item{na.rm}{A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.}
 }
@@ -17,7 +18,5 @@ center(x, na.rm = FALSE)
 A centered matrix with column mean = 0
 }
 \description{
-Matrix centering
-
 Center matrix columns to 0
 }

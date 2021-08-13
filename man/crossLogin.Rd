@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{crossLogin}
 \alias{crossLogin}
-\title{Cross login
-
-Cross login # rather on client side}
+\title{Cross login}
 \usage{
 crossLogin(logins)
 }
@@ -13,6 +11,4 @@ crossLogin(logins)
 }
 \description{
 Cross login
-
-Cross login # rather on client side
 }

@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{crossAssign}
 \alias{crossAssign}
-\title{Cross assign
-
-Cross assign}
+\title{Cross assign}
 \usage{
 crossAssign(
   opal,
@@ -30,7 +28,5 @@ crossAssign(
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
-Cross assign
-
 Cross assign
 }
