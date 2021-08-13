@@ -621,6 +621,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
         }), names(opals))
     })
     grid <- expand.grid(grid1, grid2)
+    print("Pre CV")
     cv.score <- apply(grid, 1, function(lambda) {
         xscore <- NULL
         yscore <- NULL
@@ -637,6 +638,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
             names(res) <- c("cor", "xcoef", "ycoef")
             rownames(res$xcoef) <- queryvariables[[1]]
             rownames(res$ycoef) <- queryvariables[[2]]
+            cat("iter: ", m, "\n")
             ## tuning scores
             mclapply(names(opals), mc.cores=nNode, function(opn) {
                 DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
@@ -652,6 +654,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
                                                                            "prod")), async=T))
             xscore <- c(xscore, cvx)
             yscore <- c(yscore, cvy)
+            print(xscore)
         }
         return (cor(xscore, yscore, use = "pairwise"))
     })
@@ -713,7 +716,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
-    
+    return(c(lambda1, lambda2))
     ## covariance matrices for the virtual cohort
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
