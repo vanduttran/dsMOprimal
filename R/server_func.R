@@ -529,7 +529,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
         DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
     } else {
         stopifnot(all(names(opals)==names(querysubset)))
-        mclapply(names(opals), function(opn) {
+        lapply(names(opals), function(opn) {
             DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
         })
     }
@@ -543,7 +543,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
             DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
-            mclapply(names(opals), function(opn) {
+            lapply(names(opals), function(opn) {
                 DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
             })
         }
