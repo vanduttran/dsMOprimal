@@ -718,6 +718,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     rownames(res$xcoef) <- queryvariables[[1]]
     rownames(res$ycoef) <- queryvariables[[2]]
     res$names <- NULL
+    res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
     ## assign centered data on each individual server
     ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
