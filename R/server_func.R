@@ -615,7 +615,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
         }), names(opals))
     })
     # remaining individuals on each cohort
-    foldsrem <- lapply(folds, function(fl) {
+    foldsrem <- lapply(foldslef, function(fl) {
         setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
             setdiff(1:sizex[opn], fl[[opn]])
         }), names(opals))
