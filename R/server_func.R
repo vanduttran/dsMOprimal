@@ -561,7 +561,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
                       "', async=T)")
     cat("Command: ", command, "\n")
     crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-    crossProdSelfDSC <- mclapply(crossProdSelfDSC, mc.cores=max(2, min(length(crossProdSelfDSC), detectCores())), function(dscblocks) {
+    crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
         return (dscblocks[[1]])
     })
     rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
