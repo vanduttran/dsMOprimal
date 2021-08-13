@@ -627,8 +627,11 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
         yscore <- NULL
         for (m in 1:nfold) {
             ## covariance matrices for the virtual cohort
+            print('aaaaaaa')
+            print(foldsrem[[m]])
             Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
             Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
+            print('bbbbbbb')
             Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
             ## add parameters of regularization
             Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
@@ -640,7 +643,8 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
             rownames(res$ycoef) <- queryvariables[[2]]
             cat("iter: ", m, "\n")
             ## tuning scores
-            mclapply(names(opals), mc.cores=nNode, function(opn) {
+            mclapply(names(opals), mc.cores=1, function(opn) {
+                print(foldslef[[m]][[opn]])
                 DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
             })
