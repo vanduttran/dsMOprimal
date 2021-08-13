@@ -67,7 +67,7 @@ center <- function(x, subset = NULL, na.rm = FALSE) {
     }
     ## ordering
     y <- y[order(rownames(y)), ]
-    y <- head(y, 101) # TOREMOVE
+    y <- head(y, 11) # TOREMOVE
     ## subseting
     subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
@@ -591,7 +591,7 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
 #' @export
-estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, grid1 = seq(0.001, 1, length = 3), grid2 = seq(0.001, 1, length = 3), plot = TRUE) {
+estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
     stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
@@ -628,7 +628,6 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
         for (m in 1:nfold) {
             ## covariance matrices for the virtual cohort
             print('aaaaaaa')
-            print(foldsrem[[m]])
             Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
             Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
             print('bbbbbbb')
@@ -692,7 +691,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 3, gr
 #' @importFrom fda geigen
 #' @export
 federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, 
-                         tune = TRUE, tune_param = list(nfold = 3, grid1 = seq(0.001, 1, length = 3), grid2 = seq(0.001, 1, length = 3)), plot = TRUE) {
+                         tune = TRUE, tune_param = list(nfold = 2, grid1 = seq(0.001, 1, length = 2), grid2 = seq(0.001, 1, length = 2)), plot = TRUE) {
     require(DSOpal)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
