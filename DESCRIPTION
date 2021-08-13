@@ -19,7 +19,9 @@ AggregateMethods:
     pushValue,
     dscPush,
     loadings,
+    federateCov,
     federatePCA,
+    estimateR,
     federateRCCA
 AssignMethods:
     dsRank,
