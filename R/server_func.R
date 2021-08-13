@@ -621,16 +621,13 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
         }), names(opals))
     })
     grid <- expand.grid(grid1, grid2)
-    print("Pre CV")
     cv.score <- apply(grid, 1, function(lambda) {
         xscore <- NULL
         yscore <- NULL
         for (m in 1:nfold) {
             ## covariance matrices for the virtual cohort
-            print('aaaaaaa')
             Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
             Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
-            print('bbbbbbb')
             Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
             ## add parameters of regularization
             Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
@@ -640,9 +637,8 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
             names(res) <- c("cor", "xcoef", "ycoef")
             rownames(res$xcoef) <- queryvariables[[1]]
             rownames(res$ycoef) <- queryvariables[[2]]
-            cat("iter: ", m, "\n")
             ## tuning scores
-            mclapply(names(opals), mc.cores=1, function(opn) {
+            mclapply(names(opals), mc.cores=nNode, function(opn) {
                 print(foldslef[[m]][[opn]])
                 DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
@@ -657,7 +653,6 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
                                                                            "prod")), async=T))
             xscore <- c(xscore, cvx)
             yscore <- c(yscore, cvy)
-            print(xscore)
         }
         return (cor(xscore, yscore, use = "pairwise"))
     })
@@ -691,7 +686,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
 #' @importFrom fda geigen
 #' @export
 federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, 
-                         tune = TRUE, tune_param = list(nfold = 2, grid1 = seq(0.001, 1, length = 2), grid2 = seq(0.001, 1, length = 2)), plot = TRUE) {
+                         tune = TRUE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE))) {
     require(DSOpal)
     querytable     <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
@@ -700,26 +695,14 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     ## if only one table is given, it is duplicated
     if (length(querytable)==1) querytable <- rep(querytable, 2)
     
-    ## assign centered data on each individual server
-    ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
-    opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
-    nNode <- length(opals)
-    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
-    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
-    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
-    sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-    sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-    stopifnot(all(sizex==sizey))
-
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
+        tune_param <- dsSwissKnife:::.decode.arg(tune_param)
         tuneres <- estimateR(loginFD, logins, querytable, queryvariables, 
                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
-    return(c(lambda1, lambda2))
     ## covariance matrices for the virtual cohort
     Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
@@ -736,6 +719,18 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     rownames(res$ycoef) <- queryvariables[[2]]
     res$names <- NULL
 
+    ## assign centered data on each individual server
+    ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
+    opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    nNode <- length(opals)
+    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
+    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+    sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+    sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+    stopifnot(all(sizex==sizey))
+    
     ## canonical covariates
     cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                    as.symbol("centeredDatax"),
