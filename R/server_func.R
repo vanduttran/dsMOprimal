@@ -706,7 +706,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     stopifnot(all(sizex==sizey))
 
     ## estimating the parameters of regularization
-    if (nfold > 1) {
+    if (isTRUE(tune)) {
         tuneres <- estimateR(loginFD, logins, querytable, queryvariables, 
                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
         lambda1 <- tuneres$opt.lambda1
