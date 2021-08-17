@@ -67,7 +67,7 @@ center <- function(x, subset = NULL, na.rm = FALSE) {
     }
     ## ordering
     y <- y[order(rownames(y)), ]
-    y <- head(y, 11) # TOREMOVE
+    y <- head(y, 51) # TOREMOVE
     ## subseting
     subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
