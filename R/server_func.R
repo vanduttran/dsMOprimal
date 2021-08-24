@@ -161,11 +161,11 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(ncol(x)/chunk)
     sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
     sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
-    save(x, file="xcrossprod.RData")
-    save(y, file="ycrossprod.RData")
+    save(x, file="/tmp/xcrossprod.RData")
+    save(y, file="/tmp/ycrossprod.RData")
     if (is.null(y)) {
         tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
-        save(crossprod(x), file='xx.RData')
+        save(crossprod(x), file='/tmp/xx.RData')
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -176,7 +176,7 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
         sepblockscol <- rep(ceiling(ncol(y)/nblockscol), nblockscol-1)
         sepblockscol <- c(sepblockscol, ncol(y) - sum(sepblockscol))
         tcpblocks <- partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
-        save(crossprod(x,y), file='xy.RData')
+        save(crossprod(x,y), file='/tmp/xy.RData')
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -536,7 +536,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
     size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
     
     if (length(queryvariables)==1) {
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, chunk=50)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
     } else {
         DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
         if (is.null(querysubset)) {
@@ -549,7 +549,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
         }
         size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
         stopifnot(all(size==size2))
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(centeredData, centeredData2, chunk=50)'), async=T)
+        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
     }
     
     ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
