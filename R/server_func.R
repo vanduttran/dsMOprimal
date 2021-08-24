@@ -393,15 +393,12 @@ crossLogin <- function(logins) {
 #' @export
 crossLogout <- function(opals) {
     require(DSOpal)
-    print(opals)
     DSI::datashield.logout(opals)
-    return (NULL)
 }
 
 
 #' @title Cross aggregate
-#'
-#' Cross aggregate
+#' @description Cross aggregate
 #' @param opal A list of opal objects.
 #' @param expr An encoded expression to evaluate.
 #' @param wait See DSI::datashield.aggregate options. Default: FALSE.
@@ -577,7 +574,6 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
                 return (dscblocks[[1]])
             })
             rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
-            datashield.errors()
             }, finally=DSI::datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, finally=DSI::datashield.logout(opals))
     gc(reset=F)
@@ -611,12 +607,13 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
+    tryCatch({
     DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
     DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
     DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
     DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
-    sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-    sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+    sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+    sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
     stopifnot(all(sizex==sizey))
     
     # random Mfold partitions to leave out
@@ -658,19 +655,20 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
                 DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
             })
-            cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                           as.symbol("centeredDataxm"),
-                                                                           .encode.arg(res$xcoef[,1,drop=F]),
-                                                                           "prod")), async=T))
-            cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                           as.symbol("centeredDataym"),
-                                                                           .encode.arg(res$ycoef[,1,drop=F]),
-                                                                           "prod")), async=T))
+            cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                                as.symbol("centeredDataxm"),
+                                                                                .encode.arg(res$xcoef[,1,drop=F]),
+                                                                                "prod")), async=T))
+            cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                                as.symbol("centeredDataym"),
+                                                                                .encode.arg(res$ycoef[,1,drop=F]),
+                                                                                "prod")), async=T))
             xscore <- c(xscore, cvx)
             yscore <- c(yscore, cvy)
         }
         return (cor(xscore, yscore, use = "pairwise"))
     })
+    }, finally=DSI::datashield.logout(opals))
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
     if (isTRUE(plot))                                  
@@ -739,24 +737,26 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
-    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
-    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
-    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
-    sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-    sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-    stopifnot(all(sizex==sizey))
+    tryCatch({
+        DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
+        DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+        sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+        sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+        stopifnot(all(sizex==sizey))
+        
+        ## canonical covariates
+        cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                       as.symbol("centeredDatax"),
+                                                                       .encode.arg(res$xcoef),
+                                                                       "prod")), async=T))
+        cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                       as.symbol("centeredDatay"),
+                                                                       .encode.arg(res$ycoef),
+                                                                       "prod")), async=T))
+    }, finally=DSI::datashield.logout(opals))
     
-    ## canonical covariates
-    cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                   as.symbol("centeredDatax"),
-                                                                   .encode.arg(res$xcoef),
-                                                                   "prod")), async=T))
-    cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                   as.symbol("centeredDatay"),
-                                                                   .encode.arg(res$ycoef),
-                                                                   "prod")), async=T))
-
     ## loadings: correlation between raw data and canonical covariates
     ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
     invdiagcovx <- diag(1/sqrt(diag(Cxx)))
