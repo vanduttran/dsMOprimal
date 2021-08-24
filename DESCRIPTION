@@ -14,6 +14,7 @@ AggregateMethods:
     dsDim,
     singularProd,
     tripleProd,
+    crossLogout,
     crossAssign,
     pushSymmMatrix,
     pushValue,
