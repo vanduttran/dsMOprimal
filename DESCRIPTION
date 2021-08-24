@@ -14,7 +14,6 @@ AggregateMethods:
     dsDim,
     singularProd,
     tripleProd,
-    crossLogout,
     crossAssign,
     pushSymmMatrix,
     pushValue,
@@ -31,6 +30,7 @@ AssignMethods:
     crossProdnew,
     tcrossProd,
     crossLogin,
+    crossLogout,
     crossAggregate,
     sumMatrices,
     computeWeights
