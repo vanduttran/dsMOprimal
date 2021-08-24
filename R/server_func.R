@@ -165,7 +165,6 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
     save(y, file="/tmp/ycrossprod.RData")
     if (is.null(y)) {
         tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
-        save(crossprod(x), file='/tmp/xx.RData')
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -176,7 +175,6 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
         sepblockscol <- rep(ceiling(ncol(y)/nblockscol), nblockscol-1)
         sepblockscol <- c(sepblockscol, ncol(y) - sum(sepblockscol))
         tcpblocks <- partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
-        save(crossprod(x,y), file='/tmp/xy.RData')
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
