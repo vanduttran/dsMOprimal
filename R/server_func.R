@@ -145,8 +145,8 @@ crossProd <- function(x, y = NULL) {
     if (is.null(y)) {return (crossprod(x))}
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
-    cat("x: ", dim(x), "\n")
-    cat("y: ", dim(yd), "\n")
+    #cat("x: ", dim(x), "\n")
+    #cat("y: ", dim(yd), "\n")
     return (crossprod(x, yd))
 }
 
@@ -161,8 +161,8 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(ncol(x)/chunk)
     sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
     sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
-    save(x, file="/tmp/xcrossprod.RData")
-    save(y, file="/tmp/ycrossprod.RData")
+    #save(x, file="/tmp/xcrossprod.RData")
+    #save(y, file="/tmp/ycrossprod.RData")
     if (is.null(y)) {
         tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
         return (lapply(tcpblocks, function(tcpb) {
@@ -522,47 +522,49 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
     
     ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
-    DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
-    if (is.null(querysubset)) {
-        DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
-    } else {
-        stopifnot(all(names(opals)==names(querysubset)))
-        lapply(names(opals), function(opn) {
-            DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
-        })
-    }
-    size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
-    
-    if (length(queryvariables)==1) {
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
-    } else {
-        DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
+    tryCatch({
+        DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
         if (is.null(querysubset)) {
-            DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+            DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
-                DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
             })
         }
-        size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
-        stopifnot(all(size==size2))
-        DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
-    }
-    
-    ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
-    loginFDdata$user     <- loginFDdata$userserver
-    loginFDdata$password <- loginFDdata$passwordserver
-    DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
-    command <- paste0("dscPush(FD, '", 
-                      .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
-                      "', async=T)")
-    cat("Command: ", command, "\n")
-    crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-    crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
-        return (dscblocks[[1]])
-    })
-    rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+        size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
+        
+        if (length(queryvariables)==1) {
+            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
+        } else {
+            DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
+            if (is.null(querysubset)) {
+                DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+            } else {
+                stopifnot(all(names(opals)==names(querysubset)))
+                lapply(names(opals), function(opn) {
+                    DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                })
+            }
+            size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
+            stopifnot(all(size==size2))
+            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+        }
+        
+        ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
+        loginFDdata$user     <- loginFDdata$userserver
+        loginFDdata$password <- loginFDdata$passwordserver
+        DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
+        command <- paste0("dscPush(FD, '", 
+                          .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                          "', async=T)")
+        cat("Command: ", command, "\n")
+        crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
+        crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
+            return (dscblocks[[1]])
+        })
+        rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+    }, finally=datashield.logout(opals))
     gc(reset=F)
     
     return (rescov)
