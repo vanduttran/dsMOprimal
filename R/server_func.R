@@ -58,7 +58,7 @@ colmeans <- function(x) {
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
 #' @return A centered matrix with column mean = 0
 #' @export
-center <- function(x, subset = NULL, na.rm = FALSE) {
+center <- function(x, subset = NULL, na.rm = FALSE, nhead = 51) {
     y <- apply(x, c(1,2), as.numeric)
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
@@ -67,7 +67,7 @@ center <- function(x, subset = NULL, na.rm = FALSE) {
     }
     ## ordering
     y <- y[order(rownames(y)), ]
-    y <- head(y, 51) # TOREMOVE
+    y <- head(y, nhead) # TOREMOVE
     ## subseting
     subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
@@ -387,6 +387,16 @@ crossLogin <- function(logins) {
 }
 
 
+#' @title Cross logout
+#' @description Cross logout
+#' @param opals A list of opal objects
+#' @export
+crossLogout <- function(opals) {
+    require(DSOpal)
+    DSI::datashield.logout(opals)
+}
+
+
 #' @title Cross aggregate
 #'
 #' Cross aggregate
@@ -559,11 +569,13 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
                           .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                           "', async=T)")
         cat("Command: ", command, "\n")
-        crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-        crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
-            return (dscblocks[[1]])
-        })
-        rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+        tryCatch({
+            crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
+            crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
+                return (dscblocks[[1]])
+            })
+            rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+            }, finally=DSI::datashield.aggregate(opals, as.symbol(paste0("crossLogout(FD)")), async=T))
     }, finally=datashield.logout(opals))
     gc(reset=F)
     
