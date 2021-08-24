@@ -393,7 +393,9 @@ crossLogin <- function(logins) {
 #' @export
 crossLogout <- function(opals) {
     require(DSOpal)
+    print(opals)
     DSI::datashield.logout(opals)
+    return (NULL)
 }
 
 
