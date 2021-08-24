@@ -575,6 +575,7 @@ federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset
                 return (dscblocks[[1]])
             })
             rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+            datashield.errors()
             }, finally=DSI::datashield.aggregate(opals, as.symbol(paste0("crossLogout(FD)")), async=T))
     }, finally=datashield.logout(opals))
     gc(reset=F)
