@@ -300,7 +300,9 @@ pushSymmMatrix <- function(value) {
         # } else {
         #     tcp <- uptcp[[1]]
         # }
+        save(valued, file="/tmp/bugbigmemory1.RData")
         tcp <- rebuildMatrix(valued)
+        save(tcp, file="/tmp/bugbigmemory2.RData")
         #stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
@@ -392,12 +394,6 @@ crossLogin <- function(logins) {
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-#crossAggregate <- function(opal, expr, wait = F, async = T) {
-#    expr <- dsSwissKnife:::.decode.arg(expr)
-#    ## only allow: crossProd, singularProd
-#    stopifnot(grepl("^crossProd\\(|^singularProd\\(", dsSwissKnife:::.decode.arg(expr)))
-#    DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
-#}
 crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
     if (grepl("^as.call", expr)) {
