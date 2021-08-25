@@ -334,7 +334,6 @@ pushSymmMatrix <- function(value) {
 tripleProd <- function(x, pids) {
     pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
-        print(pid)
         if (file.exists(paste0("/tmp/",pid))) {
             load(paste0("/tmp/",pid))
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
@@ -409,13 +408,13 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
-        print(expr)
-        print(is.call(expr))
+        #print(expr)
+        #print(is.call(expr))
         stopifnot(is.call(expr))
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
-        print(expr)
+        #print(expr)
         stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr)) #dsSwissKnife:::.decode.arg(expr)))
         DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
     }
@@ -651,7 +650,7 @@ estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, gr
             rownames(res$ycoef) <- queryvariables[[2]]
             ## tuning scores
             mclapply(names(opals), mc.cores=nNode, function(opn) {
-                print(foldslef[[m]][[opn]])
+                #print(foldslef[[m]][[opn]])
                 DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
             })
