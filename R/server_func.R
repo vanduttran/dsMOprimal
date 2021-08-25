@@ -519,14 +519,19 @@ sumMatrices <- function(dsc = NULL) {
 #' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
-#' @export
-federateCov <- function(loginFD, logins, querytable, queryvariables, querysubset = NULL) {
+#' @keywords internal
+federateCov <- function(loginFD, logins, querytables, queryvariables, querysubset = NULL) {
     require(DSOpal)
-    stopifnot((length(queryvariables) %in% c(1,2)) && (length(querytable) %in% c(1,2)))
-    if (length(querytable)==1) querytable <- rep(querytable, length(queryvariables))
-    
+    ## covariance of only one matrix or between two matrices
+    stopifnot(length(queryvariables) %in% c(1,2))
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
+    stopifnot(nrow(logindata)==length(querytables))
+    querytables <- lapply(querytables, function(x) {
+        if (length(x)==1) x <- rep(x, length(queryvariables))
+        stopifnot(length(x)==length(queryvariables))
+        return(x)
+    })
     
     ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
@@ -600,78 +605,78 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
-#' @export
-estimateR <- function(loginFD, logins, querytable, queryvariables, nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
-    stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
+#' @keyworks internal
+estimateR <- function(loginFD, logins, querytable, queryvariables, 
+                      nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
+    stopifnot(length(queryvariables)==2 && (length(querytable) ==2))
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     tryCatch({
-    DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
-    DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-    DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
-    DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
-    sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-    sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-    stopifnot(all(sizex==sizey))
-    
-    # random Mfold partitions to leave out
-    names(sizex) <- names(opals)
-    foldspar <- split(unlist(lapply(names(opals), function(opn) {
-        paste(opn, 1:sizex[opn], sep="_")
-    }))[sample(1:sum(sizex))], rep(1:nfold, length = sum(sizex)))
-    foldslef <- lapply(foldspar, function(fl) {
-        setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
-            sort(as.numeric(sub(fl[grep(opn, fl)], pattern=paste0(opn,"_"), replacement='')))
-        }), names(opals))
-    })
-    # remaining individuals on each cohort
-    foldsrem <- lapply(foldslef, function(fl) {
-        setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
-            setdiff(1:sizex[opn], fl[[opn]])
-        }), names(opals))
-    })
-    grid <- expand.grid(grid1, grid2)
-    cv.score <- apply(grid, 1, function(lambda) {
-        xscore <- NULL
-        yscore <- NULL
-        for (m in 1:nfold) {
-            ## covariance matrices for the virtual cohort
-            Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
-            Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
-            Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
-            ## add parameters of regularization
-            Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
-            Cyy <- Cyy + diag(lambda[2], ncol(Cyy))
-            ## CCA core call
-            res <- fda::geigen(Cxy, Cxx, Cyy)
-            names(res) <- c("cor", "xcoef", "ycoef")
-            rownames(res$xcoef) <- queryvariables[[1]]
-            rownames(res$ycoef) <- queryvariables[[2]]
-            ## tuning scores
-            mclapply(names(opals), mc.cores=nNode, function(opn) {
-                #print(foldslef[[m]][[opn]])
-                DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-            })
-            cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                                as.symbol("centeredDataxm"),
-                                                                                .encode.arg(res$xcoef[,1,drop=F]),
-                                                                                "prod")), async=T))
-            cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                                as.symbol("centeredDataym"),
-                                                                                .encode.arg(res$ycoef[,1,drop=F]),
-                                                                                "prod")), async=T))
-            xscore <- c(xscore, cvx)
-            yscore <- c(yscore, cvy)
-        }
-        return (cor(xscore, yscore, use = "pairwise"))
-    })
+        DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
+        DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+        sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+        sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+        stopifnot(all(sizex==sizey))
+        
+        ## random Mfold partitions to leave out
+        names(sizex) <- names(opals)
+        foldspar <- split(unlist(lapply(names(opals), function(opn) {
+            paste(opn, 1:sizex[opn], sep="_")
+        }))[sample(1:sum(sizex))], rep(1:nfold, length = sum(sizex)))
+        foldslef <- lapply(foldspar, function(fl) {
+            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+                sort(as.numeric(sub(fl[grep(opn, fl)], pattern=paste0(opn,"_"), replacement='')))
+            }), names(opals))
+        })
+        ## remaining individuals on each cohort
+        foldsrem <- lapply(foldslef, function(fl) {
+            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+                setdiff(1:sizex[opn], fl[[opn]])
+            }), names(opals))
+        })
+        grid <- expand.grid(grid1, grid2)
+        cv.score <- apply(grid, 1, function(lambda) {
+            xscore <- NULL
+            yscore <- NULL
+            for (m in 1:nfold) {
+                ## covariance matrices for the virtual cohort
+                Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
+                Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
+                Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
+                ## add parameters of regularization
+                Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
+                Cyy <- Cyy + diag(lambda[2], ncol(Cyy))
+                ## CCA core call
+                res <- fda::geigen(Cxy, Cxx, Cyy)
+                names(res) <- c("cor", "xcoef", "ycoef")
+                rownames(res$xcoef) <- queryvariables[[1]]
+                rownames(res$ycoef) <- queryvariables[[2]]
+                ## tuning scores
+                mclapply(names(opals), mc.cores=nNode, function(opn) {
+                    #print(foldslef[[m]][[opn]])
+                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                })
+                cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                                    as.symbol("centeredDataxm"),
+                                                                                    .encode.arg(res$xcoef[,1,drop=F]),
+                                                                                    "prod")), async=T))
+                cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                                                                                    as.symbol("centeredDataym"),
+                                                                                    .encode.arg(res$ycoef[,1,drop=F]),
+                                                                                    "prod")), async=T))
+                xscore <- c(xscore, cvx)
+                yscore <- c(yscore, cvy)
+            }
+            return (cor(xscore, yscore, use = "pairwise"))
+        })
     }, finally=DSI::datashield.logout(opals))
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
-    if (isTRUE(plot))                                  
-        image(list(grid1 = grid1, grid2 = grid2, mat = mat))
+    if (isTRUE(plot)) image(list(grid1 = grid1, grid2 = grid2, mat = mat))
     opt <- cv.score.grid[which.max(cv.score.grid[,3]), ]
     out <- list(opt.lambda1 = opt[[1]], 
                 opt.lambda2 = opt[[2]], 
