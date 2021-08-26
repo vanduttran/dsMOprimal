@@ -605,7 +605,7 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @keyworks internal
 estimateR <- function(loginFD, logins, querytables, queryvariables, 
                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
-    stopifnot(length(queryvariables)==2 && (length(querytable) ==2))
+    stopifnot(length(queryvariables)==2 && (length(querytables) ==2))
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
