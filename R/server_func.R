@@ -127,9 +127,9 @@ loadings <- function(x, y, operator = 'crossprod') {
     if (is.list(yd)) yd <- do.call(rbind, yd)
     
     return (switch(operator,
-           cor=cor(x, yd),
-           prod=crossprod(t(x), yd),
-           crossprod=crossprod(x, yd)))
+                   cor=cor(x, yd),
+                   prod=crossprod(t(x), yd),
+                   crossprod=crossprod(x, yd)))
 }
 
 
@@ -513,7 +513,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
-#' @param querytable Name of table references in data repositories
+#' @param querytables Name of table references in data repositories
 #' @param queryvariables List of variable sets from the table references
 #' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
 #' Default, NULL, all individuals are considered.
@@ -526,17 +526,14 @@ federateCov <- function(loginFD, logins, querytables, queryvariables, querysubse
     stopifnot(length(queryvariables) %in% c(1,2))
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
-    stopifnot(nrow(logindata)==length(querytables))
-    querytables <- lapply(querytables, function(x) {
-        if (length(x)==1) x <- rep(x, length(queryvariables))
-        stopifnot(length(x)==length(queryvariables))
-        return(x)
-    })
+    
+    stopifnot(nrow(logindata)==unique(lengths(querytables)))
+    if (length(querytables)==1) querytables <- rep(querytables, length(queryvariables))
     
     ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
     tryCatch({
-        DSI::datashield.assign(opals, "rawData", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "rawData", querytables[[1]], variables=queryvariables[[1]], async=T)
         if (is.null(querysubset)) {
             DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
         } else {
@@ -550,7 +547,7 @@ federateCov <- function(loginFD, logins, querytables, queryvariables, querysubse
         if (length(queryvariables)==1) {
             DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
-            DSI::datashield.assign(opals, "rawData2", querytable[[2]], variables=queryvariables[[2]], async=T)
+            DSI::datashield.assign(opals, "rawData2", querytables[[2]], variables=queryvariables[[2]], async=T)
             if (is.null(querysubset)) {
                 DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
             } else {
@@ -596,9 +593,9 @@ federateCov <- function(loginFD, logins, querytables, queryvariables, querysubse
 #' @import DSI parallel bigmemory
 #' @export
 federatePCA <- function(loginFD, logins, querytab, queryvar) {
-    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    querytables    <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    covmat <- federateCov(loginFD, logins, querytable, queryvariables)
+    covmat <- federateCov(loginFD, logins, querytables, queryvariables)
     return (princomp(covmat=covmat))
 }
 
@@ -606,16 +603,16 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
 #' @keyworks internal
-estimateR <- function(loginFD, logins, querytable, queryvariables, 
+estimateR <- function(loginFD, logins, querytables, queryvariables, 
                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
     stopifnot(length(queryvariables)==2 && (length(querytable) ==2))
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     tryCatch({
-        DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
         DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-        DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
         DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
@@ -643,9 +640,9 @@ estimateR <- function(loginFD, logins, querytable, queryvariables,
             yscore <- NULL
             for (m in 1:nfold) {
                 ## covariance matrices for the virtual cohort
-                Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1], querysubset=foldsrem[[m]])
-                Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2], querysubset=foldsrem[[m]])
-                Cxy <- federateCov(loginFD, logins, querytable, queryvariables, querysubset=foldsrem[[m]])
+                Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1], querysubset=foldsrem[[m]])
+                Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2], querysubset=foldsrem[[m]])
+                Cxy <- federateCov(loginFD, logins, querytables,    queryvariables,    querysubset=foldsrem[[m]])
                 ## add parameters of regularization
                 Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
                 Cyy <- Cyy + diag(lambda[2], ncol(Cyy))
@@ -705,25 +702,25 @@ estimateR <- function(loginFD, logins, querytable, queryvariables,
 federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, 
                          tune = TRUE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE))) {
     require(DSOpal)
-    querytable     <- dsSwissKnife:::.decode.arg(querytab)
+    querytables    <- dsSwissKnife:::.decode.arg(querytab)
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    stopifnot(length(queryvariables)==2 && (length(querytable) %in% c(1,2)))
+    stopifnot(length(queryvariables)==2 && (length(querytables) %in% c(1,2)))
     
     ## if only one table is given, it is duplicated
-    if (length(querytable)==1) querytable <- rep(querytable, 2)
+    if (length(querytables)==1) querytables <- rep(querytables, 2)
     
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
-        tuneres <- estimateR(loginFD, logins, querytable, queryvariables, 
+        tuneres <- estimateR(loginFD, logins, querytables, queryvariables, 
                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, querytable[1], queryvariables[1])
-    Cyy <- federateCov(loginFD, logins, querytable[2], queryvariables[2])
-    Cxy <- federateCov(loginFD, logins, querytable, queryvariables)
+    Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1])
+    Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2])
+    Cxy <- federateCov(loginFD, logins, querytables,    queryvariables)
     
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -742,9 +739,9 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     tryCatch({
-        DSI::datashield.assign(opals, "rawDatax", querytable[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
         DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-        DSI::datashield.assign(opals, "rawDatay", querytable[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
         DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
