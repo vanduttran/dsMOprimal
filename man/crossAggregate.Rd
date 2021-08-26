@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{crossAggregate}
 \alias{crossAggregate}
-\title{Cross aggregate
-
-Cross aggregate}
+\title{Cross aggregate}
 \usage{
 crossAggregate(opal, expr, wait = F, async = T)
 }
@@ -18,7 +16,5 @@ crossAggregate(opal, expr, wait = F, async = T)
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
-Cross aggregate
-
 Cross aggregate
 }
