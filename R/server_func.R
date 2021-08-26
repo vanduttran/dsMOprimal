@@ -602,7 +602,7 @@ federatePCA <- function(loginFD, logins, querytab, queryvar) {
 
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
-#' @keyworks internal
+#' @keywords internal
 estimateR <- function(loginFD, logins, querytables, queryvariables, 
                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
     stopifnot(length(queryvariables)==2 && (length(querytables) ==2))
