@@ -706,7 +706,7 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
     stopifnot(length(queryvariables)==2 && (length(querytables) %in% c(1,2)))
     
-    ## if only one table is given, it is duplicated
+    ## if only one table is given for each server, it is duplicated
     if (length(querytables)==1) querytables <- rep(querytables, 2)
     
     ## estimating the parameters of regularization
