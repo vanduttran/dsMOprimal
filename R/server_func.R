@@ -58,7 +58,7 @@ colmeans <- function(x) {
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
 #' @return A centered matrix with column mean = 0
 #' @export
-center <- function(x, subset = NULL, na.rm = FALSE, nhead = 51) {
+center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51) {
     y <- apply(x, c(1,2), as.numeric)
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
@@ -72,7 +72,8 @@ center <- function(x, subset = NULL, na.rm = FALSE, nhead = 51) {
     subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
     
-    return (scale(y, center=TRUE, scale=FALSE))
+    if (isTRUE(byColumn)) return (scale(y, center=TRUE, scale=FALSE))
+    else return (t(scale(t(y), center=TRUE, scale=FALSE)))
 }
 
 
