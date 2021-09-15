@@ -4,7 +4,7 @@
 \alias{center}
 \title{Matrix centering}
 \usage{
-center(x, subset = NULL, na.rm = FALSE, nhead = 51)
+center(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51)
 }
 \arguments{
 \item{x}{A numeric matrix or data frame.}
