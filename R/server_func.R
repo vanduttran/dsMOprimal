@@ -57,7 +57,7 @@ colmeans <- function(x) {
 #' Default, NULL, all individuals are considered.
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
-#' If FALSE, centering by row. Constant samples across variables are removed.
+#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
 #' @param nhead Deprecated
 #' @return A centered matrix with 0-mean per column (by default).
@@ -84,7 +84,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51)
     if (!is.null(subset)) y <- y[subset, , drop=F]
     
     if (isTRUE(byColumn)) return (scale(y, center=TRUE, scale=FALSE))
-    else return (t(scale(t(y), center=TRUE, scale=FALSE)))
+    else return (t(scale(t(y), center=TRUE, scale=TRUE)))
 }
 
 
