@@ -51,19 +51,30 @@ colmeans <- function(x) {
 
 
 #' @title Matrix centering
-#' @description Center matrix columns to 0
+#' @description Center matrix columns or rows to 0
 #' @param x A numeric matrix or data frame.
 #' @param subset Encoded value of an index vector indicating the subset of individuals to consider. 
 #' Default, NULL, all individuals are considered.
+#' @param byColumn A logical value indicating whether the input data is centered by column or row.
+#' Default, TRUE, centering by column. Constant variables across samples are removed. 
+#' If FALSE, centering by row. Constant samples across variables are removed.
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
-#' @return A centered matrix with column mean = 0
+#' @param nhead Deprecated
+#' @return A centered matrix with 0-mean per column (by default).
 #' @export
 center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51) {
     y <- apply(x, c(1,2), as.numeric)
+    ## missing values
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
     } else {
         y[is.na(y)] <- 0
+    }
+    ## constant value across samples or variables
+    if (isTRUE(byColumn)) {
+        y <- y[, apply(y, 2, function(yc) length(unique(yc))) != 1]
+    } else {
+        y <- y[apply(y, 1, function(yc) length(unique(yc))) != 1, ]
     }
     ## ordering
     y <- y[order(rownames(y)), ]
