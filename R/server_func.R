@@ -273,7 +273,7 @@ rebuildMatrix <- function(blocks) {
 #' @import bigmemory parallel
 #' @return Description of the pushed value
 #' @export
-pushSymmMatrix <- function(value) {
+pushSymmMatrixServer <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {#is.list(valued[[1]])) {
@@ -578,7 +578,7 @@ federateCov <- function(loginFD, logins, querytables, queryvariables, querysubse
         loginFDdata$password <- loginFDdata$passwordserver
         DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
         command <- paste0("dscPush(FD, '", 
-                          .encode.arg(paste0("as.call(list(as.symbol('dsSSCP::pushSymmMatrix'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                          .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
                           "', async=T)")
         cat("Command: ", command, "\n")
         tryCatch({
