@@ -50,6 +50,16 @@ colmeans <- function(x) {
 }
 
 
+#' @title Rownames
+#' @description Row names of a matrix 
+#' @param x A numeric matrix
+#' @return rownames of x
+#' @export
+rowNames <- function(x) {
+    return (rownames(x))
+}
+
+
 #' @title Matrix centering
 #' @description Center matrix columns or rows to 0
 #' @param x A numeric matrix or data frame.
