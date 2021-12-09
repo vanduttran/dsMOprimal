@@ -542,40 +542,47 @@ sumMatrices <- function(dsc = NULL) {
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
-federateCov <- function(loginFD, logins, querytables, queryvariables, querysubset = NULL) {
+federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL) {
     require(DSOpal)
     ## covariance of only one matrix or between two matrices
-    stopifnot(length(queryvariables) %in% c(1,2))
+    stopifnot(length(querytables) %in% c(1,2))
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
     
-    stopifnot(nrow(logindata)==unique(lengths(querytables)))
-    if (length(querytables)==1) querytables <- rep(querytables, length(queryvariables))
+    #stopifnot(nrow(logindata)==unique(lengths(querytables)))
+    #if (length(querytables)==1) querytables <- rep(querytables, length(queryvariables))
     
     ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
+    
+    ## apply funcPreProc for preparation of querytables on opals
+    ## TODO: control hacking!
+    funcPreProc(conns=opals, symbol=querytables)
+    
     tryCatch({
-        DSI::datashield.assign(opals, "rawData", querytables[[1]], variables=queryvariables[[1]], async=T)
+        #DSI::datashield.assign(opals, "rawData", querytables[[1]], variables=queryvariables[[1]], async=T)
         if (is.null(querysubset)) {
-            DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+            #DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
+            DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
-                DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(rawData, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
             })
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
         
-        if (length(queryvariables)==1) {
+        if (length(querytables)==1) {
             DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
-            DSI::datashield.assign(opals, "rawData2", querytables[[2]], variables=queryvariables[[2]], async=T)
+            #DSI::datashield.assign(opals, "rawData2", querytables[[2]], variables=queryvariables[[2]], async=T)
             if (is.null(querysubset)) {
-                DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+                #DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
+                DSI::datashield.assign(opals, "centeredData2", as.symbol('center(', querytables[2],')'), async=T)
             } else {
                 stopifnot(all(names(opals)==names(querysubset)))
                 lapply(names(opals), function(opn) {
-                    DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(rawData2, subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
                 })
             }
             size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
@@ -609,15 +616,27 @@ federateCov <- function(loginFD, logins, querytables, queryvariables, querysubse
 #' @description Perform the principal component analysis for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
-#' @param querytab Encoded name of a table reference in data repositories.
-#' @param queryvar Encoded value of a list of a variable set from the table references.
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
+#' Other assigned R variables in \code{func} are ignored.
 #' @return PCA object
 #' @import DSI parallel bigmemory
+#' @example
+#' dataProc <- function(opals, symbol) {
+#'     DSI::datashield.assign(conns=opals, symbol=symbols[1], value='test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
+#' }
+#' federatePCA(...)
 #' @export
-federatePCA <- function(loginFD, logins, querytab, queryvar) {
-    querytables    <- dsSwissKnife:::.decode.arg(querytab)
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    covmat <- federateCov(loginFD, logins, querytables, queryvariables)
+federatePCA <- function(loginFD, logins, func, symbol) {
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    if (length(querytables) != 1) {
+        stop("One data matrix is required!")
+    }
+    covmat <- federateCov(loginFD, logins, funcPreProc, querytables)
     return (princomp(covmat=covmat))
 }
 
