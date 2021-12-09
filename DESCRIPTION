@@ -33,8 +33,7 @@ AssignMethods:
     crossLogin,
     crossLogout,
     crossAggregate,
-    sumMatrices,
-    computeWeights
+    sumMatrices
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

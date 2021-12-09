@@ -624,7 +624,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
 #' Other assigned R variables in \code{func} are ignored.
 #' @return PCA object
 #' @import DSI parallel bigmemory
-#' @example
+#' @examples
 #' dataProc <- function(opals, symbol) {
 #'     DSI::datashield.assign(conns=opals, symbol=symbols[1], value='test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
 #' }
