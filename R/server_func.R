@@ -578,7 +578,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
             #DSI::datashield.assign(opals, "rawData2", querytables[[2]], variables=queryvariables[[2]], async=T)
             if (is.null(querysubset)) {
                 #DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
-                DSI::datashield.assign(opals, "centeredData2", as.symbol('center(', querytables[2],')'), async=T)
+                DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
             } else {
                 stopifnot(all(names(opals)==names(querysubset)))
                 lapply(names(opals), function(opn) {
