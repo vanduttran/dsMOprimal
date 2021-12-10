@@ -752,8 +752,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     if (length(querytables) != 2) {
         stop("Two data matrices are required!")
     }
-    print(querytables[1])
-    print(querytables[2])
+
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
@@ -766,36 +765,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")#querytables[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")#querytables[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")#querytables,    queryvariables)
-    print(dim(Cxx))
-    print(dim(Cyy))
-    print(dim(Cxy))
-    Amat <- Cxy
-    Bmat <- Cxx
-    Cmat <- Cyy
-    Bdim <- dim(Bmat)
-    Cdim <- dim(Cmat)
-    if (Bdim[1] != Bdim[2]) 
-        stop("BMAT is not square")
-    if (Cdim[1] != Cdim[2]) 
-        stop("CMAT is not square")
-    p <- Bdim[1]
-    q <- Cdim[1]
-    s <- min(c(p, q))
-    if (max(abs(Bmat - t(Bmat)))/max(abs(Bmat)) > 1e-10) 
-        stop("BMAT not symmetric.")
-    if (max(abs(Cmat - t(Cmat)))/max(abs(Cmat)) > 1e-10) 
-        stop("CMAT not symmetric.")
-    Bmat <- (Bmat + t(Bmat))/2
-    Cmat <- (Cmat + t(Cmat))/2
-    Bfac <- chol(Bmat)
-    Cfac <- chol(Cmat)
-    Bfacinv <- solve(Bfac)
-    Cfacinv <- solve(Cfac)
-    print(dim(Bfacinv))
-    print(dim(Amat))
-    print(dim(Cfacinv))
-    Dmat <- t(Bfacinv) %*% Amat %*% Cfacinv
-    
+
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
     Cyy <- Cyy + diag(lambda2, ncol(Cyy))
@@ -812,10 +782,13 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
+    
+    ## apply funcPreProc for preparation of querytables on opals
+    ## TODO: control hacking!
+    funcPreProc(conns=opals, symbol=querytables)
+
     tryCatch({
-        #DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        #DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
         DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
