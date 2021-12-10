@@ -440,13 +440,10 @@ crossAggregate <- function(opal, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
-        #print(expr)
-        #print(is.call(expr))
         stopifnot(is.call(expr))
         DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
-        #print(expr)
         stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr)) #dsSwissKnife:::.decode.arg(expr)))
         DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
     }
@@ -514,7 +511,6 @@ pushValue <- function(value, name) {
 sumMatrices <- function(dsc = NULL) {
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
-        #stopifnot(isSymmetric(y))
         return (y)
     })
     return (Reduce("+", dscmat))
@@ -560,9 +556,6 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
-    
-    #stopifnot(nrow(logindata)==unique(lengths(querytables)))
-    #if (length(querytables)==1) querytables <- rep(querytables, length(queryvariables))
     
     ## assign crossprod matrix on each individual server
     opals <- DSI::datashield.login(logins=logindata)
@@ -812,10 +805,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
-        res$names <- list(Xnames=rownames(Cxx),
-                          Ynames=rownames(Cyy),
-                          ind.names=unlist(DSI::datashield.aggregate(opals, as.symbol('rownames(centeredDatax)'), async=T))
-                          )
+        # res$names <- list(Xnames=rownames(Cxx),
+        #                   Ynames=rownames(Cyy),
+        #                   ind.names=unlist(DSI::datashield.aggregate(opals, as.symbol('rownames(centeredDatax)'), async=T))
+        #                   )
         ## canonical covariates
         cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                        as.symbol("centeredDatax"),
