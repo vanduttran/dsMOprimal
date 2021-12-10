@@ -692,7 +692,7 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
 #' @param lambda2 Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.
 #' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
-#' \code{grid2} checking values for \code{lambda2}. \code{plot} plot of cross-validation results on grid values.
+#' \code{grid2} checking values for \code{lambda2}.
 #' @return RCCA object
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
@@ -705,7 +705,7 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
 #' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
 #' @export
 federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, 
-                         tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = FALSE))) {
+                         tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)))) {
     require(DSOpal)
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
@@ -717,7 +717,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
         tuneres <- estimateR(loginFD, logins, funcPreProc, querytables,
-                             nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
+                             nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
