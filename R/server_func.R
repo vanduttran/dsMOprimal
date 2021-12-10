@@ -642,10 +642,11 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
 #' @return PCA object
 #' @import DSI parallel bigmemory
 #' @examples
-#' dataProc <- function(opals, symbol) {
-#'     DSI::datashield.assign(conns=opals, symbol=symbols[1], value='test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
+#' dataProc <- function(conns, symbol) {
+#'     DSI::datashield.assign(conns, symbol, 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
 #' }
-#' federatePCA(...)
+#' dataProc(conns=opals, symbol="rawData")
+#' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc), .encode.arg("rawData"))
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
@@ -661,17 +662,26 @@ federatePCA <- function(loginFD, logins, func, symbol) {
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
 #' @keywords internal
-estimateR <- function(loginFD, logins, querytables, queryvariables, 
+estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, queryvariables, 
                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
-    stopifnot(length(queryvariables)==2 && (length(querytables) ==2))
+    stopifnot(length(querytables) == 2)
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata   <- dsSwissKnife:::.decode.arg(logins)
     
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
+    ## apply funcPreProc for preparation of querytables on opals
+    ## TODO: control hacking!
+    ## TODO: control identical colnames!
+    funcPreProc(conns=opals, symbol=querytables)
+    
     tryCatch({
-        DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
-        DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-        DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
-        DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+        # DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
+        # DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        # DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
+        # DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
@@ -698,22 +708,25 @@ estimateR <- function(loginFD, logins, querytables, queryvariables,
             yscore <- NULL
             for (m in 1:nfold) {
                 ## covariance matrices for the virtual cohort
-                Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1], querysubset=foldsrem[[m]])
-                Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2], querysubset=foldsrem[[m]])
-                Cxy <- federateCov(loginFD, logins, querytables,    queryvariables,    querysubset=foldsrem[[m]])
+                # Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1], querysubset=foldsrem[[m]])
+                # Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2], querysubset=foldsrem[[m]])
+                # Cxy <- federateCov(loginFD, logins, querytables,    queryvariables,    querysubset=foldsrem[[m]])
+                Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X")
+                Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y")
+                Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY")
+                
                 ## add parameters of regularization
                 Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
                 Cyy <- Cyy + diag(lambda[2], ncol(Cyy))
                 ## CCA core call
                 res <- fda::geigen(Cxy, Cxx, Cyy)
                 names(res) <- c("cor", "xcoef", "ycoef")
-                rownames(res$xcoef) <- queryvariables[[1]]
-                rownames(res$ycoef) <- queryvariables[[2]]
+                rownames(res$xcoef) <- rownames(Cxx)
+                rownames(res$ycoef) <- rownames(Cyy)
                 ## tuning scores
                 mclapply(names(opals), mc.cores=nNode, function(opn) {
-                    #print(foldslef[[m]][[opn]])
-                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(rawDatax, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(rawDatay, subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 })
                 cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                                     as.symbol("centeredDataxm"),
@@ -769,7 +782,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
-        tuneres <- estimateR(loginFD, logins, querytables, queryvariables, 
+        tuneres <- estimateR(loginFD, logins, funcPreProc, querytables, #querytables, queryvariables, 
                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
