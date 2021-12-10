@@ -761,7 +761,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     Cxx <- federateCov(loginFD, logins, funcPreProc, querytables[1])#querytables[1], queryvariables[1])
     Cyy <- federateCov(loginFD, logins, funcPreProc, querytables[2])#querytables[2], queryvariables[2])
     Cxy <- federateCov(loginFD, logins, funcPreProc, querytables)#querytables,    queryvariables)
-    
+    print(dim(Cxx))
+    print(dim(Cxx))
+    print(dim(Cxy))
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
     Cyy <- Cyy + diag(lambda2, ncol(Cyy))
