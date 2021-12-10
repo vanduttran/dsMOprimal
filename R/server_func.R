@@ -535,6 +535,9 @@ sumMatrices <- function(dsc = NULL) {
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
+#' @param covSpace The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
+#' \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
+#' \code{"Y"} for the second querytable, and \code{"XY} for covariance between the two querytables. Default, \code{"X"}.
 #' @param querytables Name of table references in data repositories
 #' @param queryvariables List of variable sets from the table references
 #' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
@@ -542,10 +545,11 @@ sumMatrices <- function(dsc = NULL) {
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
-federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL) {
+federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X") {
     require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
+    covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
     
@@ -560,9 +564,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
     funcPreProc(conns=opals, symbol=querytables)
     
     tryCatch({
-        #DSI::datashield.assign(opals, "rawData", querytables[[1]], variables=queryvariables[[1]], async=T)
         if (is.null(querysubset)) {
-            #DSI::datashield.assign(opals, "centeredData", as.symbol('center(rawData)'), async=T)
             DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
@@ -572,12 +574,10 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
         
-        if (length(querytables)==1) {
+        if (length(querytables)==1 || covSpace=="X") {
             DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
-            #DSI::datashield.assign(opals, "rawData2", querytables[[2]], variables=queryvariables[[2]], async=T)
             if (is.null(querysubset)) {
-                #DSI::datashield.assign(opals, "centeredData2", as.symbol('center(rawData2)'), async=T)
                 DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
             } else {
                 stopifnot(all(names(opals)==names(querysubset)))
@@ -587,7 +587,11 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
             }
             size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
             stopifnot(all(size==size2))
-            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+            if (covSpace=="Y") {
+                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData2, y=NULL, chunk=50)'), async=T)
+            } else {
+                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+            }
         }
         
         ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
@@ -748,7 +752,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     if (length(querytables) != 2) {
         stop("Two data matrices are required!")
     }
-    
+    print(querytables[1])
+    print(querytables[2])
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
@@ -758,9 +763,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables[1])#querytables[1], queryvariables[1])
-    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables[2])#querytables[2], queryvariables[2])
-    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables)#querytables,    queryvariables)
+    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")#querytables[1], queryvariables[1])
+    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")#querytables[2], queryvariables[2])
+    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")#querytables,    queryvariables)
     print(dim(Cxx))
     print(dim(Cyy))
     print(dim(Cxy))
