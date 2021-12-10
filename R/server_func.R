@@ -19,16 +19,12 @@ dsDim <- function(x) {
 
 
 #' @title Row means, deprecated
-#'
-#' Row means of linear transformations of a matrix 
+#' @description Row means of linear transformations of a matrix 
 #' @param x A numeric matrix
 #' @param y A list of symmetric matrices of dimension (ncol(x), ncol(x))
-#' @return Row means of x if y = NULL, or row means x %*% yy for each matrix yy in y otherwise
-#' @export
+#' @return Row means of x if y = NULL, or row means of x %*% yy for each matrix yy in y otherwise
+#' @keywords internal
 rowmeans <- function(x, y = NULL) {
-    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
-    ##     stop("x should be a matrix with two dimensions higher than 10.")
-    ## }
     if (is.null(y)) {
         return (matrix(rowMeans(x), ncol=1, dimnames=list(rownames(x), "mean")))
     } else if (!all(sapply(y, isSymmetric))) {
@@ -40,11 +36,10 @@ rowmeans <- function(x, y = NULL) {
 
 
 #' @title Column means, deprecated
-#'
-#' Column means of a matrix 
+#' @description Column means of a matrix 
 #' @param x A numeric matrix
 #' @return Column means of x
-#' @export
+#' @keywords internal
 colmeans <- function(x) {
     return (matrix(colMeans(x), nrow=1, dimnames=list("mean", colnames(x))))
 }
@@ -115,7 +110,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51)
 #' @return List of blocks
 #' @import parallel
 #' @keywords internal
-partitionMatrix <- function(x, seprow, sepcol=seprow) {
+partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
     indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
@@ -135,10 +130,10 @@ partitionMatrix <- function(x, seprow, sepcol=seprow) {
 }
 
 
-#' @title Product of x' and first column of xx'
-#' @description Product of x' and first column of xx'
+#' @title Singular product
+#' @description Product of t(x) and first column of x \%*\% t(x)
 #' @param x A numeric matrix
-#' @return t(x) %*% (x %*% t(x))[,1]
+#' @return t(x) \%*\% (x \%*\% t(x))[,1]
 #' @export
 singularProd <- function(x) {
     return (crossprod(tcrossprod(x)[, 1, drop=F], x))
@@ -166,19 +161,16 @@ loadings <- function(x, y, operator = 'crossprod') {
 
 
 #' @title Matrix cross product
-#' @description Calculates the cross product t(x) \%*\% x
+#' @description Calculates the cross product t(x) \%*\% y
 #' @param x A numeric matrix
-#' @return t(x) \%*\% x
+#' @param y An encoded matrix. Default, NULL, y = x.
+#' @return t(x) \%*\% y
 #' @export
-crossProd <- function(x, y = NULL) {
-    ## if (is.null(dim(x)) || min(dim(x)) < 10) {
-    ##     stop("x should be a matrix with two dimensions higher than 10.")
-    ## }
-    if (is.null(y)) {return (crossprod(x))}
+crossProdrm <- function(x, y = NULL) {
+    if (is.null(y)) return (crossprod(x))
     yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
-    #cat("x: ", dim(x), "\n")
-    #cat("y: ", dim(yd), "\n")
+
     return (crossprod(x, yd))
 }
 
@@ -186,15 +178,15 @@ crossProd <- function(x, y = NULL) {
 #' @title Matrix cross product
 #' @description Calculates the cross product t(x) \%*\% y
 #' @param x A numeric matrix
-#' @param y A list of numeric matrices. Default, y = x.
+#' @param y A list of numeric matrices. Default, NULL, y = x.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return \code{t(x) \%*\% y}
 #' @export
-crossProdnew <- function(x, y = NULL, chunk = 500) {
+crossProd <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(ncol(x)/chunk)
     sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
     sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
-    #save(x, file="/tmp/xcrossprod.RData")
-    #save(y, file="/tmp/ycrossprod.RData")
+
     if (is.null(y)) {
         tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
         return (lapply(tcpblocks, function(tcpb) {
@@ -213,26 +205,14 @@ crossProdnew <- function(x, y = NULL, chunk = 500) {
             }))
         }))
     }
-    # else {
-    #     return (lapply(y, function(yy) {
-    #         nblockscol <- ceiling(ncol(yy)/chunk)
-    #         sepblockscol <- rep(ceiling(ncol(yy)/nblockscol), nblockscol-1)
-    #         sepblockscol <- c(sepblockscol, ncol(yy) - sum(sepblockscol))
-    #         tcpblocks <- partitionMatrix(crossprod(x, yy), seprow=sepblocksrow, sepcol=sepblockscol)
-    #         return (lapply(tcpblocks, function(tcpb) {
-    #             return (lapply(tcpb, function(tcp) {
-    #                 .encode.arg(tcp)
-    #             }))
-    #         }))
-    #     }))
-    # }
 }
 
 
 #' @title Matrix cross product
 #' @description Calculates the cross product x \%*\% t(y)
 #' @param x A numeric matrix
-#' @param y A list of numeric matrices. Default, y = x.
+#' @param y A list of numeric matrices. Default, NULL, y = x.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return \code{x \%*\% t(y)}
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
@@ -251,9 +231,10 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 }
 
 
-#' @title Rebuild matrix from blocks
-#' @description Rebuild a matrix from its blocks
-#' @param chunks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
+#' @title Matrix rebuild
+#' @description Rebuild a matrix from its partition
+#' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
+#' @return The complete matrix
 #' @keywords internal
 rebuildMatrix <- function(blocks) {
     ## decode matrix blocks
@@ -282,7 +263,6 @@ rebuildMatrix <- function(blocks) {
         tcp <- uptcp[[1]]
     }
     rm(list=c("matblocks", "uptcp"))
-    
     return (tcp)
 }
 
@@ -296,81 +276,34 @@ rebuildMatrix <- function(blocks) {
 pushSymmMatrixServer <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
-    if (FALSE) {#is.list(valued[[1]])) {
+    if (FALSE) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
             x.mat <- do.call(rbind, x)
             stopifnot(ncol(x.mat)==1)
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        # dscbigmatrix <- mclapply(valued, mc.cores=length(valued), function(y) {
-        #     ## N.B. mclapply with length(y) cores allows allocating memory for all blocks. 
-        #     ##      or only last mc.cores blocks are allocated.
-        #     ##      lapply allocates memory only for the last block in the list.
-        #     return (mclapply(y, mc.cores=length(y), function(x) {
-        #         x.mat <- do.call(rbind, dsSwissKnife:::.decode.arg(x))
-        #         return (describe(as.big.matrix(x.mat)))
-        #     }))
-        # })
-        ## Possible solution: Rebuild the whole matrix here, and return its only allocation
-        # matblocks <- mclapply(valued, mc.cores=length(valued), function(y) {
-        #     mclapply(y, mc.cores=length(y), function(x) {
-        #         return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
-        #     })
-        # })
-        # rm(list=c("valued"))
-        # uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-        # ## combine the blocks into one matrix
-        # if (length(uptcp)>1) {
-        #     ## without the first layer of blocks
-        #     no1tcp <- lapply(2:length(uptcp), function(i) {
-        #         cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-        #             t(matblocks[[j]][[i-j+1]])
-        #         })), uptcp[[i]])
-        #     })
-        #     ## with the first layer of blocks
-        #     tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-        #     rm(list=c("no1tcp"))
-        # } else {
-        #     tcp <- uptcp[[1]]
-        # }
-        save(valued, file="/tmp/bugbigmemory1.RData")
         tcp <- rebuildMatrix(valued)
-        save(tcp, file="/tmp/bugbigmemory2.RData")
-        #stopifnot(isSymmetric(tcp))
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
     }
-    
     return (dscbigmatrix)
 }
 
 
 #' @title Matrix triple product
-#'
-#' Calculate the triple product
+#' @description Calculate the triple product x \%*\% y \%*\% t(x)
 #' @param x A numeric matrix
-#' @param y A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))
-#' @return List of x %*% y %*% t(x)
+#' @param y A list of symmetric numeric matrices of dimension (ncol(x), ncol(x))
+#' @return List of x \%*\% y \%*\% t(x)
 #' @import bigmemory
 #' @export
-#tripleProdrm <- function(x, y) {
-#    print(head(y[[1]]))
-#    print(class(y[[1]]))
-#    if (!all(sapply(y, isSymmetric))) {
-#        stop("y is not all symmetric.")
-#    } else {
-#        return (lapply(y, function(yy) tcrossprod(x, tcrossprod(x, yy))))
-#    }
-#}
 tripleProd <- function(x, pids) {
     pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
-        if (file.exists(paste0("/tmp/",pid))) {
-            load(paste0("/tmp/",pid))
+        if (file.exists(paste0("/tmp/", pid))) {
+            load(paste0("/tmp/", pid))
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
-            #yd <- dsSwissKnife:::.decode.arg(value)
-            #if (is.list(yd)) y <- do.call(rbind, yd)
             stopifnot(isSymmetric(y))
             return (tcrossprod(x, tcrossprod(x, y)))
         } else {
@@ -380,28 +313,11 @@ tripleProd <- function(x, pids) {
     names(tp) <- pids
     return (tp)
 }
-# tripleProd <- function(x, pids) {
-#     pids <- dsSwissKnife:::.decode.arg(pids)
-#     tp <- lapply(pids, function(pid) {
-#         print(pid)
-#         if (file.exists(paste0("/tmp/",pid))) {
-#             load(paste0("/tmp/",pid))
-#             yd <- dsSwissKnife:::.decode.arg(value)
-#             if (is.list(yd)) y <- do.call(rbind, yd)
-#             stopifnot(isSymmetric(y))
-#             return (tcrossprod(x, tcrossprod(x, y)))
-#         } else {
-#             return (NULL)
-#         }
-#     })
-#     names(tp) <- pids
-#     return (tp)
-# }
 
 
 #' @title Cross login
-#' @description Cross login
-#' @param logins An encoded dataframe with server, url, user, password, and driver fields.
+#' @description Call datashield.login on remote servers
+#' @param logins An encoded dataframe with server, url, user, password, driver, and options fields.
 #' @export
 crossLogin <- function(logins) {
     require(DSOpal)
@@ -413,13 +329,11 @@ crossLogin <- function(logins) {
                        driver=loginfo$driver,
                        options=loginfo$options)
     DSI::datashield.login(myDf)
-    #x <- tryCatch(DSI::datashield.login(myDf), error=function(e) return (sessionInfo()))
-    #save(x, file = '/srv_local/session.Rdata')
 }
 
 
 #' @title Cross logout
-#' @description Cross logout
+#' @description Call datashield.logout on remote servers.
 #' @param opals A list of opal objects
 #' @export
 crossLogout <- function(opals) {
@@ -429,46 +343,46 @@ crossLogout <- function(opals) {
 
 
 #' @title Cross aggregate
-#' @description Cross aggregate
-#' @param opal A list of opal objects.
+#' @description Call datashield.aggregate on remote servers.
+#' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate.
 #' @param wait See DSI::datashield.aggregate options. Default: FALSE.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAggregate <- function(opal, expr, wait = F, async = T) {
+crossAggregate <- function(conns, expr, wait = F, async = T) {
     expr <- dsSwissKnife:::.decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
         stopifnot(is.call(expr))
-        DSI::datashield.aggregate(conns=opal, expr=expr, async=async)
+        DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
     } else {
         ## only allow: crossProd, singularProd
-        stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr)) #dsSwissKnife:::.decode.arg(expr)))
-        DSI::datashield.aggregate(conns=opal, expr=as.symbol(expr), async=async)
+        stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr))
+        DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     }
 }
 
 
 #' @title Description of a pushed value
 #' @description Description of a pushed value
-#' @param opal A list of opal objects.
+#' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @return Returned value of given expression on opal
 #' @import DSI
 #' @export
-dscPush <- function(opal, expr, async = T) {
+dscPush <- function(conns, expr, async = T) {
   expr <- dsSwissKnife:::.decode.arg(expr)
   stopifnot(grepl("^as.call", expr))
   expr <- eval(str2expression(expr))
-  return (DSI::datashield.aggregate(conns=opal, expr=expr, async=async))
+  return (DSI::datashield.aggregate(conns=conns, expr=expr, async=async))
 }
 
 
 #' @title Cross assign
-#' @description Cross assign 
-#' @param opal A list of opal objects.
+#' @description Call datashield.assign on remote servers.
+#' @param conns A list of DSConnection-class.
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
@@ -476,28 +390,24 @@ dscPush <- function(opal, expr, async = T) {
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAssign <- function(opal, symbol, value, value.call, variables = NULL, wait = F, async = T) {
+crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     value <- dsSwissKnife:::.decode.arg(value)
     variables <- dsSwissKnife:::.decode.arg(variables)
-    DSI::datashield.assign(conns=opal, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
+    DSI::datashield.assign(conns=conns, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
 }
 
 
-#' @title Cross push
+#' @title Memory description
+#' @description Push a symmetric matrix into some R session by its bigmemory description in the session.
+#' @param value A symmetric matrix
+#' @return Bigmemory description of the given matrix
 #' @import bigmemory
 #' @export
-# pushValuesave <- function(value, name) {
-#     print(value)
-#     pid <- Sys.getpid()
-#     save(value, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
-#     return (pid)
-# }
 pushValue <- function(value, name) {
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
     stopifnot(isSymmetric(valued))
     dscbigmatrix <- describe(as.big.matrix(valued))
-    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (dscbigmatrix)
 }
 
@@ -517,11 +427,12 @@ sumMatrices <- function(dsc = NULL) {
 }
 
 
-#' @title Encode function  arguments
+#' @title Encode function  argument
 #' @description Serialize to JSON, then encode base64,
-#'  then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.
+#'  then replace '+', '/' and '=' in the result in order to play nicely with the opal entry.
 #'  Used to encode non-scalar function arguments prior to sending to the opal server.
-#'  There's a corresponding function in the server package calle .decode_args
+#'  There's a corresponding function in the server package called .decode.arg.
+#'  See \code{dsSwissKnifeClient:::.encode.arg}.
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
@@ -577,7 +488,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
         
         if (length(querytables)==1 || covSpace=="X") {
-            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=NULL, chunk=50)'), async=T)
+            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
             if (is.null(querysubset)) {
                 DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
@@ -590,9 +501,9 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
             size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
             stopifnot(all(size==size2))
             if (covSpace=="Y") {
-                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData2, y=NULL, chunk=50)'), async=T)
+                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData2, y=NULL, chunk=50)'), async=T)
             } else {
-                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProdnew(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
             }
         }
         
@@ -646,7 +557,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
 #'     DSI::datashield.assign(conns, symbol, 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
 #' }
 #' dataProc(conns=opals, symbol="rawData")
-#' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc), .encode.arg("rawData"))
+#' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol) {
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
@@ -661,9 +572,24 @@ federatePCA <- function(loginFD, logins, func, symbol) {
 
 #' @title RCCA tuning
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
+#' @param loginFD Login information of the FD server (one of the servers containing cohort data).
+#' @param logins Login information of servers containing cohort data.
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (names of the two R symbols) (see datashield.assign).
+#' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param lambda1 Regularized parameter value for first data set. Default, 0.
+#' @param lambda2 Regularized parameter value for second data set. Default, 0.
+#' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
+#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. 
+#' @param grid1 Checking values for \code{lambda1}.
+#' @param grid2 Checking values for \code{lambda2}.
+#' @return Optimal values of \code{lambda1} and \code{lambda2}.
 #' @keywords internal
-estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, queryvariables, 
-                      nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE) {
+estimateR <- function(loginFD, logins, funcPreProc, querytables,
+                      nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
@@ -678,10 +604,6 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, q
     tryCatch({
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        # DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
-        # DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        # DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
-        # DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
@@ -708,9 +630,6 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, q
             yscore <- NULL
             for (m in 1:nfold) {
                 ## covariance matrices for the virtual cohort
-                # Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1], querysubset=foldsrem[[m]])
-                # Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2], querysubset=foldsrem[[m]])
-                # Cxy <- federateCov(loginFD, logins, querytables,    queryvariables,    querysubset=foldsrem[[m]])
                 Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X")
                 Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y")
                 Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY")
@@ -744,6 +663,7 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, q
     }, finally=DSI::datashield.logout(opals))
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
+    plot <- FALSE
     if (isTRUE(plot)) image(list(grid1 = grid1, grid2 = grid2, mat = mat))
     opt <- cv.score.grid[which.max(cv.score.grid[,3]), ]
     out <- list(opt.lambda1 = opt[[1]], 
@@ -756,22 +676,36 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables, #querytables, q
     class(out) <- "estimateR"
     return (out)
 }
-  
+
 
 #' @title Federated RCCA
 #' @description Perform the regularized canonical correlation analysis for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data).
 #' @param logins Login information of servers containing cohort data.
-#' @param querytab Encoded value of a vector containing names of one or two table references in data repositories. If one, 
-#' the variables will be taken from the common table. Otherwise, the two sets of variables 
-#' will be taken from corresponding tables.
-#' @param queryvar Encoded value of a list of two variable sets from the table references.
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (names of the two R symbols) (see datashield.assign).
+#' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param lambda1 Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.
+#' @param lambda2 Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.
+#' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
+#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
+#' \code{grid2} checking values for \code{lambda2}. \code{plot} plot of cross-validation results on grid values.
 #' @return RCCA object
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
+#' @examples
+#' dataProc <- function(conns, symbol) {
+#'     DSI::datashield.assign(conns, symbol[1], 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'), async=T)
+#'     DSI::datashield.assign(conns, symbol[2], 'test.CNSIM', variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
+#' }
+#' dataProc(conns=opals, symbol=c("rawDataX", "rawDataY"))
+#' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
 #' @export
 federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, 
-                         tune = TRUE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE))) {
+                         tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = FALSE))) {
     require(DSOpal)
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
@@ -782,7 +716,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
-        tuneres <- estimateR(loginFD, logins, funcPreProc, querytables, #querytables, queryvariables, 
+        tuneres <- estimateR(loginFD, logins, funcPreProc, querytables,
                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2, plot=tune_param$plot)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
