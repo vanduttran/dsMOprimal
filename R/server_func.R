@@ -740,15 +740,14 @@ estimateR <- function(loginFD, logins, querytables, queryvariables,
 #' @import DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @export
-federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambda2 = 0, 
+federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, 
                          tune = TRUE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5), plot = TRUE))) {
     require(DSOpal)
-    querytables    <- dsSwissKnife:::.decode.arg(querytab)
-    queryvariables <- dsSwissKnife:::.decode.arg(queryvar)
-    stopifnot(length(queryvariables)==2 && (length(querytables) %in% c(1,2)))
-    
-    ## if only one table is given for each server, it is duplicated
-    if (length(querytables)==1) querytables <- rep(querytables, 2)
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    if (length(querytables) != 2) {
+        stop("Two data matrices are required!")
+    }
     
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
@@ -759,9 +758,9 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, querytables[1], queryvariables[1])
-    Cyy <- federateCov(loginFD, logins, querytables[2], queryvariables[2])
-    Cxy <- federateCov(loginFD, logins, querytables,    queryvariables)
+    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables[1])#querytables[1], queryvariables[1])
+    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables[2])#querytables[2], queryvariables[2])
+    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables)#querytables,    queryvariables)
     
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -770,8 +769,8 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     ## CCA core call
     res <- fda::geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
-    rownames(res$xcoef) <- queryvariables[[1]]
-    rownames(res$ycoef) <- queryvariables[[2]]
+    rownames(res$xcoef) <- rownames(Cxx)#queryvariables[[1]]
+    rownames(res$ycoef) <- rownames(Cyy)#queryvariables[[2]]
     res$names <- NULL
     res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
@@ -780,10 +779,10 @@ federateRCCA <- function(loginFD, logins, querytab, queryvar, lambda1 = 0, lambd
     opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     tryCatch({
-        DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
-        DSI::datashield.assign(opals, "centeredDatax", as.symbol('center(rawDatax)'), async=T)
-        DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
-        DSI::datashield.assign(opals, "centeredDatay", as.symbol('center(rawDatay)'), async=T)
+        #DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
+        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')'), async=T)
+        #DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
+        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')'), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
