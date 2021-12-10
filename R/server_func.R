@@ -805,10 +805,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
-        # res$names <- list(Xnames=rownames(Cxx),
-        #                   Ynames=rownames(Cyy),
-        #                   ind.names=unlist(DSI::datashield.aggregate(opals, as.symbol('rownames(centeredDatax)'), async=T))
-        #                   )
+        res$names <- list(Xnames=rownames(Cxx),
+                          Ynames=rownames(Cyy),
+                          ind.names=unlist(DSI::datashield.aggregate(opals, as.symbol('rowNames(centeredDatax)'), async=T))
+        )
         ## canonical covariates
         cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                        as.symbol("centeredDatax"),
