@@ -2,22 +2,18 @@
 % Please edit documentation in R/server_func.R
 \name{tripleProd}
 \alias{tripleProd}
-\title{Matrix triple product
-
-Calculate the triple product}
+\title{Matrix triple product}
 \usage{
 tripleProd(x, pids)
 }
 \arguments{
 \item{x}{A numeric matrix}
 
-\item{y}{A list of symmatric numeric matrices of dimension (ncol(x), ncol(x))}
+\item{y}{A list of symmetric numeric matrices of dimension (ncol(x), ncol(x))}
 }
 \value{
-List of x %*% y %*% t(x)
+List of x \%*\% y \%*\% t(x)
 }
 \description{
-Matrix triple product
-
-Calculate the triple product
+Calculate the triple product x \%*\% y \%*\% t(x)
 }

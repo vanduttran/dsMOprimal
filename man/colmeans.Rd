@@ -2,9 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{colmeans}
 \alias{colmeans}
-\title{Column means, deprecated
-
-Column means of a matrix}
+\title{Column means, deprecated}
 \usage{
 colmeans(x)
 }
@@ -15,7 +13,6 @@ colmeans(x)
 Column means of x
 }
 \description{
-Column means, deprecated
-
 Column means of a matrix
 }
+\keyword{internal}

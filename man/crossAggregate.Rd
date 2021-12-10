@@ -4,10 +4,10 @@
 \alias{crossAggregate}
 \title{Cross aggregate}
 \usage{
-crossAggregate(opal, expr, wait = F, async = T)
+crossAggregate(conns, expr, wait = F, async = T)
 }
 \arguments{
-\item{opal}{A list of opal objects.}
+\item{conns}{A list of DSConnection-class.}
 
 \item{expr}{An encoded expression to evaluate.}
 
@@ -16,5 +16,5 @@ crossAggregate(opal, expr, wait = F, async = T)
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
-Cross aggregate
+Call datashield.aggregate on remote servers.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{.encode.arg}
 \alias{.encode.arg}
-\title{Encode function  arguments}
+\title{Encode function  argument}
 \usage{
 .encode.arg(some.object)
 }
@@ -14,8 +14,9 @@ encoded text with offending characters replaced by strings
 }
 \description{
 Serialize to JSON, then encode base64,
- then replace '+', '/' and '=' in the result in order to play nicely with the opal sentry.
+ then replace '+', '/' and '=' in the result in order to play nicely with the opal entry.
  Used to encode non-scalar function arguments prior to sending to the opal server.
- There's a corresponding function in the server package calle .decode_args
+ There's a corresponding function in the server package called .decode.arg.
+ See \code{dsSwissKnifeClient:::.encode.arg}.
 }
 \keyword{internal}

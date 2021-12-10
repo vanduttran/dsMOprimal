@@ -5,7 +5,7 @@
 \title{Cross assign}
 \usage{
 crossAssign(
-  opal,
+  conns,
   symbol,
   value,
   value.call,
@@ -15,7 +15,7 @@ crossAssign(
 )
 }
 \arguments{
-\item{opal}{A list of opal objects.}
+\item{conns}{A list of DSConnection-class.}
 
 \item{symbol}{Name of an R symbol.}
 
@@ -28,5 +28,5 @@ crossAssign(
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \description{
-Cross assign
+Call datashield.assign on remote servers.
 }

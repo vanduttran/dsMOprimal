@@ -7,8 +7,8 @@
 crossLogin(logins)
 }
 \arguments{
-\item{logins}{An encoded dataframe with server, url, user, password, and driver fields.}
+\item{logins}{An encoded dataframe with server, url, user, password, driver, and options fields.}
 }
 \description{
-Cross login
+Call datashield.login on remote servers
 }

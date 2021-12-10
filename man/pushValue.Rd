@@ -2,10 +2,16 @@
 % Please edit documentation in R/server_func.R
 \name{pushValue}
 \alias{pushValue}
-\title{Cross push}
+\title{Memory description}
 \usage{
 pushValue(value, name)
 }
+\arguments{
+\item{value}{A symmetric matrix}
+}
+\value{
+Bigmemory description of the given matrix
+}
 \description{
-Cross push
+Push a symmetric matrix into some R session by its bigmemory description in the session.
 }

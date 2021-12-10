@@ -4,14 +4,18 @@
 \alias{crossProd}
 \title{Matrix cross product}
 \usage{
-crossProd(x, y = NULL)
+crossProd(x, y = NULL, chunk = 500)
 }
 \arguments{
 \item{x}{A numeric matrix}
+
+\item{y}{A list of numeric matrices. Default, NULL, y = x.}
+
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
 }
 \value{
-t(x) \%*\% x
+\code{t(x) \%*\% y}
 }
 \description{
-Calculates the cross product t(x) \%*\% x
+Calculates the cross product t(x) \%*\% y
 }
