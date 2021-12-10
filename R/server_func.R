@@ -780,9 +780,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     nNode <- length(opals)
     tryCatch({
         #DSI::datashield.assign(opals, "rawDatax", querytables[[1]], variables=queryvariables[[1]], async=T)
-        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')'), async=T)
+        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         #DSI::datashield.assign(opals, "rawDatay", querytables[[2]], variables=queryvariables[[2]], async=T)
-        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')'), async=T)
+        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
