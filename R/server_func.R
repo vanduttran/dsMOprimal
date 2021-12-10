@@ -60,6 +60,16 @@ rowNames <- function(x) {
 }
 
 
+#' @title Colnames
+#' @description Col names of a matrix 
+#' @param x A numeric matrix
+#' @return colnames of x
+#' @export
+colNames <- function(x) {
+    return (colnames(x))
+}
+
+
 #' @title Matrix centering
 #' @description Center matrix columns or rows to 0
 #' @param x A numeric matrix or data frame.
@@ -538,8 +548,6 @@ sumMatrices <- function(dsc = NULL) {
 #' @param covSpace The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
 #' \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
 #' \code{"Y"} for the second querytable, and \code{"XY} for covariance between the two querytables. Default, \code{"X"}.
-#' @param querytables Name of table references in data repositories
-#' @param queryvariables List of variable sets from the table references
 #' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
 #' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
@@ -561,6 +569,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
     
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
+    ## TODO: control identical colnames!
     funcPreProc(conns=opals, symbol=querytables)
     
     tryCatch({
@@ -608,6 +617,17 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
                 return (dscblocks[[1]])
             })
             rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+            ## set dimnames to covariance matrix
+            if (covSpace=="X" || covSpace=="XY") {
+                rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
+            } else {
+                rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
+            }
+            if (covSpace=="Y" || covSpace=="XY") {
+                colnames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
+            } else {
+                colnames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
+            }
             }, finally=DSI::datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, finally=DSI::datashield.logout(opals))
     gc(reset=F)
@@ -762,9 +782,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")#querytables[1], queryvariables[1])
-    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")#querytables[2], queryvariables[2])
-    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")#querytables,    queryvariables)
+    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")
+    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")
+    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")
 
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -773,9 +793,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## CCA core call
     res <- fda::geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
-    rownames(res$xcoef) <- rownames(Cxx)#queryvariables[[1]]
-    rownames(res$ycoef) <- rownames(Cyy)#queryvariables[[2]]
-    res$names <- NULL
+    rownames(res$xcoef) <- rownames(Cxx)
+    rownames(res$ycoef) <- rownames(Cyy)
     res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
     ## assign centered data on each individual server
@@ -793,7 +812,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
         sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
-        
+        res$names <- list(Xnames=rownames(Cxx),
+                          Ynames=rownames(Cyy),
+                          ind.names=unlist(DSI::datashield.aggregate(opals, as.symbol('rownames(centeredDatax)'), async=T))
+                          )
         ## canonical covariates
         cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                        as.symbol("centeredDatax"),
