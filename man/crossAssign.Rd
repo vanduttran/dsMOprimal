@@ -23,9 +23,9 @@ crossAssign(
 
 \item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
 
-\item{wait}{See DSI::datashield.aggregate options. Default: FALSE.}
+\item{wait}{See DSI::datashield.assign options. Default: FALSE.}
 
-\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
+\item{async}{See DSI::datashield.assign options. Default: TRUE.}
 }
 \description{
 Call datashield.assign on remote servers.
