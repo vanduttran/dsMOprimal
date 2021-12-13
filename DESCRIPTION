@@ -17,6 +17,7 @@ AggregateMethods:
     singularProd,
     tripleProd,
     crossAssign,
+    crossAssignFunc,
     pushSymmMatrixServer,
     pushValue,
     dscPush,
@@ -26,7 +27,6 @@ AggregateMethods:
     estimateR,
     federateRCCA
 AssignMethods:
-    dsRank,
     center,
     crossProdrm,
     crossProd,

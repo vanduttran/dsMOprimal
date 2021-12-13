@@ -386,14 +386,34 @@ dscPush <- function(conns, expr, async = T) {
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
-#' @param wait See DSI::datashield.aggregate options. Default: FALSE.
-#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @param wait See DSI::datashield.assign options. Default: FALSE.
+#' @param async See DSI::datashield.assign options. Default: TRUE.
 #' @import DSI
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait = F, async = T) {
     value <- dsSwissKnife:::.decode.arg(value)
     variables <- dsSwissKnife:::.decode.arg(variables)
     DSI::datashield.assign(conns=conns, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
+}
+
+
+#' @title Cross assign a preprocessing function
+#' @description Call preprocessing function on remote servers.
+#' @param conns A list of DSConnection-class.
+#' @param func Encoded definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param symbol Encoded vector of names of R symbols to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data to compute covariance matrix.
+#' Other assigned R variables in \code{func} are ignored.
+#' @export
+crossAssignFunc <- function(conns, func, symbol) {
+    ## apply funcPreProc for preparation of querytables on conns
+    ## TODO: control hacking!
+    ## TODO: control identical colnames!
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
+    funcPreProc(conns=conns, symbol=querytables)
 }
 
 
@@ -452,11 +472,17 @@ sumMatrices <- function(dsc = NULL) {
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
+#' @param funcPreProc Definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of DSConnection-classes), 
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param querytables Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
+#' Other assigned R variables in \code{func} are ignored.
+#' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
+#' Default, NULL, all individuals are considered.
 #' @param covSpace The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
 #' \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
 #' \code{"Y"} for the second querytable, and \code{"XY} for covariance between the two querytables. Default, \code{"X"}.
-#' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
-#' Default, NULL, all individuals are considered.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
