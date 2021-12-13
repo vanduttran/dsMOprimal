@@ -423,7 +423,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @return Bigmemory description of the given matrix
 #' @import bigmemory
 #' @export
-pushValue <- function(value, name) {
+pushValue <- function(value) {
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
     stopifnot(isSymmetric(valued))
