@@ -457,7 +457,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
-.encode.arg <- .encode.arg <- function(some.object, serialize.it = TRUE){
+.encode.arg <- function(some.object, serialize.it = TRUE){
     if(serialize.it){
         encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object)), 'serialized')
     } else {
@@ -469,7 +469,6 @@ sumMatrices <- function(dsc = NULL) {
         encoded[1] <<- gsub(x, my.dictionary[x], encoded[1])
     })
     return(paste0(encoded[1],'base64'))
-    
 }
 
 
