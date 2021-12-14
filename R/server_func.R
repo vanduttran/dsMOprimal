@@ -67,7 +67,8 @@ colNames <- function(x) {
 
 #' @title Matrix centering
 #' @description Center matrix columns or rows to 0
-#' @param x A numeric matrix or data frame.
+#' @param x A numeric matrix or data frame. A list of matrices or data frames can also be provided,
+#' where they will be concatenated to perform the centering.
 #' @param subset Encoded value of an index vector indicating the subset of individuals to consider. 
 #' Default, NULL, all individuals are considered.
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
@@ -78,7 +79,11 @@ colNames <- function(x) {
 #' @return A centered matrix with 0-mean per column (by default).
 #' @export
 center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51) {
-    y <- apply(x, c(1,2), as.numeric)
+    if (is.list(x) && !is.data.frame(x)) {
+        y <- apply(do.call(cbind, x), c(1,2), as.numeric)
+    } else {
+        y <- apply(x, c(1,2), as.numeric)
+    }
     ## missing values
     if (na.rm) {
         y <- y[!is.na(rowSums(y)), , drop=F]
