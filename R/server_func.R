@@ -424,11 +424,12 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @return Bigmemory description of the given matrix
 #' @import bigmemory
 #' @export
-pushValue <- function(value) {
+pushValue <- function(value, name) {
     valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
     stopifnot(isSymmetric(valued))
     dscbigmatrix <- describe(as.big.matrix(valued))
+    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (dscbigmatrix)
 }
 
