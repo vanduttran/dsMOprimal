@@ -80,7 +80,7 @@ colNames <- function(x) {
 #' @export
 center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51) {
     if (is.list(x) && !is.data.frame(x)) {
-        y <- apply(do.call(cbind, x), c(1,2), as.numeric)
+        y <- apply(do.call(cbind, lapply(x, function(xx) xx[order(rownames(xx)), ])), c(1,2), as.numeric)
     } else {
         y <- apply(x, c(1,2), as.numeric)
     }
