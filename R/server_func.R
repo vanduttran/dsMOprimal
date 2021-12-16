@@ -333,7 +333,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver,
                        options=loginfo$options)
-    DSI::datashield.login(myDf)
+    datashield.login(myDf)
 }
 
 
@@ -505,7 +505,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
     logindata   <- dsSwissKnife:::.decode.arg(logins)
     
     ## assign crossprod matrix on each individual server
-    opals <- DSI::datashield.login(logins=logindata)
+    opals <- datashield.login(logins=logindata)
     
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
@@ -630,7 +630,7 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
     
-    opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     ## apply funcPreProc for preparation of querytables on opals
     ## TODO: control hacking!
@@ -775,7 +775,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 
     ## assign centered data on each individual server
     ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
-    opals <- DSI::datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
+    opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     
     ## apply funcPreProc for preparation of querytables on opals
