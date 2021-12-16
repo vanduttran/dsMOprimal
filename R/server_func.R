@@ -679,9 +679,9 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
                 rownames(res$xcoef) <- rownames(Cxx)
                 rownames(res$ycoef) <- rownames(Cyy)
                 ## tuning scores
-                mclapply(names(opals), mc.cores=nNode, function(opn) {
-                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                lapply(names(opals), function(opn) {
+                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", '", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", '", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 })
                 cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                                     as.symbol("centeredDataxm"),
