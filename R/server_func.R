@@ -75,10 +75,10 @@ colNames <- function(x) {
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
-#' @param nhead Deprecated
 #' @return A centered matrix with 0-mean per column (by default).
 #' @export
-center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51) {
+center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE) {
+    ## horizontally combine x, if x is a list of data frames
     if (is.list(x) && !is.data.frame(x)) {
         y <- apply(do.call(cbind, lapply(x, function(xx) xx[order(rownames(xx)), ])), c(1,2), as.numeric)
     } else {
@@ -98,7 +98,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51)
     }
     ## ordering
     y <- y[order(rownames(y)), ]
-    y <- head(y, nhead) # TOREMOVE
+
     ## subseting
     subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
@@ -333,7 +333,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver,
                        options=loginfo$options)
-    datashield.login(myDf)
+    dsHelpersClient::datashield.login(myDf)
 }
 
 
@@ -680,8 +680,8 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
                 rownames(res$ycoef) <- rownames(Cyy)
                 ## tuning scores
                 lapply(names(opals), function(opn) {
-                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", '", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", '", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 })
                 cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                                     as.symbol("centeredDataxm"),
