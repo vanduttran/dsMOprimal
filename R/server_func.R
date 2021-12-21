@@ -333,7 +333,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver,
                        options=loginfo$options)
-    dsHelpersClient::datashield.login(myDf)
+    datashield.login(myDf)
 }
 
 
