@@ -48,16 +48,20 @@ colmeans <- function(x) {
 #' @title Assign rownames
 #' @description Assign row names to a matrix 
 #' @param x A numeric matrix
+#' @param row.names An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.
+#' @param envir A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}
 #' @return Matrix with rownames
 #' @export
-setRowNames <- function(x, row.names) {
-    if (length(row.names)==1 && grepl("base64$", row.names)) {
-        rownames(x) <- dsSwissKnife:::.decode.arg(row.names)
-    } else if (nrow(x) == length(row.names)) {
-        rownames(x) <- row.names
-    } else {
-        stop("Cannot assign row.names of length different from nrow(x)")
-    }
+setRowNames <- function(x, row.names, envir = .GlobalEnv) {
+    if (length(row.names)==1) {
+        if (grepl("base64$", row.names)) rn <- dsSwissKnife:::.decode.arg(row.names)
+        else {
+            if (typeof(envir)!='environment') envir <- as.environment(envir)
+            rn <- get(row.names, envir=envir)
+        }        
+        if (nrow(x) == length(rn)) rownames(x) <- rn
+        else stop("Cannot assign row.names of length different from nrow(x)")
+    } else stop("Wrong row.names provided!")
     return (x)
 }
 
