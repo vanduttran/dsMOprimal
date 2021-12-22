@@ -4,10 +4,11 @@
 \alias{center}
 \title{Matrix centering}
 \usage{
-center(x, subset = NULL, byColumn = TRUE, na.rm = FALSE, nhead = 51)
+center(x, subset = NULL, byColumn = TRUE, na.rm = FALSE)
 }
 \arguments{
-\item{x}{A numeric matrix or data frame.}
+\item{x}{A numeric matrix or data frame. A list of matrices or data frames can also be provided,
+where they will be concatenated to perform the centering.}
 
 \item{subset}{Encoded value of an index vector indicating the subset of individuals to consider. 
 Default, NULL, all individuals are considered.}
@@ -17,8 +18,6 @@ Default, TRUE, centering by column. Constant variables across samples are remove
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
 
 \item{na.rm}{A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.}
-
-\item{nhead}{Deprecated}
 }
 \value{
 A centered matrix with 0-mean per column (by default).
