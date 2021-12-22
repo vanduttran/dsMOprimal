@@ -51,7 +51,13 @@ colmeans <- function(x) {
 #' @return Matrix with rownames
 #' @export
 setRowNames <- function(x, row.names) {
-    rownames(x) <- row.names
+    if (length(row.names)==1 && grepl("base64$", row.names)) {
+        rownames(x) <- dsSwissKnife:::.decode.arg(row.names)
+    } else if (nrow(x) == length(row.names)) {
+        rownames(x) <- row.names
+    } else {
+        stop("Cannot assign row.names of length different from nrow(x)")
+    }
     return (x)
 }
 
