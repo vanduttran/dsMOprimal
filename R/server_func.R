@@ -45,6 +45,17 @@ colmeans <- function(x) {
 }
 
 
+#' @title Assign rownames
+#' @description Assign row names to a matrix 
+#' @param x A numeric matrix
+#' @return Matrix with rownames
+#' @export
+setRowNames <- function(x, row.names) {
+    rownames(x) <- row.names
+    return (x)
+}
+
+
 #' @title Rownames
 #' @description Row names of a matrix 
 #' @param x A numeric matrix
