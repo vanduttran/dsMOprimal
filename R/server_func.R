@@ -569,7 +569,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
         loginFDdata$password <- loginFDdata$passwordserver
         DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
         command <- paste0("dscPush(FD, '", 
-                          .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsSSCP:::.encode.arg(crossProdSelf)", "))")), 
+                          .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsMOprimal:::.encode.arg(crossProdSelf)", "))")), 
                           "', async=T)")
         cat("Command: ", command, "\n")
         tryCatch({
