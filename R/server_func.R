@@ -513,7 +513,7 @@ sumMatrices <- function(dsc = NULL) {
 #' Default, NULL, all individuals are considered.
 #' @param covSpace The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
 #' \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
-#' \code{"Y"} for the second querytable, and \code{"XY} for covariance between the two querytables. Default, \code{"X"}.
+#' \code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
