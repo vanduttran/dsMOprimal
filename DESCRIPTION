@@ -13,7 +13,7 @@ Authors@R:
       person(given = "Riccardo",
              family = "Giuliani",
              role = c("ctb")))
-Depends: DSI, dsSwissKnife, DSOpal
+Depends: R (>= 3.5.0), DSI, dsSwissKnife, DSOpal
 Imports: bigmemory, parallel, fda
 Description: Server side functions on X'X sum of squares and cross products matrices.
 AggregateMethods:
