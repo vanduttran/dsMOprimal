@@ -15,7 +15,7 @@ Authors@R:
              role = c("ctb")))
 Depends: DSI, dsSwissKnife, DSOpal
 Imports: bigmemory, parallel, fda
-Description: Server side functions for integrating sum of squares and cross products matrices.
+Description: Server side functions on X'X sum of squares and cross products matrices.
 AggregateMethods:
     dsDim,
     rowNames,
