@@ -31,7 +31,7 @@ Default, NULL, all individuals are considered.}
 
 \item{covSpace}{The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
 \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
-\code{"Y"} for the second querytable, and \code{"XY} for covariance between the two querytables. Default, \code{"X"}.}
+\code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.}
 }
 \value{
 Covariance matrix of the virtual cohort
