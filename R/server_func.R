@@ -24,7 +24,7 @@ dsDim <- function(x) {
 #' @param y A list of symmetric matrices of dimension (ncol(x), ncol(x))
 #' @return Row means of x if y = NULL, or row means of x %*% yy for each matrix yy in y otherwise
 #' @keywords internal
-rowmeans <- function(x, y = NULL) {
+.rowmeans <- function(x, y = NULL) {
     if (is.null(y)) {
         return (matrix(rowMeans(x), ncol=1, dimnames=list(rownames(x), "mean")))
     } else if (!all(sapply(y, isSymmetric))) {
@@ -40,7 +40,7 @@ rowmeans <- function(x, y = NULL) {
 #' @param x A numeric matrix
 #' @return Column means of x
 #' @keywords internal
-colmeans <- function(x) {
+.colmeans <- function(x) {
     return (matrix(colMeans(x), nrow=1, dimnames=list("mean", colnames(x))))
 }
 
@@ -136,7 +136,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE) {
 #' @return List of blocks
 #' @import parallel
 #' @keywords internal
-partitionMatrix <- function(x, seprow, sepcol = seprow) {
+.partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
     indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
@@ -214,7 +214,7 @@ crossProd <- function(x, y = NULL, chunk = 500) {
     sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
 
     if (is.null(y)) {
-        tcpblocks <- partitionMatrix(crossprod(x), seprow=sepblocksrow)
+        tcpblocks <- .partitionMatrix(crossprod(x), seprow=sepblocksrow)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -224,7 +224,7 @@ crossProd <- function(x, y = NULL, chunk = 500) {
         nblockscol <- ceiling(ncol(y)/chunk)
         sepblockscol <- rep(ceiling(ncol(y)/nblockscol), nblockscol-1)
         sepblockscol <- c(sepblockscol, ncol(y) - sum(sepblockscol))
-        tcpblocks <- partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
+        tcpblocks <- .partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -246,7 +246,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         nblocks <- ceiling(nrow(x)/chunk)
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-        tcpblocks <- partitionMatrix(tcrossprod(x), seprow=sepblocks)
+        tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -262,7 +262,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
 #' @return The complete matrix
 #' @keywords internal
-rebuildMatrix <- function(blocks) {
+.rebuildMatrix <- function(blocks) {
     ## decode matrix blocks
     matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
         mclapply(y, mc.cores=length(y), function(x) {
@@ -309,7 +309,7 @@ pushSymmMatrixServer <- function(value) {
             return (describe(as.big.matrix(x.mat)))
         })
     } else {
-        tcp <- rebuildMatrix(valued)
+        tcp <- .rebuildMatrix(valued)
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
     }
@@ -466,7 +466,7 @@ pushValue <- function(value, name) {
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
 #' @keywords internal
-sumMatrices <- function(dsc = NULL) {
+.sumMatrices <- function(dsc = NULL) {
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
         return (y)
@@ -517,7 +517,7 @@ sumMatrices <- function(dsc = NULL) {
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
-federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X") {
+.federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X") {
     require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
@@ -577,7 +577,7 @@ federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset =
             crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
                 return (dscblocks[[1]])
             })
-            rescov <- sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+            rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
             ## set dimnames to covariance matrix
             if (covSpace=="X" || covSpace=="XY") {
                 rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
@@ -622,7 +622,7 @@ federatePCA <- function(loginFD, logins, func, symbol) {
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
-    covmat <- federateCov(loginFD, logins, funcPreProc, querytables)
+    covmat <- .federateCov(loginFD, logins, funcPreProc, querytables)
     return (princomp(covmat=covmat))
 }
 
@@ -645,8 +645,8 @@ federatePCA <- function(loginFD, logins, func, symbol) {
 #' @param grid2 Checking values for \code{lambda2}.
 #' @return Optimal values of \code{lambda1} and \code{lambda2}.
 #' @keywords internal
-estimateR <- function(loginFD, logins, funcPreProc, querytables,
-                      nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
+.estimateR <- function(loginFD, logins, funcPreProc, querytables,
+                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
     loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
     logindata   <- dsSwissKnife:::.decode.arg(logins)
@@ -687,9 +687,9 @@ estimateR <- function(loginFD, logins, funcPreProc, querytables,
             yscore <- NULL
             for (m in 1:nfold) {
                 ## covariance matrices for the virtual cohort
-                Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X")
-                Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y")
-                Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY")
+                Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X")
+                Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y")
+                Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY")
                 
                 ## add parameters of regularization
                 Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
@@ -773,15 +773,15 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- dsSwissKnife:::.decode.arg(tune_param)
-        tuneres <- estimateR(loginFD, logins, funcPreProc, querytables,
-                             nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
+        tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
+                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")
-    Cyy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")
-    Cxy <- federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")
+    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")
+    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")
+    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")
 
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -795,7 +795,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
     ## assign centered data on each individual server
-    ## NB: this block only works with some call a priori, e.g. federateCov, or with require(DSOpal) !!!
+    ## NB: this block only works with some call a priori, e.g. .federateCov, or with require(DSOpal) !!!
     opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     
