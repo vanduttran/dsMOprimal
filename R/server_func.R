@@ -434,12 +434,25 @@ crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait
 #' Other assigned R variables in \code{func} are ignored.
 #' @export
 crossAssignFunc <- function(conns, func, symbol) {
-    ## apply funcPreProc for preparation of querytables on conns
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
     funcPreProc <- dsSwissKnife:::.decode.arg(func)
     querytables <- dsSwissKnife:::.decode.arg(symbol)
-    funcPreProc(conns=conns, symbol=querytables)
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on conns
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=conns, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING CROSS PROCESS: ", e)), finally=DSI::datashield.logout(conns))
     return (NULL)
 }
 
@@ -499,6 +512,39 @@ pushValue <- function(value, name) {
 }
 
 
+#' @title locks or unlocks bindings in environments
+#' @description helper function for dssSubset and dssPivot
+#' @param what a list of  environments and their respective objects - the output of ls.all above
+#' @param func a function, either lockBinding or unlockBinding
+#' @keywords internal
+.lock.unlock <- function(what, func){
+    stopifnot(deparse(substitute(func)) %in% c('lockBinding', 'unlockBinding'))
+    invisible(lapply(names(what), function(x){
+        lapply(what[[x]], function(y){
+            func(y,get(x))
+        })
+    }))
+}
+
+
+#' @title removes objects from the current workspace
+#' @description helper function for dssSubset and dssPivot
+#' @param what a list of  environments and their respective objects - the output of a previous call to ls.all
+#' @param start a character the environment name where to start (default .GlobalEnv)
+#' @keywords internal
+.cleanup <- function(initial, start = '.GlobalEnv'){
+    objs <- .ls.all(start)
+    new.envs <- setdiff(names(objs), names(initial))
+    Map(function(x){
+        rm(get(x))
+        objs[x] <- NULL
+    }, new.envs)
+    invisible(Map(function(x){
+        new.objs <- setdiff(objs[[x]], initial[[x]])
+        rm(list = new.objs, pos = get(x))
+    }, names(objs)))
+}
+
 #' @title Federated covariance matrix
 #' @description Compute the covariance matrix for the virtual cohort
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
@@ -528,10 +574,23 @@ pushValue <- function(value, name) {
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
     
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
-    funcPreProc(conns=opals, symbol=querytables)
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     tryCatch({
         if (is.null(querysubset)) {
@@ -653,10 +712,24 @@ federatePCA <- function(loginFD, logins, func, symbol) {
     
     opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    ## TODO: control identical colnames!
-    funcPreProc(conns=opals, symbol=querytables)
+    
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     tryCatch({
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
@@ -799,10 +872,24 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     
-    ## apply funcPreProc for preparation of querytables on opals
-    ## TODO: control hacking!
-    funcPreProc(conns=opals, symbol=querytables)
-
+    tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    
     tryCatch({
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
@@ -823,7 +910,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
                                                                        as.symbol("centeredDatay"),
                                                                        .encode.arg(res$ycoef),
                                                                        "prod")), async=T))
-    }, finally=DSI::datashield.logout(opals))
+    }, error=function(e) print(paste0("COVARIATES PROCESS: ", e)), finally=DSI::datashield.logout(opals))
     
     ## loadings: correlation between raw data and canonical covariates
     ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
