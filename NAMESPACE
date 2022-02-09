@@ -2,7 +2,6 @@
 
 export(center)
 export(colNames)
-export(computeWeights)
 export(crossAggregate)
 export(crossAssign)
 export(crossAssignFunc)
