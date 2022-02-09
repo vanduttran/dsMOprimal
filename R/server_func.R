@@ -452,7 +452,10 @@ crossAssignFunc <- function(conns, func, symbol) {
         # .lock.unlock(safe.objs, unlockBinding)
         # ## get rid of any sneaky objects that might have been created in the filters as side effects
         # .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING CROSS PROCESS: ", e)), finally=DSI::datashield.logout(conns))
+    }, error=function(e) {
+        print(paste0("DATA MAKING CROSS PROCESS: ", e))
+        DSI::datashield.logout(conns)
+    })
     return (NULL)
 }
 
@@ -533,7 +536,10 @@ pushValue <- function(value, name) {
         # .lock.unlock(safe.objs, unlockBinding)
         # ## get rid of any sneaky objects that might have been created in the filters as side effects
         # .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     tryCatch({
         if (is.null(querysubset)) {
@@ -624,6 +630,7 @@ federatePCA <- function(loginFD, logins, func, symbol) {
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
+    print(querytables)
     covmat <- .federateCov(loginFD, logins, funcPreProc, querytables)
     return (princomp(covmat=covmat))
 }
@@ -672,7 +679,10 @@ federatePCA <- function(loginFD, logins, func, symbol) {
         # .lock.unlock(safe.objs, unlockBinding)
         # ## get rid of any sneaky objects that might have been created in the filters as side effects
         # .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     tryCatch({
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
@@ -831,7 +841,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         # .lock.unlock(safe.objs, unlockBinding)
         # ## get rid of any sneaky objects that might have been created in the filters as side effects
         # .cleanup(safe.objs)
-    }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
+    }, error=function(e) {
+        print(paste0("DATA MAKING PROCESS: ", e))
+        datashield.logout(opals)
+    })
     
     tryCatch({
         DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
