@@ -437,21 +437,21 @@ crossAssignFunc <- function(conns, func, symbol) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
+        # ## take a snapshot of the current session
+        # safe.objs <- .ls.all()
+        # safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        # ## lock everything so no objects can be changed
+        # .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on conns
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=conns, symbol=querytables)
         
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
+        # ## unlock back everything
+        # .lock.unlock(safe.objs, unlockBinding)
+        # ## get rid of any sneaky objects that might have been created in the filters as side effects
+        # .cleanup(safe.objs)
     }, error=function(e) print(paste0("DATA MAKING CROSS PROCESS: ", e)), finally=DSI::datashield.logout(conns))
     return (NULL)
 }
@@ -518,21 +518,21 @@ pushValue <- function(value, name) {
     opals <- datashield.login(logins=logindata)
     
     tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
+        # ## take a snapshot of the current session
+        # safe.objs <- .ls.all()
+        # safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        # ## lock everything so no objects can be changed
+        # .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
         
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
+        # ## unlock back everything
+        # .lock.unlock(safe.objs, unlockBinding)
+        # ## get rid of any sneaky objects that might have been created in the filters as side effects
+        # .cleanup(safe.objs)
     }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     tryCatch({
@@ -657,21 +657,21 @@ federatePCA <- function(loginFD, logins, func, symbol) {
     nNode <- length(opals)
     
     tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
+        # ## take a snapshot of the current session
+        # safe.objs <- .ls.all()
+        # safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        # ## lock everything so no objects can be changed
+        # .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
         
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
+        # ## unlock back everything
+        # .lock.unlock(safe.objs, unlockBinding)
+        # ## get rid of any sneaky objects that might have been created in the filters as side effects
+        # .cleanup(safe.objs)
     }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     tryCatch({
@@ -816,21 +816,21 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     nNode <- length(opals)
     
     tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
+        # ## take a snapshot of the current session
+        # safe.objs <- .ls.all()
+        # safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        # ## lock everything so no objects can be changed
+        # .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
         
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
+        # ## unlock back everything
+        # .lock.unlock(safe.objs, unlockBinding)
+        # ## get rid of any sneaky objects that might have been created in the filters as side effects
+        # .cleanup(safe.objs)
     }, error=function(e) print(paste0("DATA MAKING PROCESS: ", e)), finally=datashield.logout(opals))
     
     tryCatch({
