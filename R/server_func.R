@@ -437,21 +437,21 @@ crossAssignFunc <- function(conns, func, symbol) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     tryCatch({
-        # ## take a snapshot of the current session
-        # safe.objs <- .ls.all()
-        # safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        # ## lock everything so no objects can be changed
-        # .lock.unlock(safe.objs, lockBinding)
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on conns
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=conns, symbol=querytables)
         
-        # ## unlock back everything
-        # .lock.unlock(safe.objs, unlockBinding)
-        # ## get rid of any sneaky objects that might have been created in the filters as side effects
-        # .cleanup(safe.objs)
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING CROSS PROCESS: ", e))
         DSI::datashield.logout(conns)
