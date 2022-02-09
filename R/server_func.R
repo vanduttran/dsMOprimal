@@ -54,7 +54,7 @@ dsDim <- function(x) {
 #' @export
 setRowNames <- function(x, row.names, envir = .GlobalEnv) {
     if (length(row.names)==1) {
-        if (grepl("base64$", row.names)) rn <- .decode.arg(row.names)
+        if (grepl("base64$", row.names)) rn <- dsSwissKnife:::.decode.arg(row.names)
         else {
             if (typeof(envir)!='environment') envir <- as.environment(envir)
             rn <- get(row.names, envir=envir)
@@ -121,7 +121,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE) {
     y <- y[order(rownames(y)), ]
 
     ## subseting
-    subset <- .decode.arg(subset)
+    subset <- dsSwissKnife:::.decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
     
     if (isTRUE(byColumn)) return (scale(y, center=TRUE, scale=FALSE))
@@ -176,7 +176,7 @@ singularProd <- function(x) {
 #' @export
 loadings <- function(x, y, operator = 'crossprod') {
     operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
-    yd <- .decode.arg(y)
+    yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
     
     return (switch(operator,
@@ -194,7 +194,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @export
 crossProdrm <- function(x, y = NULL) {
     if (is.null(y)) return (crossprod(x))
-    yd <- .decode.arg(y)
+    yd <- dsSwissKnife:::.decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
 
     return (crossprod(x, yd))
@@ -266,7 +266,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
     ## decode matrix blocks
     matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
         mclapply(y, mc.cores=length(y), function(x) {
-            return (do.call(rbind, .decode.arg(x)))
+            return (do.call(rbind, dsSwissKnife:::.decode.arg(x)))
         })
     })
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
@@ -300,7 +300,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @return Description of the pushed value
 #' @export
 pushSymmMatrixServer <- function(value) {
-    valued <- .decode.arg(value)
+    valued <- dsSwissKnife:::.decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     if (FALSE) {
         dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
@@ -325,7 +325,7 @@ pushSymmMatrixServer <- function(value) {
 #' @import bigmemory
 #' @export
 tripleProd <- function(x, pids) {
-    pids <- .decode.arg(pids)
+    pids <- dsSwissKnife:::.decode.arg(pids)
     tp <- lapply(pids, function(pid) {
         if (file.exists(paste0("/tmp/", pid))) {
             load(paste0("/tmp/", pid))
@@ -347,7 +347,7 @@ tripleProd <- function(x, pids) {
 #' @export
 crossLogin <- function(logins) {
     require(DSOpal)
-    loginfo <- .decode.arg(logins)
+    loginfo <- dsSwissKnife:::.decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
                        user=loginfo$user,
@@ -377,7 +377,7 @@ crossLogout <- function(opals) {
 #' @import DSI
 #' @export
 crossAggregate <- function(conns, expr, wait = F, async = T) {
-    expr <- .decode.arg(expr)
+    expr <- dsSwissKnife:::.decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
         stopifnot(is.call(expr))
@@ -399,7 +399,7 @@ crossAggregate <- function(conns, expr, wait = F, async = T) {
 #' @import DSI
 #' @export
 dscPush <- function(conns, expr, async = T) {
-  expr <- .decode.arg(expr)
+  expr <- dsSwissKnife:::.decode.arg(expr)
   stopifnot(grepl("^as.call", expr))
   expr <- eval(str2expression(expr))
   return (DSI::datashield.aggregate(conns=conns, expr=expr, async=async))
@@ -417,8 +417,8 @@ dscPush <- function(conns, expr, async = T) {
 #' @import DSI
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait = F, async = T) {
-    value <- .decode.arg(value)
-    variables <- .decode.arg(variables)
+    value <- dsSwissKnife:::.decode.arg(value)
+    variables <- dsSwissKnife:::.decode.arg(variables)
     DSI::datashield.assign(conns=conns, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
 }
 
@@ -434,8 +434,8 @@ crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait
 #' Other assigned R variables in \code{func} are ignored.
 #' @export
 crossAssignFunc <- function(conns, func, symbol) {
-    funcPreProc <- .decode.arg(func)
-    querytables <- .decode.arg(symbol)
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
     tryCatch({
         # ## take a snapshot of the current session
         # safe.objs <- .ls.all()
@@ -464,11 +464,11 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @import bigmemory
 #' @export
 pushValue <- function(value, name) {
-    valued <- .decode.arg(value)
+    valued <- dsSwissKnife:::.decode.arg(value)
     if (is.list(valued)) valued <- do.call(rbind, valued)
     stopifnot(isSymmetric(valued))
     dscbigmatrix <- describe(as.big.matrix(valued))
-    save(dscbigmatrix, file=paste0("/tmp/", .decode.arg(name)))
+    save(dscbigmatrix, file=paste0("/tmp/", dsSwissKnife:::.decode.arg(name)))
     return (dscbigmatrix)
 }
 
@@ -511,8 +511,8 @@ pushValue <- function(value, name) {
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
-    loginFDdata <- .decode.arg(loginFD)
-    logindata   <- .decode.arg(logins)
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata   <- dsSwissKnife:::.decode.arg(logins)
     
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
@@ -619,8 +619,8 @@ pushValue <- function(value, name) {
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol) {
-    funcPreProc <- .decode.arg(func)
-    querytables <- .decode.arg(symbol)
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
@@ -650,10 +650,10 @@ federatePCA <- function(loginFD, logins, func, symbol) {
 .estimateR <- function(loginFD, logins, funcPreProc, querytables,
                        nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
-    loginFDdata <- .decode.arg(loginFD)
-    logindata   <- .decode.arg(logins)
+    loginFDdata <- dsSwissKnife:::.decode.arg(loginFD)
+    logindata   <- dsSwissKnife:::.decode.arg(logins)
     
-    opals <- datashield.login(logins=.decode.arg(logins))
+    opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     
     tryCatch({
@@ -780,15 +780,15 @@ federatePCA <- function(loginFD, logins, func, symbol) {
 federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, 
                          tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)))) {
     require(DSOpal)
-    funcPreProc <- .decode.arg(func)
-    querytables <- .decode.arg(symbol)
+    funcPreProc <- dsSwissKnife:::.decode.arg(func)
+    querytables <- dsSwissKnife:::.decode.arg(symbol)
     if (length(querytables) != 2) {
         stop("Two data matrices are required!")
     }
 
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
-        tune_param <- .decode.arg(tune_param)
+        tune_param <- dsSwissKnife:::.decode.arg(tune_param)
         tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
                               nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
@@ -812,7 +812,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 
     ## assign centered data on each individual server
     ## NB: this block only works with some call a priori, e.g. .federateCov, or with require(DSOpal) !!!
-    opals <- datashield.login(logins=.decode.arg(logins))
+    opals <- datashield.login(logins=dsSwissKnife:::.decode.arg(logins))
     nNode <- length(opals)
     
     tryCatch({
