@@ -531,7 +531,7 @@ pushValue <- function(value, name) {
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
-        
+        return(ds.summary(querytables, datasources = opals))
         ## unlock back everything
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
@@ -540,7 +540,7 @@ pushValue <- function(value, name) {
         print(paste0("DATA MAKING PROCESS: ", e))
         datashield.logout(opals)
     })
-    
+    return ('OK')
     tryCatch({
         if (is.null(querysubset)) {
             DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
@@ -571,7 +571,7 @@ pushValue <- function(value, name) {
                 DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
             }
         }
-        return (size)
+        
         ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
         loginFDdata$user     <- loginFDdata$userserver
         loginFDdata$password <- loginFDdata$passwordserver
