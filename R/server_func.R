@@ -520,7 +520,7 @@ pushValue <- function(value, name) {
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
     
-    tryCatch({
+    out <- tryCatch({
         ## take a snapshot of the current session
         safe.objs <- .ls.all()
         safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
@@ -542,7 +542,7 @@ pushValue <- function(value, name) {
         datashield.logout(opals)
         return(paste0("DATA MAKING PROCESS: ", e))
     })
-    return ('OK')
+    return (out)
     tryCatch({
         if (is.null(querysubset)) {
             DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
