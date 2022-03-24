@@ -530,8 +530,7 @@ pushValue <- function(value, name) {
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
-        #funcPreProc(conns=opals, symbol=querytables)
-        #return(ds.summary(querytables, datasources = opals))
+        funcPreProc(conns=opals, symbol=querytables)
         return(datashield.symbols(opals))
         ## unlock back everything
         .lock.unlock(safe.objs, unlockBinding)
