@@ -538,7 +538,9 @@ pushValue <- function(value, name) {
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
+        print(datashield.symbols(opals))
         datashield.logout(opals)
+        return(paste0("DATA MAKING PROCESS: ", e))
     })
     return ('OK')
     tryCatch({
