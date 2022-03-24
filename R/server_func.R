@@ -571,7 +571,7 @@ pushValue <- function(value, name) {
                 DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
             }
         }
-        
+        return (size)
         ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
         loginFDdata$user     <- loginFDdata$userserver
         loginFDdata$password <- loginFDdata$passwordserver
@@ -632,7 +632,7 @@ federatePCA <- function(loginFD, logins, func, symbol, verbose = FALSE) {
     }
     print(querytables)
     covmat <- .federateCov(loginFD, logins, funcPreProc, querytables)
-    if (verbose) return(datashield.errors())
+    if (verbose) return(covmat)
     return (princomp(covmat=covmat))
 }
 
