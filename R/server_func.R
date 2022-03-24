@@ -531,18 +531,15 @@ pushValue <- function(value, name) {
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
-        return(datashield.symbols(opals))
         ## unlock back everything
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
-        print(datashield.symbols(opals))
         datashield.logout(opals)
         return(paste0("DATA MAKING PROCESS: ", e))
     })
-    return (out)
     tryCatch({
         if (is.null(querysubset)) {
             DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
