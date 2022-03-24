@@ -624,7 +624,8 @@ pushValue <- function(value, name) {
 #' dataProc(conns=opals, symbol="rawData")
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
-federatePCA <- function(loginFD, logins, func, symbol) {
+federatePCA <- function(loginFD, logins, func, symbol, verbose = FALSE) {
+    if (verbose) print(datashield.errors())
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 1) {
