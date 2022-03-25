@@ -522,19 +522,19 @@ pushValue <- function(value, name) {
     
     out <- tryCatch({
         ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        #safe.objs <- .ls.all()
+        #safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
         ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
+        #.lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         funcPreProc(conns=opals, symbol=querytables)
         ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
+        #.lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
+        #.cleanup(safe.objs)
         return (datashield.symbols(opals))
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
