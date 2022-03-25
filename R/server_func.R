@@ -541,41 +541,41 @@ pushValue <- function(value, name) {
     })
     out <- tryCatch({
         if (is.null(querysubset)) {
-            DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-            return (datashield.errors())
+            datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+            #return (datashield.errors())
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
-                DSI::datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
             })
-            return (datashield.errors())
+            #return (datashield.errors())
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
         return (size)
         if (length(querytables)==1 || covSpace=="X") {
-            DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
+            datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
             if (is.null(querysubset)) {
-                DSI::datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+                datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
             } else {
                 stopifnot(all(names(opals)==names(querysubset)))
                 lapply(names(opals), function(opn) {
-                    DSI::datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                    datashield.assign(opals[opn], "centeredData2", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
                 })
             }
             size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
             stopifnot(all(size==size2))
             if (covSpace=="Y") {
-                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData2, y=NULL, chunk=50)'), async=T)
+                datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData2, y=NULL, chunk=50)'), async=T)
             } else {
-                DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+                datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
             }
         }
         
         ## push data from non-FD servers to FD-assigned server: user and password for login between servers are required
         loginFDdata$user     <- loginFDdata$userserver
         loginFDdata$password <- loginFDdata$passwordserver
-        DSI::datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
+        datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
         command <- paste0("dscPush(FD, '", 
                           .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsMOprimal:::.encode.arg(crossProdSelf)", "))")), 
                           "', async=T)")
@@ -602,13 +602,13 @@ pushValue <- function(value, name) {
               print(paste0("COVARIATES PUSH PROCESS: ", e));
               return(paste0("COVARIATES PUSH PROCESS: ", e))
               }, 
-            finally=DSI::datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+            finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, 
     error=function(e) {
       print(paste0("COVARIATES PROCESS: ", e))
       return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.errors()))
       }, 
-    finally=DSI::datashield.logout(opals))
+    finally=datashield.logout(opals))
     gc(reset=F)
     return (out)
     return (rescov)
