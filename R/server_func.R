@@ -550,7 +550,7 @@ pushValue <- function(value, name) {
             })
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
-        
+        return (size)
         if (length(querytables)==1 || covSpace=="X") {
             DSI::datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
