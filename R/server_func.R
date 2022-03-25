@@ -520,7 +520,7 @@ pushValue <- function(value, name) {
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
     
-    out <- tryCatch({
+    tryCatch({
         ## take a snapshot of the current session
         safe.objs <- .ls.all()
         safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
@@ -538,9 +538,9 @@ pushValue <- function(value, name) {
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
         datashield.logout(opals)
-        return(paste0("DATA MAKING PROCESS: ", e))
+        #return(paste0("DATA MAKING PROCESS: ", e))
     })
-    tryCatch({
+    out <- tryCatch({
         if (is.null(querysubset)) {
             DSI::datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
         } else {
@@ -596,10 +596,20 @@ pushValue <- function(value, name) {
             } else {
                 colnames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
             }
-            }, error=function(e) print(paste0("COVARIATES PUSH PROCESS: ", e)), finally=DSI::datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-    }, error=function(e) print(paste0("COVARIATES PROCESS: ", e)), finally=DSI::datashield.logout(opals))
+            }, 
+            error=function(e) {
+              print(paste0("COVARIATES PUSH PROCESS: ", e));
+              return(paste0("COVARIATES PUSH PROCESS: ", e))
+              }, 
+            finally=DSI::datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
+    }, 
+    error=function(e) {
+      print(paste0("COVARIATES PROCESS: ", e))
+      return(paste0("COVARIATES PROCESS: ", e))
+      }, 
+    finally=DSI::datashield.logout(opals))
     gc(reset=F)
-    
+    return (out)
     return (rescov)
 }
 
