@@ -606,7 +606,7 @@ pushValue <- function(value, name) {
     }, 
     error=function(e) {
       print(paste0("COVARIATES PROCESS: ", e))
-      return(paste0("COVARIATES PROCESS: ", e))
+      return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.errors()))
       }, 
     finally=DSI::datashield.logout(opals))
     gc(reset=F)
