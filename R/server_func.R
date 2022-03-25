@@ -541,16 +541,16 @@ pushValue <- function(value, name) {
     })
     out <- tryCatch({
         if (is.null(querysubset)) {
-            datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+            datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
             #return (datashield.errors())
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
-                datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=T)
+                datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=F)
             })
             #return (datashield.errors())
         }
-        size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
+        size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=F), function(x) x[1])
         return (size)
         if (length(querytables)==1 || covSpace=="X") {
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
