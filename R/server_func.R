@@ -542,13 +542,13 @@ pushValue <- function(value, name) {
     out <- tryCatch({
         if (is.null(querysubset)) {
             datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
-            #return (datashield.errors())
+            return (datashield.errors())
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
                 datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=F)
             })
-            #return (datashield.errors())
+            return (datashield.errors())
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=F), function(x) x[1])
         return (size)
@@ -606,7 +606,7 @@ pushValue <- function(value, name) {
     }, 
     error=function(e) {
       print(paste0("COVARIATES PROCESS: ", e))
-      return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.errors()))
+      return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
       }, 
     finally=datashield.logout(opals))
     gc(reset=F)
