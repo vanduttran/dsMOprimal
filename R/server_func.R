@@ -520,7 +520,7 @@ pushValue <- function(value, name) {
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
     
-    tryCatch({
+    out <- tryCatch({
         ## take a snapshot of the current session
         safe.objs <- .ls.all()
         safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
@@ -535,10 +535,14 @@ pushValue <- function(value, name) {
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
+        return (datashield.symbols(opals))
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
+        #return (datashield.symbols(opals))
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
         datashield.logout(opals)
     })
+    return (out)
     out <- tryCatch({
         if (is.null(querysubset)) {
             return (datashield.symbols(opals))
