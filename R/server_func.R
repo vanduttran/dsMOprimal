@@ -541,6 +541,7 @@ pushValue <- function(value, name) {
     })
     out <- tryCatch({
         if (is.null(querysubset)) {
+            return (datashield.symbols(opals))
             datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
             return (datashield.errors())
         } else {
