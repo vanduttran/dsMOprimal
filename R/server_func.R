@@ -530,7 +530,18 @@ pushValue <- function(value, name) {
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
-        return (list(func=funcPreProc, conns=opals, symbol=querytables))
+        return (list(func=funcPreProc, conns=opals, symbol=querytables,
+                     com1=datashield.aggregate(opals, quote(set.stringsAsFactors(TRUE))),
+                     com2=datashield.assign(opals, symbol = "lb", value = "rhapsody.LB"),
+                     com3=common_codes_filter <- paste0("LBTESTCD %in% c('", paste(c("CHOL", 
+                                                                                     "CREAT", "GAD1", "HBA1C", "HDL", "LDL", "TRIG"), collapse = "','"), 
+                                                        "')"),
+                     com4=dssSubset(symbol = "lb_common", what = "lb", row.filter = common_codes_filter, 
+                                    datasources = opals),
+                     com5=datashield.rm(conns, "lb"),
+                     com6=dssSubsetByClass("lb_common", subsets = "blocks", variables = "lb_common$LBMETHOD", 
+                                           datasources = opals)
+                     ))
         funcPreProc(conns=opals, symbol=querytables)
         ## unlock back everything
         #.lock.unlock(safe.objs, unlockBinding)
