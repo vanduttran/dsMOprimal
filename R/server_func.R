@@ -538,7 +538,7 @@ pushValue <- function(value, name) {
                                                                                      "CREAT", "GAD1", "HBA1C", "HDL", "LDL", "TRIG"), collapse = "','"), 
                                                         "')")
                      #com4=dssSubset(symbol = "lb_common", what = "lb", row.filter = common_codes_filter, 
-                                    datasources = opals),
+                     #               datasources = opals),
                      #com5=datashield.rm(conns, "lb"),
                      #com6=dssSubsetByClass("lb_common", subsets = "blocks", variables = "lb_common$LBMETHOD", 
                      #                      datasources = opals)
