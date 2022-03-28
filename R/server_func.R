@@ -530,6 +530,7 @@ pushValue <- function(value, name) {
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
+        return (list(func=funcPreProc), conns=opals, symbol=querytables)
         funcPreProc(conns=opals, symbol=querytables)
         ## unlock back everything
         #.lock.unlock(safe.objs, unlockBinding)
