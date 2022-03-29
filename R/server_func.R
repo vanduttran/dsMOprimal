@@ -552,8 +552,7 @@ pushValue <- function(value, name) {
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
         #return (datashield.symbols(opals))
-        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
-        datashield.logout(opals)
+        return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
     return (out)
     out <- tryCatch({
