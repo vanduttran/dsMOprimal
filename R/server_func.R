@@ -548,7 +548,7 @@ pushValue <- function(value, name) {
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
-        return (datashield.symbols(opals))
+        #return (datashield.symbols(opals))
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
         #return (datashield.symbols(opals))
