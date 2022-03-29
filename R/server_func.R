@@ -531,7 +531,7 @@ pushValue <- function(value, name) {
         ## TODO: control hacking!
         ## TODO: control identical colnames!
         return (list(func=funcPreProc, conns=opals, symbol=querytables,
-                     com0=funcPreProc(conns=opals, symbol=querytables)
+                     com0=funcPreProc(conns=opals, symbol=querytables),
                      com1=datashield.aggregate(opals, quote(set.stringsAsFactors(TRUE))),
                      com2=datashield.assign(opals, symbol = "lb", value = "rhapsody.LB"),
                      com3=common_codes_filter <- paste0("LBTESTCD %in% c('", paste(c("CHOL", 
