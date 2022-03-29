@@ -522,53 +522,53 @@ pushValue <- function(value, name) {
     
     out <- tryCatch({
         ## take a snapshot of the current session
-        #safe.objs <- .ls.all()
-        #safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
         ## lock everything so no objects can be changed
-        #.lock.unlock(safe.objs, lockBinding)
+        .lock.unlock(safe.objs, lockBinding)
         
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
-        return (list(func=funcPreProc, conns=opals, symbol=querytables,
-                     com0=funcPreProc(conns=opals, symbol=querytables),
-                     com1=datashield.aggregate(opals, quote(set.stringsAsFactors(TRUE))),
-                     com2=datashield.assign(opals, symbol = "lb", value = "rhapsody.LB"),
-                     com3=common_codes_filter <- paste0("LBTESTCD %in% c('", paste(c("CHOL", 
-                                                                                     "CREAT", "GAD1", "HBA1C", "HDL", "LDL", "TRIG"), collapse = "','"), 
-                                                        "')")
-                     #com4=dssSubset(symbol = "lb_common", what = "lb", row.filter = common_codes_filter, 
-                     #               datasources = opals),
-                     #com5=datashield.rm(conns, "lb"),
-                     #com6=dssSubsetByClass("lb_common", subsets = "blocks", variables = "lb_common$LBMETHOD", 
-                     #                      datasources = opals)
-                     ))
+        # return (list(func=funcPreProc, conns=opals, symbol=querytables,
+        #              com0=funcPreProc(conns=opals, symbol=querytables),
+        #              com1=datashield.aggregate(opals, quote(set.stringsAsFactors(TRUE))),
+        #              com2=datashield.assign(opals, symbol = "lb", value = "rhapsody.LB"),
+        #              com3=common_codes_filter <- paste0("LBTESTCD %in% c('", paste(c("CHOL", 
+        #                                                                              "CREAT", "GAD1", "HBA1C", "HDL", "LDL", "TRIG"), collapse = "','"), 
+        #                                                 "')")
+        #              #com4=dssSubset(symbol = "lb_common", what = "lb", row.filter = common_codes_filter, 
+        #              #               datasources = opals),
+        #              #com5=datashield.rm(conns, "lb"),
+        #              #com6=dssSubsetByClass("lb_common", subsets = "blocks", variables = "lb_common$LBMETHOD", 
+        #              #                      datasources = opals)
+        #              ))
         funcPreProc(conns=opals, symbol=querytables)
         ## unlock back everything
-        #.lock.unlock(safe.objs, unlockBinding)
+        .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
-        #.cleanup(safe.objs)
+        .cleanup(safe.objs)
         return (datashield.symbols(opals))
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
         #return (datashield.symbols(opals))
         return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
-    return (out)
+    #return (out)
     out <- tryCatch({
         if (is.null(querysubset)) {
-            return (datashield.symbols(opals))
+            #return (datashield.symbols(opals))
             datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
-            return (datashield.errors())
+            #return (datashield.errors())
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
                 datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=F)
             })
-            return (datashield.errors())
+            #return (datashield.errors())
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=F), function(x) x[1])
-        return (size)
+        #return (size)
         if (length(querytables)==1 || covSpace=="X") {
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
@@ -627,7 +627,7 @@ pushValue <- function(value, name) {
       }, 
     finally=datashield.logout(opals))
     gc(reset=F)
-    return (out)
+    #return (out)
     return (rescov)
 }
 
