@@ -642,7 +642,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
     pcaObj <- princomp(covmat=covmat)
 
     if (ncomp > 2 && length(which(pcaObj$sdev > 1e-6)) <= ncomp) {
-        print(paste0("Security issue: maximum ", length(which(pcaObj$sdev > 1e-6)), " components could be inquired. ncomp will be set to 2."))
+        print(paste0("Security issue: maximum ", length(which(pcaObj$sdev > 1e-6)) - 1, " components could be inquired. ncomp will be set to 2."))
         ncomp <- 2
     }
     if (ncomp < 1) {
