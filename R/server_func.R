@@ -530,45 +530,25 @@ pushValue <- function(value, name) {
         ## apply funcPreProc for preparation of querytables on opals
         ## TODO: control hacking!
         ## TODO: control identical colnames!
-        # return (list(func=funcPreProc, conns=opals, symbol=querytables,
-        #              com0=funcPreProc(conns=opals, symbol=querytables),
-        #              com1=datashield.aggregate(opals, quote(set.stringsAsFactors(TRUE))),
-        #              com2=datashield.assign(opals, symbol = "lb", value = "rhapsody.LB"),
-        #              com3=common_codes_filter <- paste0("LBTESTCD %in% c('", paste(c("CHOL", 
-        #                                                                              "CREAT", "GAD1", "HBA1C", "HDL", "LDL", "TRIG"), collapse = "','"), 
-        #                                                 "')")
-        #              #com4=dssSubset(symbol = "lb_common", what = "lb", row.filter = common_codes_filter, 
-        #              #               datasources = opals),
-        #              #com5=datashield.rm(conns, "lb"),
-        #              #com6=dssSubsetByClass("lb_common", subsets = "blocks", variables = "lb_common$LBMETHOD", 
-        #              #                      datasources = opals)
-        #              ))
         funcPreProc(conns=opals, symbol=querytables)
         ## unlock back everything
         .lock.unlock(safe.objs, unlockBinding)
         ## get rid of any sneaky objects that might have been created in the filters as side effects
         .cleanup(safe.objs)
-        #return (datashield.symbols(opals))
     }, error=function(e) {
         print(paste0("DATA MAKING PROCESS: ", e))
-        #return (datashield.symbols(opals))
         return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
-    #return (out)
     out <- tryCatch({
         if (is.null(querysubset)) {
-            #return (datashield.symbols(opals))
             datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
-            #return (datashield.errors())
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
                 datashield.assign(opals[opn], "centeredData", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(querysubset[[opn]]), "')")), async=F)
             })
-            #return (datashield.errors())
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=F), function(x) x[1])
-        #return (size)
         if (length(querytables)==1 || covSpace=="X") {
             datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
         } else {
@@ -627,7 +607,6 @@ pushValue <- function(value, name) {
       }, 
     finally=datashield.logout(opals))
     gc(reset=F)
-    #return (out)
     return (rescov)
 }
 
@@ -642,6 +621,7 @@ pushValue <- function(value, name) {
 #' @param symbol Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
 #' Other assigned R variables in \code{func} are ignored.
+#' @param ncomp Number of components. Default: 2.
 #' @return PCA object
 #' @import DSI parallel bigmemory
 #' @examples
@@ -651,16 +631,60 @@ pushValue <- function(value, name) {
 #' dataProc(conns=opals, symbol="rawData")
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
-federatePCA <- function(loginFD, logins, func, symbol, verbose = FALSE) {
+federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
-    print(querytables)
     covmat <- .federateCov(loginFD, logins, funcPreProc, querytables)
-    if (verbose) return(covmat)
-    return (princomp(covmat=covmat))
+    #if (verbose) return(covmat)
+    pcaObj <- princomp(covmat=covmat)
+
+    if (ncomp > 2 && length(which(pcaObj$sdev > 1e-6)) <= ncomp) {
+        warning(paste0("Security issue: maximum ", length(which(pcaObj$sdev > 1e-6)), " components could be inquired. ncomp will be set to 2."))
+        ncomp <- 2
+    }
+    if (ncomp < 1) {
+        warning("ncomp should be at least 1. ncomp will be set to 2.")
+        ncomp <- 2
+    }
+    pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
+    
+    ## compute loadings
+    logindata <- .decode.arg(logins)
+    opals <- datashield.login(logins=logindata)
+    
+    out <- tryCatch({
+        ## take a snapshot of the current session
+        safe.objs <- .ls.all()
+        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+        ## lock everything so no objects can be changed
+        .lock.unlock(safe.objs, lockBinding)
+        
+        ## apply funcPreProc for preparation of querytables on opals
+        ## TODO: control hacking!
+        ## TODO: control identical colnames!
+        funcPreProc(conns=opals, symbol=querytables)
+        ## unlock back everything
+        .lock.unlock(safe.objs, unlockBinding)
+        ## get rid of any sneaky objects that might have been created in the filters as side effects
+        .cleanup(safe.objs)
+        
+        datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        expr <- list(as.symbol("loadings"),
+                     as.symbol("centeredData"),
+                     .encode.arg(pcaObj$loadings), #TODO: this can be bugged due to large loadings matrix
+                     "prod")
+        pcaObj$scores <- datashield.aggregate(opals,
+                                              as.call(expr),
+                                              async=T)
+    }, error=function(e) {
+        print(paste0("LOADINGS MAKING PROCESS: ", e))
+        return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    })
+    
+    return (pcaObj)
 }
 
 

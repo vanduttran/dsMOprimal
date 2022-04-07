@@ -4,7 +4,7 @@
 \alias{federatePCA}
 \title{Federated PCA}
 \usage{
-federatePCA(loginFD, logins, func, symbol)
+federatePCA(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server (one of the servers containing cohort data)}
@@ -18,6 +18,8 @@ symbol (name of the R symbol) (see datashield.assign).}
 \item{symbol}{Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
 The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
 Other assigned R variables in \code{func} are ignored.}
+
+\item{ncomp}{Number of components. Default: 2.}
 }
 \value{
 PCA object
