@@ -649,6 +649,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
         warning("ncomp should be at least 1. ncomp will be set to 2.")
         ncomp <- 2
     }
+    print(paste0("ncomp=", ncomp))
     pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
     
     ## compute loadings
