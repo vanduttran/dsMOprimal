@@ -676,9 +676,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
                      as.symbol("centeredData"),
                      .encode.arg(pcaObj$loadings), #TODO: this can be bugged due to large loadings matrix
                      "prod")
-        pcaObj$scores <- datashield.aggregate(opals,
-                                              as.call(expr),
-                                              async=T)
+        pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
+                                                             as.call(expr),
+                                                             async=T))
     }, error=function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))
         return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
