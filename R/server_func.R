@@ -596,15 +596,15 @@ pushValue <- function(value, name) {
             }
             }, 
             error=function(e) {
-              print(paste0("COVARIATES PUSH PROCESS: ", e));
-              return(paste0("COVARIATES PUSH PROCESS: ", e))
-              }, 
+                print(paste0("COVARIATES PUSH PROCESS: ", e));
+                return(paste0("COVARIATES PUSH PROCESS: ", e))
+            }, 
             finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, 
     error=function(e) {
-      print(paste0("COVARIATES PROCESS: ", e))
-      return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
-      }, 
+        print(paste0("COVARIATES PROCESS: ", e))
+        return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
+    }, 
     finally=datashield.logout(opals))
     gc(reset=F)
     return (rescov)
@@ -642,14 +642,13 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
     pcaObj <- princomp(covmat=covmat)
 
     if (ncomp > 2 && length(which(pcaObj$sdev > 1e-6)) <= ncomp) {
-        warning(paste0("Security issue: maximum ", length(which(pcaObj$sdev > 1e-6)), " components could be inquired. ncomp will be set to 2."))
+        print(paste0("Security issue: maximum ", length(which(pcaObj$sdev > 1e-6)), " components could be inquired. ncomp will be set to 2."))
         ncomp <- 2
     }
     if (ncomp < 1) {
-        warning("ncomp should be at least 1. ncomp will be set to 2.")
+        print("ncomp should be at least 1. ncomp will be set to 2.")
         ncomp <- 2
     }
-    print(paste0("ncomp=", ncomp))
     pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
     
     ## compute loadings
@@ -680,10 +679,12 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
         pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
                                                              as.call(expr),
                                                              async=T))
-    }, error=function(e) {
+    },
+    error=function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))
         return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    })
+    },
+    finally=datashield.logout(opals))
     
     return (pcaObj)
 }
