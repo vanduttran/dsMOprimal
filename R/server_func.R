@@ -95,10 +95,11 @@ colNames <- function(x) {
 #' @param byColumn A logical value indicating whether the input data is centered by column or row.
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
-#' @param na.rm A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.
-#' @return A centered matrix with 0-mean per column (by default).
+#' @param scale  A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.
+#' @param na.rm A logical value indicating whether NA values should be removed. Default, FALSE, NA set to 0.
+#' @return The centered matrix.
 #' @export
-center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE) {
+center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE, na.rm = FALSE) {
     ## horizontally combine x, if x is a list of data frames
     if (is.list(x) && !is.data.frame(x)) {
         y <- apply(do.call(cbind, lapply(x, function(xx) xx[order(rownames(xx)), ])), c(1,2), as.numeric)
@@ -124,7 +125,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, na.rm = FALSE) {
     subset <- .decode.arg(subset)
     if (!is.null(subset)) y <- y[subset, , drop=F]
     
-    if (isTRUE(byColumn)) return (scale(y, center=TRUE, scale=FALSE))
+    if (isTRUE(byColumn)) return (scale(y, center=TRUE, scale=scale))
     else return (t(scale(t(y), center=TRUE, scale=TRUE)))
 }
 
