@@ -140,18 +140,31 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE, na.rm = FAL
 .partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
     csseprow <- cumsum(seprow)
-    indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
+    indrow <- lapply(1:length(seprow), function(i) {
         return (c(ifelse(i==1, 0, csseprow[i-1])+1, csseprow[i]))
     })
     cssepcol <- cumsum(sepcol)
-    indcol <- mclapply(1:length(sepcol), mc.cores=max(2, min(length(sepcol), detectCores())),  function(i) {
+    indcol <- lapply(1:length(sepcol), function(i) {
         return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
     })
-    parMat <- mclapply(1:length(indrow), mc.cores=max(2,min(length(sepcol), detectCores())), function(i) {
+    parMat <- lapply(1:length(indrow), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
             return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
         })
     })
+    
+    # indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
+    #     return (c(ifelse(i==1, 0, csseprow[i-1])+1, csseprow[i]))
+    # })
+    # cssepcol <- cumsum(sepcol)
+    # indcol <- mclapply(1:length(sepcol), mc.cores=max(2, min(length(sepcol), detectCores())),  function(i) {
+    #     return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
+    # })
+    # parMat <- mclapply(1:length(indrow), mc.cores=max(2,min(length(sepcol), detectCores())), function(i) {
+    #     lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
+    #         return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
+    #     })
+    # })
     
     return (parMat)
 }
@@ -265,8 +278,13 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @keywords internal
 .rebuildMatrix <- function(blocks) {
     ## decode matrix blocks
-    matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
-        mclapply(y, mc.cores=length(y), function(x) {
+    # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
+    #     mclapply(y, mc.cores=length(y), function(x) {
+    #         return (do.call(rbind, .decode.arg(x)))
+    #     })
+    # })
+    matblocks <- lapply(blocks, function(y) {
+        lapply(y, function(x) {
             return (do.call(rbind, .decode.arg(x)))
         })
     })
@@ -303,17 +321,17 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 pushSymmMatrixServer <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
-    if (FALSE) {
-        dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
-            x.mat <- do.call(rbind, x)
-            stopifnot(ncol(x.mat)==1)
-            return (describe(as.big.matrix(x.mat)))
-        })
-    } else {
+    # if (FALSE) {
+    #     dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
+    #         x.mat <- do.call(rbind, x)
+    #         stopifnot(ncol(x.mat)==1)
+    #         return (describe(as.big.matrix(x.mat)))
+    #     })
+    # } else {
         tcp <- .rebuildMatrix(valued)
         dscbigmatrix <- describe(as.big.matrix(tcp))
         rm(list=c("tcp"))
-    }
+    # }
     return (dscbigmatrix)
 }
 
@@ -752,13 +770,13 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
             paste(opn, 1:sizex[opn], sep="_")
         }))[sample(1:sum(sizex))], rep(1:nfold, length = sum(sizex)))
         foldslef <- lapply(foldspar, function(fl) {
-            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+            setNames(mclapply(names(opals), mc.cores=min(nNode, detectCores()), function(opn) {
                 sort(as.numeric(sub(fl[grep(opn, fl)], pattern=paste0(opn,"_"), replacement='')))
             }), names(opals))
         })
         ## remaining individuals on each cohort
         foldsrem <- lapply(foldslef, function(fl) {
-            setNames(mclapply(names(opals), mc.cores=nNode, function(opn) {
+            setNames(mclapply(names(opals), mc.cores=min(nNode, detectCores()), function(opn) {
                 setdiff(1:sizex[opn], fl[[opn]])
             }), names(opals))
         })

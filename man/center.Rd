@@ -4,7 +4,7 @@
 \alias{center}
 \title{Matrix centering}
 \usage{
-center(x, subset = NULL, byColumn = TRUE, na.rm = FALSE)
+center(x, subset = NULL, byColumn = TRUE, scale = FALSE, na.rm = FALSE)
 }
 \arguments{
 \item{x}{A numeric matrix or data frame. A list of matrices or data frames can also be provided,
@@ -17,10 +17,12 @@ Default, NULL, all individuals are considered.}
 Default, TRUE, centering by column. Constant variables across samples are removed. 
 If FALSE, centering and scaling by row. Constant samples across variables are removed.}
 
-\item{na.rm}{A logical value indicating NA values should be removed. Default, FALSE, NA set to 0.}
+\item{scale}{A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.}
+
+\item{na.rm}{A logical value indicating whether NA values should be removed. Default, FALSE, NA set to 0.}
 }
 \value{
-A centered matrix with 0-mean per column (by default).
+The centered matrix.
 }
 \description{
 Center matrix columns or rows to 0
