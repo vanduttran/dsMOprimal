@@ -261,7 +261,8 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
-        print("length tcpblocks: ", list(length(tcpblocks), lengths(tcpblocks)))
+        print("length tcpblocks: ")
+        print(c(length(tcpblocks), lengths(tcpblocks)))
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
