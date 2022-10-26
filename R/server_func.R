@@ -263,6 +263,12 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
         print("length tcpblocks: ")
         print(c(length(tcpblocks), lengths(tcpblocks)))
+        tmp <- lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                .encode.arg(tcp)
+            }))
+        })
+        print(dsMOprimal:::.encode.arg(tmp, serialize.it=F))
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
