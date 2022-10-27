@@ -268,7 +268,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
                 .encode.arg(tcp)
             }))
         })
-        print(dsMOprimal:::.encode.arg(tmp, serialize.it=F))
+        print(.encode.arg(tmp, serialize.it=F))
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
