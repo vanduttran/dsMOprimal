@@ -449,7 +449,7 @@ pushToDsc <- function(conns, symbol, async = T) {
     dsc <- lapply(chunkDscList, function(x) {
         return (lapply(x, function(y) {
             expr <- list(as.symbol("matrix2Dsc"), y)
-            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
+            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
             return (y.dsc[[1]])
         }))
     })
