@@ -433,6 +433,30 @@ dscPush <- function(conns, expr, async = T) {
 }
 
 
+#' @title Bigmemory description of a pushed object
+#' @description Bigmemory description of a pushed object
+#' @param conns A one-element list of DSConnection-class.
+#' @param symbol Name of an object to be pushed
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @return Bigmemory description of the pushed object on conns
+#' @import DSI
+#' @export
+pushToDsc <- function(conns, symbol, async = T) {
+    ## TODO: check for allowed conns
+    stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
+    
+    chunkDscList <- get(symbol, envir = parent.frame())
+    dsc <- lapply(chunkDscList, function(x) {
+        return (lapply(x, function(y) {
+            expr <- list(as.symbol("matrix2Dsc"), y)
+            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
+            return (y.dsc[[1]])
+        }))
+    })
+    return (dsc)
+}
+
+
 #' @title Cross assign
 #' @description Call datashield.assign on remote servers.
 #' @param conns A list of DSConnection-class.
