@@ -261,14 +261,11 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
-        print("length tcpblocks: ")
-        print(c(length(tcpblocks), lengths(tcpblocks)))
         tmp <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
             }))
         })
-        print(.encode.arg(tmp, serialize.it=F))
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -445,8 +442,8 @@ pushToDsc <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
-    chunkDscList <- get(symbol, envir = parent.frame())
-    dsc <- lapply(chunkDscList, function(x) {
+    chunkList <- get(symbol, envir = parent.frame())
+    dsc <- lapply(chunkList, function(x) {
         return (lapply(x, function(y) {
             expr <- list(as.symbol("matrix2Dsc"), y)
             y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
