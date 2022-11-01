@@ -11,6 +11,7 @@ federateRCCA(
   symbol,
   lambda1 = 0,
   lambda2 = 0,
+  chunk = 500,
   tune = FALSE,
   tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 =
     seq(0.001, 1, length = 5)))
@@ -32,6 +33,8 @@ Other assigned R variables in \code{func} are ignored.}
 \item{lambda1}{Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.}
 
 \item{lambda2}{Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.}
+
+\item{chunk}{Size of chunks into what the SSCP matrix is partitioned. Default: 500.}
 
 \item{tune}{Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.}
 

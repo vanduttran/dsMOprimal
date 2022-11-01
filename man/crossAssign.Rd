@@ -4,15 +4,7 @@
 \alias{crossAssign}
 \title{Cross assign}
 \usage{
-crossAssign(
-  conns,
-  symbol,
-  value,
-  value.call,
-  variables = NULL,
-  wait = F,
-  async = T
-)
+crossAssign(conns, symbol, value, value.call, variables = NULL, async = T)
 }
 \arguments{
 \item{conns}{A list of DSConnection-class.}
@@ -22,8 +14,6 @@ crossAssign(
 \item{value}{A variable name or an R expression with allowed assign function calls.}
 
 \item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
-
-\item{wait}{See DSI::datashield.assign options. Default: FALSE.}
 
 \item{async}{See DSI::datashield.assign options. Default: TRUE.}
 }

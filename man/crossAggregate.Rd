@@ -4,14 +4,12 @@
 \alias{crossAggregate}
 \title{Cross aggregate}
 \usage{
-crossAggregate(conns, expr, wait = F, async = T)
+crossAggregate(conns, expr, async = T)
 }
 \arguments{
 \item{conns}{A list of DSConnection-class.}
 
 \item{expr}{An encoded expression to evaluate.}
-
-\item{wait}{See DSI::datashield.aggregate options. Default: FALSE.}
 
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }

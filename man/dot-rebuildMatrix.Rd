@@ -4,7 +4,7 @@
 \alias{.rebuildMatrix}
 \title{Matrix rebuild}
 \usage{
-.rebuildMatrix(blocks)
+.rebuildMatrix(blocks, mc.cores = 1)
 }
 \arguments{
 \item{blocks}{List of list of encoded matrix blocks, obtained from crossProd or tcrossProd}

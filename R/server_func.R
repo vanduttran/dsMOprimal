@@ -281,14 +281,9 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
 #' @return The complete matrix
 #' @keywords internal
-.rebuildMatrix <- function(blocks) {
+.rebuildMatrix <- function(blocks, mc.cores = 1) {
     ## decode matrix blocks
-    # matblocks <- mclapply(blocks, mc.cores=length(blocks), function(y) {
-    #     mclapply(y, mc.cores=length(y), function(x) {
-    #         return (do.call(rbind, .decode.arg(x)))
-    #     })
-    # })
-    matblocks <- lapply(blocks, function(y) {
+    matblocks <- mclapply(blocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
             return (do.call(rbind, .decode.arg(x)))
         })
@@ -300,7 +295,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
             tcp <- do.call(rbind, uptcp)
         } else {
             ## without the first layer of blocks
-            no1tcp <- lapply(2:length(uptcp), function(i) {
+            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
                 cbind(do.call(cbind, lapply(1:(i-1), function(j) {
                     t(matblocks[[j]][[i-j+1]])
                 })), uptcp[[i]])
@@ -320,23 +315,17 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @title Push a symmetric matrix
 #' @description Push symmetric matrix data into the federated server
 #' @param value An encoded value to be pushed
-#' @import bigmemory parallel
+#' @import bigmemory
 #' @return Description of the pushed value
 #' @export
 pushSymmMatrixServer <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
-    # if (FALSE) {
-    #     dscbigmatrix <- mclapply(valued, mc.cores=max(2, min(length(valued), detectCores())), function(x) {
-    #         x.mat <- do.call(rbind, x)
-    #         stopifnot(ncol(x.mat)==1)
-    #         return (describe(as.big.matrix(x.mat)))
-    #     })
-    # } else {
-        tcp <- .rebuildMatrix(valued)
-        dscbigmatrix <- describe(as.big.matrix(tcp))
-        rm(list=c("tcp"))
-    # }
+    
+    tcp <- .rebuildMatrix(valued)
+    dscbigmatrix <- describe(as.big.matrix(tcp))
+    rm(list=c("valued", "tcp"))
+    
     return (dscbigmatrix)
 }
 
@@ -396,11 +385,10 @@ crossLogout <- function(opals) {
 #' @description Call datashield.aggregate on remote servers.
 #' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate.
-#' @param wait See DSI::datashield.aggregate options. Default: FALSE.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAggregate <- function(conns, expr, wait = F, async = T) {
+crossAggregate <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
@@ -454,17 +442,47 @@ pushToDsc <- function(conns, symbol, async = T) {
 }
 
 
+#' @title Bigmemory description of a pushed object
+#' @description Bigmemory description of a pushed object
+#' @param conns A one-element list of DSConnection-class.
+#' @param symbol Name of an object to be pushed
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @return Bigmemory description of the pushed object on conns
+#' @import DSI
+#' @export
+pushToDscAssign <- function(conns, symbol, async = T) {
+    ## TODO: check for allowed conns
+    stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))!=0)
+    
+    chunkList <- get(symbol, envir = parent.frame())
+    dsc <- lapply(chunkList, function(x) {
+        return (lapply(x, function(y) {
+            expr <- list(as.symbol("matrix2Dsc"), y)
+            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
+            return (y.dsc)
+        }))
+    })
+    dsc.conns <- lapply(names(conns), function(opn) {
+        lapply(dsc, function(x) {
+            lapply(x, function(y) {
+                return (y[[opn]])
+            })
+        })
+    })
+    return (dsc.conns)
+}
+
+
 #' @title Cross assign
 #' @description Call datashield.assign on remote servers.
 #' @param conns A list of DSConnection-class.
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
-#' @param wait See DSI::datashield.assign options. Default: FALSE.
 #' @param async See DSI::datashield.assign options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAssign <- function(conns, symbol, value, value.call, variables = NULL, wait = F, async = T) {
+crossAssign <- function(conns, symbol, value, value.call, variables = NULL, async = T) {
     value <- .decode.arg(value)
     variables <- .decode.arg(variables)
     DSI::datashield.assign(conns=conns, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
@@ -554,10 +572,11 @@ pushValue <- function(value, name) {
 #' @param covSpace The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
 #' \code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
 #' \code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
-.federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X") {
+.federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500) {
     require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
@@ -568,7 +587,7 @@ pushValue <- function(value, name) {
     ## assign crossprod matrix on each individual server
     opals <- datashield.login(logins=logindata)
     
-    out <- tryCatch({
+    tryCatch({
         ## take a snapshot of the current session
         safe.objs <- .ls.all()
         safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
@@ -587,7 +606,7 @@ pushValue <- function(value, name) {
         print(paste0("DATA MAKING PROCESS: ", e))
         return (paste0("DATA MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
     })
-    out <- tryCatch({
+    tryCatch({
         if (is.null(querysubset)) {
             datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables[1], ')')), async=F)
         } else {
@@ -598,7 +617,7 @@ pushValue <- function(value, name) {
         }
         size <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=F), function(x) x[1])
         if (length(querytables)==1 || covSpace=="X") {
-            datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=NULL, chunk=50)'), async=T)
+            datashield.assign(opals, "crossProdSelf", as.symbol(paste0('crossProd(x=centeredData, y=NULL, chunk=', chunk, ')')), async=T)
         } else {
             if (is.null(querysubset)) {
                 datashield.assign(opals, "centeredData2", as.symbol(paste0('center(', querytables[2], ')')), async=T)
@@ -611,9 +630,9 @@ pushValue <- function(value, name) {
             size2 <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData2)'), async=T), function(x) x[1])
             stopifnot(all(size==size2))
             if (covSpace=="Y") {
-                datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData2, y=NULL, chunk=50)'), async=T)
+                datashield.assign(opals, "crossProdSelf", as.symbol(paste0('crossProd(x=centeredData2, y=NULL, chunk=', chunk, ')')), async=T)
             } else {
-                datashield.assign(opals, "crossProdSelf", as.symbol('crossProd(x=centeredData, y=centeredData2, chunk=50)'), async=T)
+                datashield.assign(opals, "crossProdSelf", as.symbol(paste0('crossProd(x=centeredData, y=centeredData2, chunk=', chunk, ')')), async=T)
             }
         }
         
@@ -670,6 +689,7 @@ pushValue <- function(value, name) {
 #' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
 #' Other assigned R variables in \code{func} are ignored.
 #' @param ncomp Number of components. Default: 2.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return PCA object
 #' @import DSI parallel bigmemory
 #' @examples
@@ -679,13 +699,13 @@ pushValue <- function(value, name) {
 #' dataProc(conns=opals, symbol="rawData")
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
-federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE) {
+federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE, chunk = 500) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
-    covmat <- .federateCov(loginFD, logins, funcPreProc, querytables)
+    covmat <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk)
     #if (verbose) return(covmat)
     pcaObj <- princomp(covmat=covmat)
 
@@ -875,6 +895,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
 #' Other assigned R variables in \code{func} are ignored.
 #' @param lambda1 Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.
 #' @param lambda2 Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.
+#' @param chunk Size of chunks into what the SSCP matrix is partitioned. Default: 500.
 #' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
 #' \code{grid2} checking values for \code{lambda2}.
@@ -889,7 +910,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALS
 #' dataProc(conns=opals, symbol=c("rawDataX", "rawDataY"))
 #' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
 #' @export
-federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, 
+federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, chunk = 500,
                          tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)))) {
     require(DSOpal)
     funcPreProc <- .decode.arg(func)
@@ -907,9 +928,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X")
-    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y")
-    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY")
+    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk = chunk)
+    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk = chunk)
+    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk = chunk)
 
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))

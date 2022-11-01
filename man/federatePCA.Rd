@@ -4,7 +4,15 @@
 \alias{federatePCA}
 \title{Federated PCA}
 \usage{
-federatePCA(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE)
+federatePCA(
+  loginFD,
+  logins,
+  func,
+  symbol,
+  ncomp = 2,
+  verbose = FALSE,
+  chunk = 500
+)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server (one of the servers containing cohort data)}
@@ -20,6 +28,8 @@ The assigned R variable will be used as the input raw data to compute covariance
 Other assigned R variables in \code{func} are ignored.}
 
 \item{ncomp}{Number of components. Default: 2.}
+
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
 }
 \value{
 PCA object
