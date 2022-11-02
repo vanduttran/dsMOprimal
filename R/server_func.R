@@ -455,10 +455,13 @@ pushToDscAssign <- function(conns, symbol, async = T) {
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
     chunkList <- get(symbol, envir = parent.frame())
+    print('chunkList')
     dsc <- lapply(chunkList, function(x) {
         return (lapply(x, function(y) {
             expr <- list(as.symbol("matrix2Dsc"), y)
             y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
+            print(y.dsc)
+            print(datashield.errors())
             return (y.dsc)
         }))
     })
