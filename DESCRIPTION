@@ -27,6 +27,7 @@ AggregateMethods:
     crossAssignFunc,
     pushSymmMatrixServer,
     pushValue,
+    matrix2Dsc,
     dscPush,
     pushToDsc,
     loadings,

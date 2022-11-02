@@ -276,6 +276,21 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 }
 
 
+#' @title Bigmemory description of a matrix
+#' @description Bigmemory description of a matrix
+#' @param value Encoded value of a matrix
+#' @import bigmemory
+#' @return Bigmemory description of the given matrix
+#' @export
+matrix2Dsc <- function(value) {
+    valued <- .decode.arg(value)
+    tcp <- do.call(rbind, .decode.arg(valued))
+    dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
+    rm(list=c("valued", "tcp"))
+    return (dscbigmatrix)
+}
+
+
 #' @title Matrix rebuild
 #' @description Rebuild a matrix from its partition
 #' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
