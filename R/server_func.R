@@ -452,7 +452,7 @@ pushToDsc <- function(conns, symbol, async = T) {
 #' @export
 pushToDscAssign <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
-    stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))!=0)
+    stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
     chunkList <- get(symbol, envir = parent.frame())
     dsc <- lapply(chunkList, function(x) {
