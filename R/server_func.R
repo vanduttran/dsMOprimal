@@ -261,16 +261,12 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
         sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
-        tmp <- lapply(tcpblocks, function(tcpb) {
+        etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
             }))
         })
-        return (lapply(tcpblocks, function(tcpb) {
-            return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp)
-            }))
-        }))
+        return (etcpblocks)
     }
     return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
 }
@@ -366,6 +362,44 @@ tripleProd <- function(x, pids) {
     })
     names(tp) <- pids
     return (tp)
+}
+
+
+#' @title Matrix triple product
+#' @description Calculate the triple product x \%*\% y \%*\% t(x)
+#' @param x A numeric matrix
+#' @param pids A vector of mate servers' names
+# #' @param pids A list of bigmemory of encoded symmetric numeric matrices.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @return \code{x \%*\% t(y)}
+#' @export
+tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
+    pids <- .decode.arg(pids)
+    
+    nblocks <- ceiling(nrow(x)/chunk)
+    sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
+    sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
+    
+    tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
+        if (file.exists(paste0("/tmp/", pid))) {
+            load(paste0("/tmp/", pid))
+            y <- as.matrix(attach.big.matrix(dscbigmatrix))
+            stopifnot(isSymmetric(y))
+            # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
+            tp <- tcrossprod(x, tcrossprod(x, y))
+            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
+            etcpblocks <- lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    .encode.arg(tcp)
+                }))
+            })
+            return (etcpblocks)
+        } else {
+            stop(paste(pid, "not found"))
+        }
+    })
+    names(tps) <- pids
+    return (tps)
 }
 
 
