@@ -480,13 +480,26 @@ pushToDsc <- function(conns, symbol, async = T) {
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
     chunkList <- get(symbol, envir = parent.frame())
-    dsc <- lapply(chunkList, function(x) {
-        return (lapply(x, function(y) {
-            expr <- list(as.symbol("matrix2Dsc"), y)
-            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
-            return (y.dsc[[1]])
-        }))
-    })
+    stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
+    if (is.list(chunkList[[1]][[1]])) {
+        dsc <- lapply(chunkList, function(z) {
+            return (lapply(z, function(x) {
+                return (lapply(x, function(y) {
+                    expr <- list(as.symbol("matrix2Dsc"), y)
+                    y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
+                    return (y.dsc[[1]])
+                }))
+            }))
+        })
+    } else {
+        dsc <- lapply(chunkList, function(x) {
+            return (lapply(x, function(y) {
+                expr <- list(as.symbol("matrix2Dsc"), y)
+                y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
+                return (y.dsc[[1]])
+            }))
+        })
+    }
     return (dsc)
 }
 
