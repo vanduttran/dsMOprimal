@@ -27,7 +27,6 @@ AggregateMethods:
     crossAssignFunc,
     pushSymmMatrixServer,
     pushValue,
-    matrix2DscServer,
     dscPush,
     pushToDsc,
     loadings,
@@ -43,6 +42,7 @@ AssignMethods:
     crossLogin,
     crossLogout,
     pushToDscServer,
+    matrix2DscServer,
     rebuildMatrix,
     crossAggregate
 License: GPL-3
