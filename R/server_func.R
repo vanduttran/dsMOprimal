@@ -387,6 +387,8 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
             stopifnot(isSymmetric(y))
             # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
             tp <- tcrossprod(x, tcrossprod(x, y))
+            print(tp[1:5,1:5])
+            print(eigen(tp, symmetric=T)$values)
             tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
             etcpblocks <- lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
