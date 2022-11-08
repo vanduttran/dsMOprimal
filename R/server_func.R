@@ -278,7 +278,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @import bigmemory
 #' @return Bigmemory description of the given matrix
 #' @export
-matrix2Dsc <- function(value) {
+matrix2DscServer <- function(value) {
     valued <- .decode.arg(value)
     tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
@@ -473,7 +473,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A one-element list of DSConnection-class.
-#' @param symbol Name of an object to be pushed
+#' @param symbol Name of an object to be pushed.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
@@ -507,37 +507,69 @@ pushToDsc <- function(conns, symbol, async = T) {
 }
 
 
+#' @title Symmetric matrix reconstruction from bigmemomy blocks
+#' @description Rebuild a symmetric matrix from its partition in bigmemory objects
+#' @param symbol Generic variable name
+#' @param len Length of list of lists of bigmemory blocks. Variables were generated as symbol11, symbol12, etc.
+#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @return The complete symmetric matrix
+#' @export
+rebuildMatrix <- function(symbol, len, mc.cores = 1) {
+    matblocks <- mclapply(1:len, mc.cores=mc.cores, function(i) {
+        lapply(1:(len-i+1), function(j) {
+            dscblock <- get(paste(symbol, i, j, sep="__"), envir = parent.frame())
+            return (as.matrix(attach.big.matrix(dscblock)))
+        })
+    })
+    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
+    ## combine the blocks into one matrix
+    if (length(uptcp)>1) {
+        if (length(unique(sapply(uptcp, ncol)))==1) {
+            tcp <- do.call(rbind, uptcp)
+        } else {
+            ## without the first layer of blocks
+            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
+                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
+                    t(matblocks[[j]][[i-j+1]])
+                })), uptcp[[i]])
+            })
+            ## with the first layer of blocks
+            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
+            rm(list=c("no1tcp"))
+        }
+    } else {
+        tcp <- uptcp[[1]]
+    }
+    rm(list=c("matblocks", "uptcp"))
+    return (tcp)
+}
+
+
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
-#' @param conns A one-element list of DSConnection-class.
-#' @param symbol Name of an object to be pushed
+#' @param conns A list of DSConnection-classes.
+#' @param symbol Name of an object to be pushed.
+#' @param source Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDscAssign <- function(conns, symbol, async = T) {
+pushToDscServer <- function(conns, symbol, source, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
     chunkList <- get(symbol, envir = parent.frame())
     print('chunkList')
-    dsc <- lapply(chunkList, function(x) {
-        return (lapply(x, function(y) {
-            expr <- list(as.symbol("matrix2Dsc"), y)
-            y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
-            print(y.dsc)
+    invisible(lapply(1:length(chunkList), function(i) {
+        lapply(1:length(chunkList[[i]]), function(j) {
+            DSI::datashield.assign(conns, paste(source, i, j, "__"), as.symbol(paste0("matrix2DscServer(", y, ")")), async=async)
             print(datashield.errors())
-            return (y.dsc)
-        }))
-    })
-    dsc.conns <- lapply(names(conns), function(opn) {
-        lapply(dsc, function(x) {
-            lapply(x, function(y) {
-                return (y[[opn]])
-            })
         })
-    })
-    return (dsc.conns)
+    }))
+    DSI::datashield.assign(conns, source, as.call(list(as.symbol("rebuildMatrix"),
+                                                  as.symbol(source),
+                                                  length(chunkList))))
+    print(datashield.errors())
 }
 
 
