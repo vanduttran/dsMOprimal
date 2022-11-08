@@ -517,7 +517,7 @@ pushToDsc <- function(conns, symbol, async = T) {
 rebuildMatrix <- function(symbol, len, mc.cores = 1) {
     matblocks <- mclapply(1:len, mc.cores=mc.cores, function(i) {
         lapply(1:(len-i+1), function(j) {
-            dscblock <- get(paste(symbol, i, j, sep="__"), envir = parent.frame())
+            dscblock <- get(paste(c(symbol, i, j), collapse="__"), envir = parent.frame())
             return (as.matrix(attach.big.matrix(dscblock)))
         })
     })
@@ -554,7 +554,7 @@ rebuildMatrix <- function(symbol, len, mc.cores = 1) {
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDscServer <- function(conns, symbol, source, async = T) {
+pushToDscServer <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
@@ -562,7 +562,7 @@ pushToDscServer <- function(conns, symbol, source, async = T) {
     print('chunkList')
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
-            DSI::datashield.assign(conns, paste(source, i, j, "__"), as.symbol(paste0("matrix2DscServer(", y, ")")), async=async)
+            DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), as.symbol(paste0("matrix2DscServer('", chunkList[[i]][[j]], "')")), async=async)
             print(datashield.errors())
         })
     }))
