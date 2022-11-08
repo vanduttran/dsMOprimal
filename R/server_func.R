@@ -318,6 +318,7 @@ matrix2DscServer <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
+    stopifnot(isSymmetric(tcp))
     rm(list=c("matblocks", "uptcp"))
     return (tcp)
 }
@@ -540,6 +541,7 @@ rebuildMatrix <- function(symbol, len, mc.cores = 1) {
     } else {
         tcp <- uptcp[[1]]
     }
+    stopifnot(isSymmetric(tcp))
     rm(list=c("matblocks", "uptcp"))
     return (tcp)
 }
@@ -562,13 +564,17 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
     print('chunkList')
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
-            DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), as.symbol(paste0("matrix2DscServer('", chunkList[[i]][[j]], "')")), async=async)
+            DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), 
+                                   as.call(list(as.symbol("matrix2DscServer"), 
+                                                chunkList[[i]][[j]])), 
+                                   async=async)
             print(datashield.errors())
         })
     }))
     DSI::datashield.assign(conns, source, as.call(list(as.symbol("rebuildMatrix"),
-                                                  as.symbol(source),
-                                                  length(chunkList))))
+                                                  source,
+                                                  length(chunkList))),
+                           async=async)
     print(datashield.errors())
 }
 
