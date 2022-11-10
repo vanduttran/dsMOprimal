@@ -420,6 +420,7 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
         } else {
             y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
+            print(y)
         }
         stopifnot(isSymmetric(y))
         # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
