@@ -545,7 +545,7 @@ pushToDsc <- function(conns, symbol, async = T) {
 #' @description Bigmemory description of a pushed object
 #' @param conns A list of DSConnection-classes.
 #' @param symbol Name of an object to be pushed.
-#' @param source Name of the pushed object source.
+#' @param sourcename Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
@@ -566,7 +566,7 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
         })
     }))
     DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), as.call(list(as.symbol("rebuildMatrixVar"),
-                                                                               source,
+                                                                               sourcename,
                                                                                length(chunkList))),
                            async=async)
     print(datashield.errors())
