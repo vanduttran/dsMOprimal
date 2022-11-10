@@ -418,22 +418,22 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
         if (file.exists(paste0("/tmp/", pid))) {
             load(paste0("/tmp/", pid))
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
-            stopifnot(isSymmetric(y))
-            # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
-            tp <- tcrossprod(x, tcrossprod(x, y))
-            # print(dim(tp))
-            # print(quantile(tp))
-            # print(eigen(tp, symmetric=T)$values)
-            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
-            etcpblocks <- lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp)
-                }))
-            })
-            return (etcpblocks)
         } else {
-            stop(paste(pid, "not found"))
+            y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
         }
+        stopifnot(isSymmetric(y))
+        # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
+        tp <- tcrossprod(x, tcrossprod(x, y))
+        # print(dim(tp))
+        # print(quantile(tp))
+        # print(eigen(tp, symmetric=T)$values)
+        tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
+        etcpblocks <- lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                .encode.arg(tcp)
+            }))
+        })
+        return (etcpblocks)
     })
     names(tps) <- pids
     return (tps)
@@ -555,23 +555,18 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
     chunkList <- get(symbol, envir = parent.frame())
-    print('chunkList')
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), 
                                    as.call(list(as.symbol("matrix2DscServer"), 
                                                 chunkList[[i]][[j]])), 
                                    async=async)
-            print(datashield.errors())
         })
     }))
-    print(datashield.symbols(conns))
     DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), as.call(list(as.symbol("rebuildMatrixVar"),
                                                                                    sourcename,
                                                                                    length(chunkList))),
                            async=async)
-    print(datashield.errors())
-    print(datashield.symbols(conns))
 }
 
 
