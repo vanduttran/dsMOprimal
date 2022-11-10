@@ -565,9 +565,9 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
             print(datashield.errors())
         })
     }))
-    DSI::datashield.assign(conns, source, as.call(list(as.symbol("rebuildMatrixVar"),
-                                                  source,
-                                                  length(chunkList))),
+    DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), as.call(list(as.symbol("rebuildMatrixVar"),
+                                                                               source,
+                                                                               length(chunkList))),
                            async=async)
     print(datashield.errors())
 }
