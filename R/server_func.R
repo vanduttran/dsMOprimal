@@ -287,18 +287,13 @@ matrix2DscServer <- function(value) {
 }
 
 
-#' @title Matrix rebuild
+#' @title Symmetric matrix reconstruction
 #' @description Rebuild a matrix from its partition
-#' @param blocks List of list of encoded matrix blocks, obtained from crossProd or tcrossProd
-#' @return The complete matrix
+#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix
+#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @return The complete symmetric matrix
 #' @keywords internal
-.rebuildMatrix <- function(blocks, mc.cores = 1) {
-    ## decode matrix blocks
-    matblocks <- mclapply(blocks, mc.cores=mc.cores, function(y) {
-        lapply(y, function(x) {
-            return (do.call(rbind, .decode.arg(x)))
-        })
-    })
+.rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
     ## combine the blocks into one matrix
     if (length(uptcp)>1) {
@@ -319,7 +314,45 @@ matrix2DscServer <- function(value) {
         tcp <- uptcp[[1]]
     }
     stopifnot(isSymmetric(tcp))
-    rm(list=c("matblocks", "uptcp"))
+    rm(list=c("uptcp"))
+    return (tcp)
+}
+
+
+#' @title Symmetric matrix reconstruction
+#' @description Rebuild a matrix from its encoded partition
+#' @param blocks List of list of encoded matrix blocks
+#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @return The complete symmetric matrix
+#' @keywords internal
+.rebuildMatrixEnc <- function(blocks, mc.cores = 1) {
+    ## decode matrix blocks
+    matblocks <- mclapply(blocks, mc.cores=mc.cores, function(y) {
+        lapply(y, function(x) {
+            return (do.call(rbind, .decode.arg(x)))
+        })
+    })
+    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
+    return (tcp)
+}
+
+
+#' @title Symmetric matrix reconstruction
+#' @description Rebuild a symmetric matrix from its partition through variables in the environment
+#' @param symbol Generic variable name
+#' @param len Length of list of lists of matrix blocks. Variables were generated as symbol11, symbol12, etc.
+#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @return The complete symmetric matrix
+#' @export
+rebuildMatrixVar <- function(symbol, len, mc.cores = 1) {
+    ## access to matrix blocks
+    matblocks <- mclapply(1:len, mc.cores=mc.cores, function(i) {
+        lapply(1:(len-i+1), function(j) {
+            dscblock <- get(paste(c(symbol, i, j), collapse="__"), envir = parent.frame())
+            return (as.matrix(attach.big.matrix(dscblock)))
+        })
+    })
+    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
     return (tcp)
 }
 
@@ -334,7 +367,7 @@ pushSymmMatrixServer <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     
-    tcp <- .rebuildMatrix(valued)
+    tcp <- .rebuildMatrixEnc(valued)
     dscbigmatrix <- describe(as.big.matrix(tcp))
     rm(list=c("valued", "tcp"))
     
@@ -508,45 +541,6 @@ pushToDsc <- function(conns, symbol, async = T) {
 }
 
 
-#' @title Symmetric matrix reconstruction from bigmemomy blocks
-#' @description Rebuild a symmetric matrix from its partition in bigmemory objects
-#' @param symbol Generic variable name
-#' @param len Length of list of lists of bigmemory blocks. Variables were generated as symbol11, symbol12, etc.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return The complete symmetric matrix
-#' @export
-rebuildMatrix <- function(symbol, len, mc.cores = 1) {
-    matblocks <- mclapply(1:len, mc.cores=mc.cores, function(i) {
-        lapply(1:(len-i+1), function(j) {
-            dscblock <- get(paste(c(symbol, i, j), collapse="__"), envir = parent.frame())
-            return (as.matrix(attach.big.matrix(dscblock)))
-        })
-    })
-    uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
-    ## combine the blocks into one matrix
-    if (length(uptcp)>1) {
-        if (length(unique(sapply(uptcp, ncol)))==1) {
-            tcp <- do.call(rbind, uptcp)
-        } else {
-            ## without the first layer of blocks
-            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
-            ## with the first layer of blocks
-            tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
-            rm(list=c("no1tcp"))
-        }
-    } else {
-        tcp <- uptcp[[1]]
-    }
-    stopifnot(isSymmetric(tcp))
-    rm(list=c("matblocks", "uptcp"))
-    return (tcp)
-}
-
-
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A list of DSConnection-classes.
@@ -571,7 +565,7 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
             print(datashield.errors())
         })
     }))
-    DSI::datashield.assign(conns, source, as.call(list(as.symbol("rebuildMatrix"),
+    DSI::datashield.assign(conns, source, as.call(list(as.symbol("rebuildMatrixVar"),
                                                   source,
                                                   length(chunkList))),
                            async=async)
