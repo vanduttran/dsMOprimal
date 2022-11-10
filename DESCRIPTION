@@ -29,6 +29,7 @@ AggregateMethods:
     pushValue,
     dscPush,
     pushToDsc,
+    pushToDscServer,
     loadings,
     federatePCA,
     federateRCCA
@@ -41,7 +42,6 @@ AssignMethods:
     tripleProdChunk,
     crossLogin,
     crossLogout,
-    pushToDscServer,
     matrix2DscServer,
     rebuildMatrixVar,
     crossAggregate
