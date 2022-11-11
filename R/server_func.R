@@ -639,22 +639,6 @@ crossAssignFunc <- function(conns, func, symbol) {
 }
 
 
-#' @title Memory description
-#' @description Push a symmetric matrix into some R session by its bigmemory description in the session.
-#' @param value A symmetric matrix
-#' @return Bigmemory description of the given matrix
-#' @import bigmemory
-#' @export
-pushValue <- function(value, name) {
-    valued <- .decode.arg(value)
-    if (is.list(valued)) valued <- do.call(rbind, valued)
-    stopifnot(isSymmetric(valued))
-    dscbigmatrix <- describe(as.big.matrix(valued))
-    save(dscbigmatrix, file=paste0("/tmp/", .decode.arg(name)))
-    return (dscbigmatrix)
-}
-
-
 #' @title Sum matrices
 #' @description Compute the sum of a matrix and those stored in bigmemory
 #' @param dsc A list of big memory descriptions
