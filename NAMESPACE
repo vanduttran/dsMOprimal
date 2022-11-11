@@ -3,6 +3,7 @@
 export(center)
 export(colNames)
 export(crossAggregate)
+export(crossAggregate2)
 export(crossAssign)
 export(crossAssignFunc)
 export(crossLogin)

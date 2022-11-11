@@ -11,9 +11,9 @@ pushToDscServer(conns, symbol, sourcename, async = T)
 
 \item{symbol}{Name of an object to be pushed.}
 
-\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
+\item{sourcename}{Name of the pushed object source.}
 
-\item{source}{Name of the pushed object source.}
+\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \value{
 Bigmemory description of the pushed object on conns

@@ -19,3 +19,22 @@ Returned value of given expression on opal
 \description{
 Description of a pushed value
 }
+\details{
+#' @title Cross aggregate through two-layer connection
+#' @description Cross aggregate through two-layer connection
+#' @param conns A list of DSConnection-class.
+#' @param conns_remote Name of an opal object on conns.
+#' @param expr An encoded expression to evaluate.
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @export
+crossAggregate2 <- function(conns, conns_remote, expr, async = T) {
+    ## check if conns_remote is found on conns
+    stopifnot(all(sapply(datashield.symbols(conns), function(x) {
+        conns_remote %in% x
+    })))
+    DSI::datashield.aggregate(conns, expr=as.call(list(as.symbol("crossAggregate"),
+                                                       as.symbol(conns_remote),
+                                                       expr,
+                                                       async=async)
+}
+}
