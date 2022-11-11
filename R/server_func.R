@@ -348,7 +348,7 @@ rebuildMatrixVar <- function(symbol, len, mc.cores = 1) {
     ## access to matrix blocks
     matblocks <- mclapply(1:len, mc.cores=mc.cores, function(i) {
         lapply(1:(len-i+1), function(j) {
-            dscblock <- get(paste(c(symbol, i, j), collapse="__"), envir = parent.frame())
+            dscblock <- get(paste(c(symbol, i, j), collapse="__"), envir = .GlobalEnv) #parent.frame())
             return (as.matrix(attach.big.matrix(dscblock)))
         })
     })
@@ -415,17 +415,11 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
     sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
     
     tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-        print("what we have: ")
-        print(ls(.GlobalEnv))
-        y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
-        print(y)
-        
+        y <- get(paste("crossProdSelf", pid, sep='_'), envir = .GlobalEnv) #parent.frame())
+
         stopifnot(isSymmetric(y))
-        # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
+        # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
         tp <- tcrossprod(x, tcrossprod(x, y))
-        # print(dim(tp))
-        # print(quantile(tp))
-        # print(eigen(tp, symmetric=T)$values)
         tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
@@ -495,7 +489,6 @@ crossAggregate <- function(conns, expr, async = T) {
 #' @import DSI
 #' @export
 crossAggregate2 <- function(conns, expr, async = T) {
-    print(datashield.symbols(conns))
     expr <- .decode.arg(expr)
     if (grepl("^as.call", expr)) {
         expr <- eval(str2expression(expr))
@@ -507,25 +500,6 @@ crossAggregate2 <- function(conns, expr, async = T) {
         DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     }
 }
-
-
-#' #' @title Cross aggregate through two-layer connection
-#' #' @description Cross aggregate through two-layer connection
-#' #' @param conns A list of DSConnection-class.
-#' #' @param conns_remote Name of an opal object on conns.
-#' #' @param expr An encoded expression to evaluate.
-#' #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' #' @export
-#' crossAggregate2 <- function(conns, conns_remote, expr, async = T) {
-#'     ## check if conns_remote is found on conns
-#'     stopifnot(all(sapply(datashield.symbols(conns), function(x) {
-#'         conns_remote %in% x
-#'     })))
-#'     DSI::datashield.aggregate(conns, expr=as.call(list(as.symbol("crossAggregate"),
-#'                                                        as.symbol(conns_remote),
-#'                                                        expr,
-#'                                                        async=async)
-#' }
 
 
 #' @title Description of a pushed value
@@ -555,11 +529,10 @@ dscPush <- function(conns, expr, async = T) {
 pushToDsc <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
-    print(symbol)
-    chunkList <- get(symbol, envir = parent.frame())
+    
+    chunkList <- get(symbol, envir = .GlobalEnv) #parent.frame())
     stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
     if (is.list(chunkList[[1]][[1]])) {
-        cat(length(chunkList), lengths(chunkList), unlist(sapply(chunkList, lengths)), "\n")
         dsc <- lapply(chunkList, function(z) {
             return (lapply(z, function(x) {
                 return (lapply(x, function(y) {
@@ -595,7 +568,7 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
-    chunkList <- get(symbol, envir = parent.frame())
+    chunkList <- get(symbol, envir = .GlobalEnv) #parent.frame())
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), 
@@ -839,14 +812,13 @@ pushValue <- function(value, name) {
 #' dataProc(conns=opals, symbol="rawData")
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
-federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, verbose = FALSE, chunk = 500) {
+federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
     covmat <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk)
-    #if (verbose) return(covmat)
     pcaObj <- princomp(covmat=covmat)
 
     if (ncomp > 2 && length(which(pcaObj$sdev > 1e-6)) <= ncomp) {
