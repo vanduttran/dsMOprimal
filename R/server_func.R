@@ -420,7 +420,7 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
         } else {
             print("what we have: ")
-            print(ls())
+            print(ls(envir = parent.frame()))
             y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
             print(y)
         }
