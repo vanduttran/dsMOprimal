@@ -489,6 +489,47 @@ crossAggregate <- function(conns, expr, async = T) {
 }
 
 
+#' @title Cross aggregate through two-layer connection
+#' @description Call datashield.aggregate on remote servers through two-layer connection.
+#' @param conns A list of DSConnection-class.
+#' @param expr An encoded expression to evaluate.
+#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @import DSI
+#' @export
+crossAggregate2 <- function(conns, expr, async = T) {
+    print(datashield.symbols(conns))
+    expr <- .decode.arg(expr)
+    if (grepl("^as.call", expr)) {
+        expr <- eval(str2expression(expr))
+        stopifnot(is.call(expr))
+        DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
+    } else {
+        ## only allow: crossProd, singularProd, pushToDsc
+        stopifnot(grepl("^crossProd\\(|^singularProd\\(|^pushToDsc\\(", expr))
+        DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+    }
+}
+
+
+#' #' @title Cross aggregate through two-layer connection
+#' #' @description Cross aggregate through two-layer connection
+#' #' @param conns A list of DSConnection-class.
+#' #' @param conns_remote Name of an opal object on conns.
+#' #' @param expr An encoded expression to evaluate.
+#' #' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' #' @export
+#' crossAggregate2 <- function(conns, conns_remote, expr, async = T) {
+#'     ## check if conns_remote is found on conns
+#'     stopifnot(all(sapply(datashield.symbols(conns), function(x) {
+#'         conns_remote %in% x
+#'     })))
+#'     DSI::datashield.aggregate(conns, expr=as.call(list(as.symbol("crossAggregate"),
+#'                                                        as.symbol(conns_remote),
+#'                                                        expr,
+#'                                                        async=async)
+#' }
+
+
 #' @title Description of a pushed value
 #' @description Description of a pushed value
 #' @param conns A list of DSConnection-class.
