@@ -415,15 +415,11 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
     sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
     
     tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-        if (file.exists(paste0("/tmp/", pid))) {
-            load(paste0("/tmp/", pid))
-            y <- as.matrix(attach.big.matrix(dscbigmatrix))
-        } else {
-            print("what we have: ")
-            print(ls(envir = parent.frame()))
-            y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
-            print(y)
-        }
+        print("what we have: ")
+        print(ls(.globalEnv))
+        y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
+        print(y)
+        
         stopifnot(isSymmetric(y))
         # NB. this computation of tcpblocks could be done more efficiently with y is a chunked matrix in bigmemory
         tp <- tcrossprod(x, tcrossprod(x, y))
