@@ -419,6 +419,8 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
             load(paste0("/tmp/", pid))
             y <- as.matrix(attach.big.matrix(dscbigmatrix))
         } else {
+            print("what we have: ")
+            print(ls())
             y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
             print(y)
         }
@@ -622,9 +624,11 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
 #' @import DSI
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, variables = NULL, async = T) {
-    value <- .decode.arg(value)
-    variables <- .decode.arg(variables)
-    DSI::datashield.assign(conns=conns, symbol=symbol, value=ifelse(value.call, as.symbol(value), value), variables=variables, async=async)
+    valued <- .decode.arg(value)
+    variablesd <- .decode.arg(variables)
+    DSI::datashield.assign(conns=conns, symbol=symbol, 
+                           value=ifelse(value.call, as.symbol(valued), valued), 
+                           variables=variablesd, async=async)
 }
 
 
