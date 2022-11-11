@@ -278,7 +278,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @import bigmemory
 #' @return Bigmemory description of the given matrix
 #' @export
-matrix2DscServer <- function(value) {
+matrix2Dsc <- function(value) {
     valued <- .decode.arg(value)
     tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
@@ -378,37 +378,12 @@ pushSymmMatrixServer <- function(value) {
 #' @title Matrix triple product
 #' @description Calculate the triple product x \%*\% y \%*\% t(x)
 #' @param x A numeric matrix
-#' @param y A list of symmetric numeric matrices of dimension (ncol(x), ncol(x))
-#' @return List of x \%*\% y \%*\% t(x)
-#' @import bigmemory
-#' @export
-tripleProd <- function(x, pids) {
-    pids <- .decode.arg(pids)
-    tp <- lapply(pids, function(pid) {
-        if (file.exists(paste0("/tmp/", pid))) {
-            load(paste0("/tmp/", pid))
-            y <- as.matrix(attach.big.matrix(dscbigmatrix))
-            stopifnot(isSymmetric(y))
-            return (tcrossprod(x, tcrossprod(x, y)))
-        } else {
-            return (NULL)
-        }
-    })
-    names(tp) <- pids
-    return (tp)
-}
-
-
-#' @title Matrix triple product
-#' @description Calculate the triple product x \%*\% y \%*\% t(x)
-#' @param x A numeric matrix
-#' @param pids A vector of mate servers' names
-# #' @param pids A list of bigmemory of encoded symmetric numeric matrices.
+#' @param mate Encoded value of a vector of mate servers' names
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return \code{x \%*\% t(y)}
 #' @export
-tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
-    pids <- .decode.arg(pids)
+tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
+    pids <- .decode.arg(mate)
     
     nblocks <- ceiling(nrow(x)/chunk)
     sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
@@ -467,16 +442,12 @@ crossLogout <- function(opals) {
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAggregate <- function(conns, expr, async = T) {
+crossAggregatePrimal <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
-    if (grepl("^as.call", expr)) {
-        expr <- eval(str2expression(expr))
-        stopifnot(is.call(expr))
-        DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
-    } else {
-        ## only allow: crossProd, singularProd
-        stopifnot(grepl("^crossProd\\(|^singularProd\\(", expr))
+    if (grepl("^singularProd\\(", expr)) {
         DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+    } else {
+        stop(paste0("Failed to execute: ", expr))
     }
 }
 
@@ -484,20 +455,16 @@ crossAggregate <- function(conns, expr, async = T) {
 #' @title Cross aggregate through two-layer connection
 #' @description Call datashield.aggregate on remote servers through two-layer connection.
 #' @param conns A list of DSConnection-class.
-#' @param expr An encoded expression to evaluate.
+#' @param expr An encoded expression to evaluate. This is restricted to pushToDscDual.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
-crossAggregate2 <- function(conns, expr, async = T) {
+crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
-    if (grepl("^as.call", expr)) {
-        expr <- eval(str2expression(expr))
-        stopifnot(is.call(expr))
-        DSI::datashield.aggregate(conns=conns, expr=expr, async=async)
-    } else {
-        ## only allow: crossProd, singularProd, pushToDsc
-        stopifnot(grepl("^crossProd\\(|^singularProd\\(|^pushToDsc\\(", expr))
+    if (grepl("^pushToDscDual\\(", expr)) {
         DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+    } else {
+        stop(paste0("Failed to execute: ", expr))
     }
 }
 
@@ -526,7 +493,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDsc <- function(conns, symbol, async = T) {
+pushToDscDual <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
@@ -564,7 +531,7 @@ pushToDsc <- function(conns, symbol, async = T) {
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDscServer <- function(conns, symbol, sourcename, async = T) {
+pushToDscPrimal <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
@@ -572,14 +539,15 @@ pushToDscServer <- function(conns, symbol, sourcename, async = T) {
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), 
-                                   as.call(list(as.symbol("matrix2DscServer"), 
+                                   as.call(list(as.symbol("matrix2Dsc"), 
                                                 chunkList[[i]][[j]])), 
                                    async=async)
         })
     }))
-    DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), as.call(list(as.symbol("rebuildMatrixVar"),
-                                                                                   sourcename,
-                                                                                   length(chunkList))),
+    DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), 
+                           as.call(list(as.symbol("rebuildMatrixVar"),
+                                        sourcename,
+                                        length(chunkList))),
                            async=async)
 }
 

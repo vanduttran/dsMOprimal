@@ -4,12 +4,12 @@
 \alias{tripleProdChunk}
 \title{Matrix triple product}
 \usage{
-tripleProdChunk(x, pids, chunk = 500, mc.cores = 1)
+tripleProdChunk(x, mate, chunk = 500, mc.cores = 1)
 }
 \arguments{
 \item{x}{A numeric matrix}
 
-\item{pids}{A vector of mate servers' names}
+\item{mate}{Encoded value of a vector of mate servers' names}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
 }

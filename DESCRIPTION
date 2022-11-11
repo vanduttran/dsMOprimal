@@ -1,6 +1,6 @@
 Package: dsMOprimal
 Title: Server Side Functions on X'X Sum of Squares and Cross Products Matrices
-Version: 0.1.94
+Version: 0.1.95
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -25,27 +25,25 @@ AggregateMethods:
     tripleProd,
     crossAssign,
     crossAssignFunc,
-    crossAggregate2,
+    crossAggregateDual,
     pushSymmMatrixServer,
-    pushValue,
     dscPush,
-    pushToDsc,
-    pushToDscServer,
+    pushToDscDual,
+    pushToDscPrimal,
     loadings,
     federatePCA,
     federateRCCA
 AssignMethods:
     setRowNames,
     center,
-    crossProdrm,
     crossProd,
     tcrossProd,
     tripleProdChunk,
     crossLogin,
     crossLogout,
-    matrix2DscServer,
+    matrix2Dsc,
     rebuildMatrixVar,
-    crossAggregate
+    crossAggregatePrimal
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

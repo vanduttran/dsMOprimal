@@ -4,15 +4,7 @@
 \alias{federatePCA}
 \title{Federated PCA}
 \usage{
-federatePCA(
-  loginFD,
-  logins,
-  func,
-  symbol,
-  ncomp = 2,
-  verbose = FALSE,
-  chunk = 500
-)
+federatePCA(loginFD, logins, func, symbol, ncomp = 2, chunk = 500)
 }
 \arguments{
 \item{loginFD}{Login information of the FD server (one of the servers containing cohort data)}
