@@ -416,7 +416,7 @@ tripleProdChunk <- function(x, pids, chunk = 500, mc.cores = 1) {
     
     tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
         print("what we have: ")
-        print(ls(.globalEnv))
+        print(ls(.GlobalEnv))
         y <- get(paste("crossProdSelf", pid, sep='_'), envir = parent.frame())
         print(y)
         
