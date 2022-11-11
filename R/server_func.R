@@ -559,10 +559,11 @@ dscPush <- function(conns, expr, async = T) {
 pushToDsc <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
-    
+    print(symbol)
     chunkList <- get(symbol, envir = parent.frame())
     stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
     if (is.list(chunkList[[1]][[1]])) {
+        cat(length(chunkList), lengths(chunkList), unlist(sapply(chunkList, lengths)), "\n")
         dsc <- lapply(chunkList, function(z) {
             return (lapply(z, function(x) {
                 return (lapply(x, function(y) {
