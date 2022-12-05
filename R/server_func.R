@@ -623,7 +623,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
 #' @keywords internal
-.sumMatrices.rm <- function(dsc = NULL) {
+.sumMatrices <- function(dsc = NULL) {
     dscmat <- lapply(dsc, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
         return (y)
@@ -639,7 +639,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @return A matrix
 #' @import parallel
 #' @keywords internal
-.sumMatrices <- function(mate, mc.cores=1) {
+.sumMatrices.rm <- function(mate, mc.cores=1) {
     pids <- .decode.arg(mate)
     covmat <- mclapply(pids, mc.cores=mc.cores, function(pid) {
         y <- get(paste("crossProdSelf", pid, sep='_'), envir = .GlobalEnv)
