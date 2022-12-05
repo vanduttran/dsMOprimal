@@ -763,8 +763,8 @@ crossAssignFunc <- function(conns, func, symbol) {
             # crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
             print(covSpace)
             crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
-                print(dscblocks[[1]])
-                return (dscblocks[[1]])
+                print(dscblocks[[1]][[1]])
+                return (dscblocks[[1]][[1]])
             })
             rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
 
