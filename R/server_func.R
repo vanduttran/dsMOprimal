@@ -734,17 +734,26 @@ crossAssignFunc <- function(conns, func, symbol) {
         datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
         ## send X'X from opn to FD
         tryCatch({
-            lapply(names(opals), function(opn) {
-                command.opn <- list(as.symbol("pushToDscPrimal"),
+            # lapply(names(opals), function(opn) {
+            #     command.opn <- list(as.symbol("pushToDscPrimal"),
+            #                         as.symbol("FD"),
+            #                         'crossProdSelf',
+            #                         opn,
+            #                         async=T)
+            #     cat("Command: pushToDscPrimal(FD, crossProdSelf...", "\n")
+            #     invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
+            #     .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
+            #     print(datashield) 
+            # })
+                command.opn <- list(as.symbol("pushToDscDual"),
                                     as.symbol("FD"),
                                     'crossProdSelf',
-                                    opn,
                                     async=T)
-                cat("Command: pushToDscPrimal(FD, crossProdSelf...", "\n")
-                invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
-                .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
-                print(ls(.GlobalEnv))
-            })
+                cat("Command: pushToDscDual(FD, 'crossProdSelf')", "\n")
+                crossProdSelfDSC <- datashield.aggregate(opals, as.call(command.opn), async=F)
+                
+                .printTime(paste0(".federateSSCP pairwise X'X communicated: "))
+
            
             # command <- paste0("dscPush(FD, '", 
             #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsMOprimal:::.encode.arg(crossProdSelf)", "))")), 
@@ -757,9 +766,9 @@ crossAssignFunc <- function(conns, func, symbol) {
             #     print(dscblocks[[1]])
             #     return (dscblocks[[1]])
             # })
-            # rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
+            rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
 
-            rescov <- .sumMatrices(.encode.arg(names(opals)), mc.cores=mc.cores)/(sum(size)-1)
+            #rescov <- .sumMatrices(.encode.arg(names(opals)), mc.cores=mc.cores)/(sum(size)-1)
             ## set dimnames to covariance matrix
             if (covSpace=="X" || covSpace=="XY") {
                 rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
