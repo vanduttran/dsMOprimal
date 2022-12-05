@@ -313,6 +313,9 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
+    print(class(tcp))
+    print(dim(tcp))
+    print(tcp[1:3,1:3])
     stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
     return (tcp)
