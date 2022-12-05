@@ -742,9 +742,9 @@ crossAssignFunc <- function(conns, func, symbol) {
                                     async=T)
                 cat("Command: pushToDscPrimal(FD, crossProdSelf...", "\n")
                 invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
+                .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
             })
-            .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
-            
+           
             # command <- paste0("dscPush(FD, '", 
             #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsMOprimal:::.encode.arg(crossProdSelf)", "))")), 
             #                   "', async=T)")
