@@ -18,6 +18,12 @@ dsDim <- function(x) {
 }
 
 
+#' @keywords internal
+.printTime <- function(message = "") {
+    cat(message, "---", as.character(Sys.time()), "\n")
+}
+
+
 #' @title Row means, deprecated
 #' @description Row means of linear transformations of a matrix 
 #' @param x A numeric matrix
