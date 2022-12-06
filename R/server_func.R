@@ -627,7 +627,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @import DSOpal DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500, mc.cores = 1) {
-    #require(DSOpal)
+    require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
@@ -831,6 +831,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
 #' @param grid1 Checking values for \code{lambda1}.
 #' @param grid2 Checking values for \code{lambda2}.
 #' @return Optimal values of \code{lambda1} and \code{lambda2}.
+#' @import DSOpal DSI parallel bigmemory
 #' @keywords internal
 .estimateR <- function(loginFD, logins, funcPreProc, querytables,
                        nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
@@ -956,7 +957,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
 #' \code{grid2} checking values for \code{lambda2}.
 #' @return RCCA object
-#' @import DSI parallel bigmemory
+#' @import DSOpal DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @examples
 #' dataProc <- function(conns, symbol) {
@@ -971,7 +972,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
                          tune_param = .encode.arg(list(nfold = 5, 
                                                        grid1 = seq(0.001, 1, length = 5), 
                                                        grid2 = seq(0.001, 1, length = 5)))) {
-    #require(DSOpal)
+    require(DSOpal)
     .printTime("federateRCCA started")
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
