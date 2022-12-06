@@ -203,21 +203,6 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @title Matrix cross product
 #' @description Calculates the cross product t(x) \%*\% y
 #' @param x A numeric matrix
-#' @param y An encoded matrix. Default, NULL, y = x.
-#' @return t(x) \%*\% y
-#' @keywords internal
-crossProd.rm <- function(x, y = NULL) {
-    if (is.null(y)) return (crossprod(x))
-    yd <- .decode.arg(y)
-    if (is.list(yd)) yd <- do.call(rbind, yd)
-
-    return (crossprod(x, yd))
-}
-
-
-#' @title Matrix cross product
-#' @description Calculates the cross product t(x) \%*\% y
-#' @param x A numeric matrix
 #' @param y A list of numeric matrices. Default, NULL, y = x.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return \code{t(x) \%*\% y}
@@ -259,10 +244,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(nrow(x)/chunk)
     sepblocksrow <- rep(ceiling(nrow(x)/nblocksrow), nblocksrow-1)
     sepblocksrow <- c(sepblocksrow, nrow(x) - sum(sepblocksrow))
-    # nblocksrow <- ceiling(ncol(x)/chunk)
-    # sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
-    # sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
-    
+
     if (is.null(y)) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
@@ -272,14 +254,6 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         })
         return (etcpblocks)
     } else {
-        # print("AAAAAAA tcrossProd:")
-        # print(class(y))
-        # print(length(y))
-        # print(names(y))
-        # print(lapply(y, dim))
-        # print(lapply(y, length))
-        # print(str(y))
-        # stopifnot(all(sapply(y, nrow)==1))
         # TOIMPROVE: control distribution of each element of y for security
         etcpblocks <- lapply(y, function(yy) {
             tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
@@ -291,7 +265,6 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         })
         return (etcpblocks)
     }
-    #return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
 }
 
 
@@ -381,24 +354,6 @@ rebuildMatrixVar <- function(symbol, len, mc.cores = 1) {
     })
     tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
     return (tcp)
-}
-
-
-#' @title Push a symmetric matrix
-#' @description Push symmetric matrix data into the federated server
-#' @param value An encoded value to be pushed
-#' @import bigmemory
-#' @return Description of the pushed value
-#' @keywords internal
-pushSymmMatrixServer.rm <- function(value) {
-    valued <- .decode.arg(value)
-    stopifnot(is.list(valued) && length(valued)>0)
-    
-    tcp <- .rebuildMatrixEnc(valued)
-    dscbigmatrix <- describe(as.big.matrix(tcp))
-    rm(list=c("valued", "tcp"))
-    
-    return (dscbigmatrix)
 }
 
 
@@ -607,6 +562,7 @@ crossAssign <- function(conns, symbol, value, value.call, variables = NULL, asyn
 #' @param symbol Encoded vector of names of R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data to compute covariance matrix.
 #' Other assigned R variables in \code{func} are ignored.
+#' @import DSI
 #' @export
 crossAssignFunc <- function(conns, func, symbol) {
     funcPreProc <- .decode.arg(func)
@@ -668,7 +624,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' \code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return Covariance matrix of the virtual cohort
-#' @import DSI parallel bigmemory
+#' @import DSOpal DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500, mc.cores = 1) {
     #require(DSOpal)
