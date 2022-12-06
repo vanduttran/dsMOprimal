@@ -26,7 +26,6 @@ AggregateMethods:
     crossAssign,
     crossAssignFunc,
     crossAggregateDual,
-    pushSymmMatrixServer,
     dscPush,
     pushToDscDual,
     pushToDscPrimal,

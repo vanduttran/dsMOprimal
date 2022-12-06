@@ -18,12 +18,6 @@ dsDim <- function(x) {
 }
 
 
-#' @keywords internal
-.printTime <- function(message = "") {
-    cat(message, "---", as.character(Sys.time()), "\n")
-}
-
-
 #' @title Row means, deprecated
 #' @description Row means of linear transformations of a matrix 
 #' @param x A numeric matrix
@@ -211,8 +205,8 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @param x A numeric matrix
 #' @param y An encoded matrix. Default, NULL, y = x.
 #' @return t(x) \%*\% y
-#' @export
-crossProdrm <- function(x, y = NULL) {
+#' @keywords internal
+crossProd.rm <- function(x, y = NULL) {
     if (is.null(y)) return (crossprod(x))
     yd <- .decode.arg(y)
     if (is.list(yd)) yd <- do.call(rbind, yd)
@@ -319,9 +313,9 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
-    print(class(tcp))
-    print(dim(tcp))
-    print(tcp[1:min(2, nrow(tcp)),1:min(2, nrow(tcp))])
+    # print(class(tcp))
+    # print(dim(tcp))
+    # print(tcp[1:min(2, nrow(tcp)),1:min(2, nrow(tcp))])
     stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
     return (tcp)
@@ -371,8 +365,8 @@ rebuildMatrixVar <- function(symbol, len, mc.cores = 1) {
 #' @param value An encoded value to be pushed
 #' @import bigmemory
 #' @return Description of the pushed value
-#' @export
-pushSymmMatrixServer <- function(value) {
+#' @keywords internal
+pushSymmMatrixServer.rm <- function(value) {
     valued <- .decode.arg(value)
     stopifnot(is.list(valued) && length(valued)>0)
     
@@ -620,32 +614,16 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @title Sum matrices
 #' @description Compute the sum of a matrix and those stored in bigmemory
 #' @param dsc A list of big memory descriptions
+#' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @return Sum of x and those stored in dsc
 #' @import bigmemory
 #' @keywords internal
-.sumMatrices <- function(dsc = NULL) {
-    dscmat <- lapply(dsc, function(dscblocks) {
+.sumMatrices <- function(dsc = NULL, mc.cores = 1) {
+    dscmat <- mcapply(dsc, mc.cores=mc.cores, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
         return (y)
     })
     return (Reduce("+", dscmat))
-}
-
-
-#' @title Sum matrices
-#' @description Compute the sum of crossProd matrices from mates
-#' @param mate Encoded value of a vector of mate servers' names
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return A matrix
-#' @import parallel
-#' @keywords internal
-.sumMatrices.rm <- function(mate, mc.cores=1) {
-    pids <- .decode.arg(mate)
-    covmat <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-        y <- get(paste("crossProdSelf", pid, sep='_'), envir = .GlobalEnv)
-        return (y)
-    })
-    return (Reduce("+", covmat))
 }
 
 
@@ -732,43 +710,21 @@ crossAssignFunc <- function(conns, func, symbol) {
         loginFDdata$user     <- loginFDdata$userserver
         loginFDdata$password <- loginFDdata$passwordserver
         datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
-        ## send X'X from opn to FD
+        ## send X'X from opals to FD
         tryCatch({
-            # lapply(names(opals), function(opn) {
-            #     command.opn <- list(as.symbol("pushToDscPrimal"),
-            #                         as.symbol("FD"),
-            #                         'crossProdSelf',
-            #                         opn,
-            #                         async=T)
-            #     cat("Command: pushToDscPrimal(FD, crossProdSelf...", "\n")
-            #     invisible(datashield.aggregate(opals[opn], as.call(command.opn), async=F))
-            #     .printTime(paste0(".federateSSCP pairwise X'X communicated: ", opn))
-            #     print(datashield) 
-            # })
-                command.opn <- list(as.symbol("pushToDscDual"),
-                                    as.symbol("FD"),
-                                    'crossProdSelf',
-                                    async=T)
-                cat("Command: pushToDscDual(FD, 'crossProdSelf')", "\n")
-                crossProdSelfDSC <- datashield.aggregate(opals, as.call(command.opn), async=T)
-                
-                .printTime(paste0(".federateSSCP pairwise X'X communicated: "))
-
-           
-            # command <- paste0("dscPush(FD, '", 
-            #                   .encode.arg(paste0("as.call(list(as.symbol('pushSymmMatrixServer'), dsMOprimal:::.encode.arg(crossProdSelf)", "))")), 
-            #                   "', async=T)")
-            # cat("Command: ", command, "\n")
+            command <- list(as.symbol("pushToDscDual"),
+                            as.symbol("FD"),
+                            'crossProdSelf',
+                            async=T)
+            cat("Command: pushToDscDual(FD, 'crossProdSelf')", "\n")
+            crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+            .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
-            # crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.symbol(command), async=T)
-            print(covSpace)
             crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
                 print(dscblocks[[1]][[1]])
                 return (dscblocks[[1]][[1]])
             })
             rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
-
-            #rescov <- .sumMatrices(.encode.arg(names(opals)), mc.cores=mc.cores)/(sum(size)-1)
             ## set dimnames to covariance matrix
             if (covSpace=="X" || covSpace=="XY") {
                 rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
@@ -820,6 +776,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
+    .printTime("federatePCA started")
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 1) {
@@ -842,7 +799,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
     logindata <- .decode.arg(logins)
     opals <- datashield.login(logins=logindata)
     
-    out <- tryCatch({
+    tryCatch({
         ## take a snapshot of the current session
         safe.objs <- .ls.all()
         safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
@@ -1030,8 +987,12 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
 #' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
 #' @export
 federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, chunk = 500,
-                         tune = FALSE, tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)))) {
-    require(DSOpal)
+                         tune = FALSE, 
+                         tune_param = .encode.arg(list(nfold = 5, 
+                                                       grid1 = seq(0.001, 1, length = 5), 
+                                                       grid2 = seq(0.001, 1, length = 5)))) {
+    #require(DSOpal)
+    .printTime("federateRCCA started")
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 2) {
