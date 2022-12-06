@@ -256,12 +256,12 @@ crossProd <- function(x, y = NULL, chunk = 500) {
 #' @return \code{x \%*\% t(y)}
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
-    # nblocks <- ceiling(nrow(x)/chunk)
-    # sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
-    # sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-    nblocksrow <- ceiling(ncol(x)/chunk)
-    sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
-    sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
+    nblocksrow <- ceiling(nrow(x)/chunk)
+    sepblocksrow <- rep(ceiling(nrow(x)/nblocksrow), nblocksrow-1)
+    sepblocksrow <- c(sepblocksrow, nrow(x) - sum(sepblocksrow))
+    # nblocksrow <- ceiling(ncol(x)/chunk)
+    # sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
+    # sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
     
     if (is.null(y)) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
