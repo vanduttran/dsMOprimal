@@ -310,9 +310,6 @@ matrix2Dsc <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
-    # print(class(tcp))
-    # print(dim(tcp))
-    # print(tcp[1:min(2, nrow(tcp)),1:min(2, nrow(tcp))])
     stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
     return (tcp)
@@ -624,10 +621,10 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' \code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @return Covariance matrix of the virtual cohort
-#' @import DSOpal DSI parallel bigmemory
+#' @import DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500, mc.cores = 1) {
-    require(DSOpal)
+    #require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
@@ -701,7 +698,6 @@ crossAssignFunc <- function(conns, func, symbol) {
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
             crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
-                print(dscblocks[[1]][[1]])
                 return (dscblocks[[1]][[1]])
             })
             rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
@@ -756,6 +752,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
+    require(DSOpal)
     .printTime("federatePCA started")
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
