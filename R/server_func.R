@@ -1097,7 +1097,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @return Color codes
 #' @export
-mapColor <- function(x, ranges = NULL, nbreaks = 10, colors = c('orange', 'blue'), ...) {
+mapColor <- function(x, range.min = NA, range.max = NA, nbreaks = 10, colors = c('orange', 'blue'), ...) {
     rbPal <- colorRampPalette(colors, ...)
     if (is.factor(x)) {
         if (length(x) < 10*nlevels(x)) {
@@ -1108,8 +1108,9 @@ mapColor <- function(x, ranges = NULL, nbreaks = 10, colors = c('orange', 'blue'
         if (length(x) < 10*nbreaks) {
             stop("x should be longer than 10 times nbreaks")
         }
-        if (is.null(ranges)) ranges <- range(x)
-        colbreaks <- cut(c(ranges[1], x, ranges[2]), nbreaks, labels=rbPal(nbreaks))
+        if (is.na(range.min)) range.min <- range(x)[1]
+        if (is.na(range.max)) range.max <- range(x)[2]
+        colbreaks <- cut(c(range.min, x, range.max), nbreaks, labels=rbPal(nbreaks))
         colbreaks <- colbreaks[-c(1, length(colbreaks))]
     } else {
         stop("A numeric vector or a factor is required.")
