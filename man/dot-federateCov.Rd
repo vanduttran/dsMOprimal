@@ -11,7 +11,8 @@
   querytables,
   querysubset = NULL,
   covSpace = "X",
-  chunk = 500
+  chunk = 500,
+  mc.cores = 1
 )
 }
 \arguments{

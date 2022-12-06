@@ -12,6 +12,8 @@ tripleProdChunk(x, mate, chunk = 500, mc.cores = 1)
 \item{mate}{Encoded value of a vector of mate servers' names}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1}
 }
 \value{
 \code{x \%*\% t(y)}

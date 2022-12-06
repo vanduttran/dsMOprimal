@@ -4,10 +4,12 @@
 \alias{.sumMatrices}
 \title{Sum matrices}
 \usage{
-.sumMatrices(dsc = NULL)
+.sumMatrices(dsc = NULL, mc.cores = 1)
 }
 \arguments{
 \item{dsc}{A list of big memory descriptions}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1}
 }
 \value{
 Sum of x and those stored in dsc
