@@ -612,14 +612,14 @@ crossAssignFunc <- function(conns, func, symbol) {
 
 
 #' @title Sum matrices
-#' @description Compute the sum of a matrix and those stored in bigmemory
+#' @description Compute the sum of matrices stored in bigmemory objects
 #' @param dsc A list of big memory descriptions
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return Sum of x and those stored in dsc
-#' @import bigmemory
+#' @return Sum of matrices stored in dsc
+#' @import bigmemory parallel
 #' @keywords internal
 .sumMatrices <- function(dsc = NULL, mc.cores = 1) {
-    dscmat <- mcapply(dsc, mc.cores=mc.cores, function(dscblocks) {
+    dscmat <- mclapply(dsc, mc.cores=mc.cores, function(dscblocks) {
         y <- as.matrix(attach.big.matrix(dscblocks))
         return (y)
     })
