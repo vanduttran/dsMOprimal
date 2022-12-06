@@ -1092,25 +1092,29 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 #' @title Map data values to color codes
 #' @description Produce color codes for plotting
 #' @param x A factor or a numeric vector
-#' @param ranges Global range of x, including those from other nodes
-#' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}.
+#' @param range.min Global minimum of x, including other nodes. Default: \code{min(x)}.
+#' @param range.max Global maximum of x, including other nodes. Default: \code{max(x)}.
+#' @param levels A character vector indicating the global levels of x, when x is a factor. Default: \code{levels(x)}.
+#' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @return Color codes
 #' @export
-mapColor <- function(x, range.min = NA, range.max = NA, nbreaks = 10, colors = c('orange', 'blue'), ...) {
+mapColor <- function(x, range.min = NA, range.max = NA, levels = NULL, nbreaks = 10, colors = c('orange', 'blue'), ...) {
     rbPal <- colorRampPalette(colors, ...)
     if (is.factor(x)) {
+        levels <- union(levels, levels(x))
+        levels(x) <- levels
         if (length(x) < 10*nlevels(x)) {
             stop("x should be longer than 10 times nlevels(x)")
         }
-        colbreaks <- as.factor(rbPal(nlevels(x))[x])
+        colbreaks <- rbPal(nlevels(x))[x]
     } else if (is.numeric(x)) {
         if (length(x) < 10*nbreaks) {
             stop("x should be longer than 10 times nbreaks")
         }
         if (is.na(range.min)) range.min <- range(x)[1]
         if (is.na(range.max)) range.max <- range(x)[2]
-        colbreaks <- cut(c(range.min, x, range.max), nbreaks, labels=rbPal(nbreaks))
+        colbreaks <- as.vector(cut(c(range.min, x, range.max), nbreaks, labels=rbPal(nbreaks)))
         colbreaks <- colbreaks[-c(1, length(colbreaks))]
     } else {
         stop("A numeric vector or a factor is required.")
