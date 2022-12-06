@@ -267,6 +267,14 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
             }))
         })
         return (etcpblocks)
+    } else {
+        print("AAAAAAA tcrossProd:")
+        print(class(y))
+        print(length(y))
+        print(names(y))
+        print(lapply(y, dim))
+        print(lapply(y, length))
+        print(str(y))
     }
     return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
 }
