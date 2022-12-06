@@ -267,7 +267,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp, serialize.it = T)
+                .encode.arg(tcp, serialize.it = F)
             }))
         })
         return (etcpblocks)
@@ -285,7 +285,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
             tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp, serialize.it = T)
+                    .encode.arg(tcp, serialize.it = F)
                 }))
             }))
         })
@@ -303,7 +303,8 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @export
 matrix2Dsc <- function(value) {
     valued <- .decode.arg(value)
-    tcp <- .decode.arg(valued) #do.call(rbind, .decode.arg(valued))
+    # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
+    tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
