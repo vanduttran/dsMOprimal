@@ -624,7 +624,6 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @import DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500, mc.cores = 1) {
-    #require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
