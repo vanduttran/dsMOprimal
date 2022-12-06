@@ -149,7 +149,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE, na.rm = FAL
     })
     parMat <- lapply(1:length(indrow), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
-            return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
+            return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2], drop=F])
         })
     })
     
@@ -267,25 +267,25 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp)
+                .encode.arg(tcp, serialize.it = T)
             }))
         })
         return (etcpblocks)
     } else {
-        print("AAAAAAA tcrossProd:")
-        print(class(y))
-        print(length(y))
-        print(names(y))
-        print(lapply(y, dim))
-        print(lapply(y, length))
-        print(str(y))
-        stopifnot(all(sapply(y, nrow)==1))
+        # print("AAAAAAA tcrossProd:")
+        # print(class(y))
+        # print(length(y))
+        # print(names(y))
+        # print(lapply(y, dim))
+        # print(lapply(y, length))
+        # print(str(y))
+        # stopifnot(all(sapply(y, nrow)==1))
         # TOIMPROVE: control distribution of each element of y for security
         etcpblocks <- lapply(y, function(yy) {
             tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp)
+                    .encode.arg(tcp, serialize.it = T)
                 }))
             }))
         })
@@ -303,7 +303,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @export
 matrix2Dsc <- function(value) {
     valued <- .decode.arg(value)
-    tcp <- do.call(rbind, .decode.arg(valued))
+    tcp <- .decode.arg(valued) #do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
