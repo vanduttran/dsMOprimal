@@ -238,7 +238,7 @@ crossProd <- function(x, y = NULL, chunk = 500) {
         nblockscol <- ceiling(ncol(y)/chunk)
         sepblockscol <- rep(ceiling(ncol(y)/nblockscol), nblockscol-1)
         sepblockscol <- c(sepblockscol, ncol(y) - sum(sepblockscol))
-        tcpblocks <- .partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol)
+        tcpblocks <- .partitionMatrix(crossprod(x, y), seprow=sepblocksrow, sepcol=sepblockscol) # TOCHECK on asymmetric matrix
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -256,11 +256,15 @@ crossProd <- function(x, y = NULL, chunk = 500) {
 #' @return \code{x \%*\% t(y)}
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
+    # nblocks <- ceiling(nrow(x)/chunk)
+    # sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
+    # sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
+    nblocksrow <- ceiling(ncol(x)/chunk)
+    sepblocksrow <- rep(ceiling(ncol(x)/nblocksrow), nblocksrow-1)
+    sepblocksrow <- c(sepblocksrow, ncol(x) - sum(sepblocksrow))
+    
     if (is.null(y)) {
-        nblocks <- ceiling(nrow(x)/chunk)
-        sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
-        sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-        tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocks)
+        tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
                 .encode.arg(tcp)
@@ -275,8 +279,19 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         print(lapply(y, dim))
         print(lapply(y, length))
         print(str(y))
+        stopifnot(all(sapply(y, nrow)==1))
+        # TOIMPROVE: control distribution of each element of y for security
+        etcpblocks <- lapply(y, function(yy) {
+            tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
+            return (lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    .encode.arg(tcp)
+                }))
+            }))
+        })
+        return (etcpblocks)
     }
-    return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
+    #return (lapply(y, function(yy) .encode.arg(matrix(tcrossprod(x, yy)))))
 }
 
 
@@ -655,7 +670,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @import DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, covSpace = "X", chunk = 500, mc.cores = 1) {
-    require(DSOpal)
+    #require(DSOpal)
     ## covariance of only one matrix or between two matrices
     stopifnot(length(querytables) %in% c(1,2))
     covSpace <- match.arg(covSpace, choices=c('X', 'Y', "XY"))
