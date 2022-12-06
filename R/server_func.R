@@ -1089,10 +1089,11 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 }
 
 
-#' @title Map data values to color code
+#' @title Map data values to color codes
 #' @description Produce color codes for plotting
-#' @param x A vector
-#' @param nbreaks
+#' @param x A factor or a numeric vector
+#' @param ranges Global range of x, including those from other nodes
+#' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}.
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @return Color codes
 #' @export
