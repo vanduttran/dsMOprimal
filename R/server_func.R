@@ -153,19 +153,6 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE, na.rm = FAL
         })
     })
     
-    # indrow <- mclapply(1:length(seprow), mc.cores=max(2, min(length(seprow), detectCores())),  function(i) {
-    #     return (c(ifelse(i==1, 0, csseprow[i-1])+1, csseprow[i]))
-    # })
-    # cssepcol <- cumsum(sepcol)
-    # indcol <- mclapply(1:length(sepcol), mc.cores=max(2, min(length(sepcol), detectCores())),  function(i) {
-    #     return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
-    # })
-    # parMat <- mclapply(1:length(indrow), mc.cores=max(2,min(length(sepcol), detectCores())), function(i) {
-    #     lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
-    #         return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2]])
-    #     })
-    # })
-    
     return (parMat)
 }
 
@@ -750,7 +737,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' dataProc(conns=opals, symbol="rawData")
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
 #' @export
-federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
+federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, mc.cores = 1) {
     require(DSOpal)
     .printTime("federatePCA started")
     funcPreProc <- .decode.arg(func)
@@ -758,7 +745,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
     if (length(querytables) != 1) {
         stop("One data matrix is required!")
     }
-    covmat <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk)
+    covmat <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk, mc.cores = mc.cores)
     pcaObj <- princomp(covmat=covmat)
 
     if (ncomp > 2 && length(which(pcaObj$sdev > 1e-6)) <= ncomp) {
@@ -829,7 +816,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
 #' @return Optimal values of \code{lambda1} and \code{lambda2}.
 #' @import DSOpal DSI parallel bigmemory
 #' @keywords internal
-.estimateR <- function(loginFD, logins, funcPreProc, querytables,
+.estimateR <- function(loginFD, logins, funcPreProc, querytables, mc.cores = 1,
                        nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
     loginFDdata <- .decode.arg(loginFD)
@@ -888,9 +875,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
             yscore <- NULL
             for (m in 1:nfold) {
                 ## covariance matrices for the virtual cohort
-                Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X")
-                Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y")
-                Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY")
+                Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X", mc.cores = mc.cores)
+                Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y", mc.cores = mc.cores)
+                Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY", mc.cores = mc.cores)
                 
                 ## add parameters of regularization
                 Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
@@ -963,7 +950,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500) {
 #' dataProc(conns=opals, symbol=c("rawDataX", "rawDataY"))
 #' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
 #' @export
-federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, chunk = 500,
+federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, chunk = 500, mc.cores = 1,
                          tune = FALSE, 
                          tune_param = .encode.arg(list(nfold = 5, 
                                                        grid1 = seq(0.001, 1, length = 5), 
@@ -979,15 +966,15 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## estimating the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- .decode.arg(tune_param)
-        tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
+        tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables, mc.cores = mc.cores,
                               nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
     ## covariance matrices for the virtual cohort
-    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk = chunk)
-    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk = chunk)
-    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk = chunk)
+    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk=chunk, mc.cores=mc.cores)
+    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk=chunk, mc.cores=mc.cores)
+    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk=chunk, mc.cores=mc.cores)
 
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
@@ -1099,4 +1086,32 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
                        corr.Y.yscores=yyscores)
     
     return (res)
+}
+
+
+#' @title Map data values to color code
+#' @description Produce color codes for plotting
+#' @param x A vector
+#' @param nbreaks
+#' @param ... arguments to pass to \code{colorRampPalette}
+#' @return Color codes
+#' @export
+mapColor <- function(x, ranges = NULL, nbreaks = 10, colors = c('orange', 'blue'), ...) {
+    rbPal <- colorRampPalette(colors, ...)
+    if (is.factor(x)) {
+        if (length(x) < 10*nlevels(x)) {
+            stop("x should be longer than 10 times nlevels(x)")
+        }
+        colbreaks <- as.factor(rbPal(nlevels(x))[x])
+    } else if (is.numeric(x)) {
+        if (length(x) < 10*nbreaks) {
+            stop("x should be longer than 10 times nbreaks")
+        }
+        if (is.null(ranges)) ranges <- range(x)
+        colbreaks <- cut(c(ranges[1], x, ranges[2]), nbreaks, labels=rbPal(nbreaks))
+        colbreaks <- colbreaks[-c(1, length(colbreaks))]
+    } else {
+        stop("A numeric vector or a factor is required.")
+    }
+    return (colbreaks)
 }
