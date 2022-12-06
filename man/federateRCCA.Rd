@@ -12,6 +12,7 @@ federateRCCA(
   lambda1 = 0,
   lambda2 = 0,
   chunk = 500,
+  mc.cores = 1,
   tune = FALSE,
   tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 =
     seq(0.001, 1, length = 5)))

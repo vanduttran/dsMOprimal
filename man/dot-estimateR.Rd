@@ -9,6 +9,7 @@
   logins,
   funcPreProc,
   querytables,
+  mc.cores = 1,
   nfold = 5,
   grid1 = seq(0.001, 1, length = 5),
   grid2 = seq(0.001, 1, length = 5)
