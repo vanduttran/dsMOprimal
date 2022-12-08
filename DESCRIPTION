@@ -1,6 +1,6 @@
 Package: dsMOprimal
 Title: Server Side Functions on X'X Sum of Squares and Cross Products Matrices
-Version: 0.1.101
+Version: 0.1.102
 Authors@R: 
     c(person(given = "Van Du T.",
              family = "Tran",
@@ -20,6 +20,7 @@ Description: Server side functions on X'X sum of squares and cross products matr
 AggregateMethods:
     dsDim,
     dsRange,
+    dsLevels,
     rowNames,
     colNames,
     singularProd,
@@ -34,6 +35,7 @@ AggregateMethods:
     federatePCA,
     federateRCCA
 AssignMethods:
+    dsAsFactor,
     setRowNames,
     center,
     crossProd,

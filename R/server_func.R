@@ -24,13 +24,35 @@ dsDim <- function(x) {
 #' @return Approximate range of x
 #' @export
 dsRange <- function(x) {
-    if (!grepl("$", deparse(substitute(x)))) stop("what should be a variable of a data frame in form of 'data.frame$variable'")
+    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
     rx <- range(x)
     drx <- diff(rx)
     range.min <- rx[1] - drx*runif(1, 1e-2, 1)/100
     range.max <- rx[2] + drx*runif(1, 1e-2, 1)/100
-    
     return (c(range.min, range.max))
+}
+
+
+#' @title Factor coercion
+#' @description Factor coercion of a categorical variable in a data frame
+#' @param x A variable of a data frame in form of 'data.frame$variable'
+#' @return An object of class \code{factor}
+#' @export
+dsAsFactor <- function(x) {
+    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
+    return (as.factor(x))
+}
+
+
+#' @title Levels attributes
+#' @description Return levels of a categorical variable in a data frame
+#' @param x A variable of a data frame in form of 'data.frame$variable'
+#' @return Levels of x
+#' @export
+dsLevels <- function(x) {
+    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
+    if (!is.factor(x)) stop("A factor is required.")
+    return (levels(x))
 }
 
 
