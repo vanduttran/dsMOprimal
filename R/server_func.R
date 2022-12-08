@@ -1134,12 +1134,12 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 #' @param range.max Global maximum of x, including other nodes. Default: \code{max(x)}.
 #' @param levels Encoded value of a character vector indicating the global levels of x, when x is a factor. Default: \code{.encode.arg(levels(x))}.
 #' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.
-#' @param colors A vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{c('orange', 'blue')}.
+#' @param colors Encoded value of a vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{.encode.arg(c('orange', 'blue'))}.
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @return Color codes
 #' @export
-mapColor <- function(x, range.min = NA, range.max = NA, levels = NA, nbreaks = 10, colors = c('orange', 'blue'), ...) {
-    rbPal <- colorRampPalette(colors, ...)
+mapColor <- function(x, range.min = NA, range.max = NA, levels = NA, nbreaks = 10, colors = .encode.arg(c('orange', 'blue')), ...) {
+    rbPal <- colorRampPalette(.decode.arg(colors), ...)
     if (is.factor(x)) {
         glevels <- union(.decode.arg(levels), levels(x))
         levels(x) <- glevels
