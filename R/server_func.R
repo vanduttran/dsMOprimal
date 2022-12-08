@@ -18,6 +18,22 @@ dsDim <- function(x) {
 }
 
 
+#' @title Range of a variable in a data frame
+#' @description Return random approximated range of a numeric variable in a data frame
+#' @param x A variable of a data frame in form of 'data.frame$variable'
+#' @return Approximate range of x
+#' @export
+dsRange <- function(x) {
+    if (!grepl("$", deparse(substitute(x)))) stop("what should be a variable of a data frame in form of 'data.frame$variable'")
+    rx <- range(x)
+    drx <- diff(rx)
+    range.min <- rx[1] - drx*runif(1, 1e-2, 1)/100
+    range.max <- rx[2] + drx*runif(1, 1e-2, 1)/100
+    
+    return (c(range.min, range.max))
+}
+
+
 #' @title Row means, deprecated
 #' @description Row means of linear transformations of a matrix 
 #' @param x A numeric matrix
