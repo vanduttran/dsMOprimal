@@ -2,16 +2,16 @@
 % Please edit documentation in R/server_func.R
 \name{rowNames}
 \alias{rowNames}
-\title{Rownames}
+\title{Row names}
 \usage{
 rowNames(x)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A matrix or a data frame}
 }
 \value{
-rownames of x
+Row names of x
 }
 \description{
-Row names of a matrix
+Get row names of a matrix
 }

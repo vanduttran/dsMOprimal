@@ -2,19 +2,17 @@
 % Please edit documentation in R/server_func.R
 \name{setRowNames}
 \alias{setRowNames}
-\title{Assign rownames}
+\title{Row names}
 \usage{
-setRowNames(x, row.names, envir = .GlobalEnv)
+setRowNames(x, row.names)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A matrix or a data frame}
 
-\item{row.names}{An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.}
-
-\item{envir}{A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}}
+\item{row.names}{An encoded vector of names with the length of nrow(x)}
 }
 \value{
-Matrix with rownames
+Matrix with row names
 }
 \description{
 Assign row names to a matrix

@@ -89,14 +89,14 @@ dsLevels <- function(x) {
 #' @param row.names An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.
 #' @param envir A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}
 #' @return Matrix with rownames
-#' @export
-setRowNames <- function(x, row.names, envir = .GlobalEnv) {
+#' @keywords internal
+setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
     if (length(row.names)==1) {
         if (grepl("base64$", row.names)) rn <- .decode.arg(row.names)
         else {
             if (typeof(envir)!='environment') envir <- as.environment(envir)
             rn <- get(row.names, envir=envir)
-        }        
+        }
         if (nrow(x) == length(rn)) rownames(x) <- rn
         else stop("Cannot assign row.names of length different from nrow(x)")
     } else stop("Wrong row.names provided!")
@@ -104,10 +104,25 @@ setRowNames <- function(x, row.names, envir = .GlobalEnv) {
 }
 
 
-#' @title Rownames
-#' @description Row names of a matrix 
-#' @param x A numeric matrix
-#' @return rownames of x
+#' @title Row names
+#' @description Assign row names to a matrix 
+#' @param x A matrix or a data frame
+#' @param row.names An encoded vector of names with the length of nrow(x)
+#' @return Matrix with row names
+#' @export
+setRowNames <- function(x, row.names) {
+    rn <- .decode.arg(row.names)
+    if (nrow(x) != length(rn)) stop("Cannot assign row.names of length different from nrow(x).")
+    if (any(duplicated(rn))) stop("Repeated rownames.")
+    rownames(x) <- rn
+    return (x)
+}
+
+
+#' @title Row names
+#' @description Get row names of a matrix 
+#' @param x A matrix or a data frame
+#' @return Row names of x
 #' @export
 rowNames <- function(x) {
     return (rownames(x))
