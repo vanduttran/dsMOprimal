@@ -38,7 +38,7 @@ dsRange <- function(x) {
 #' @param x A variable of a data frame in form of 'data.frame$variable'
 #' @return An object of class \code{factor}
 #' @export
-dsAsFactor <- function(x) {
+dsFactor <- function(x) {
     if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
     return (as.factor(x))
 }
@@ -50,7 +50,7 @@ dsAsFactor <- function(x) {
 #' @return Levels of x
 #' @export
 dsLevels <- function(x) {
-    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
+    #if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
     if (!is.factor(x)) stop("A factor is required.")
     return (levels(x))
 }
