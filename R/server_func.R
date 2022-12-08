@@ -1132,16 +1132,17 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 #' @param x A factor or a numeric vector
 #' @param range.min Global minimum of x, including other nodes. Default: \code{min(x)}.
 #' @param range.max Global maximum of x, including other nodes. Default: \code{max(x)}.
-#' @param levels A character vector indicating the global levels of x, when x is a factor. Default: \code{levels(x)}.
+#' @param levels Encoded value of a character vector indicating the global levels of x, when x is a factor. Default: \code{.encode.arg(levels(x))}.
 #' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.
+#' @param colors A vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{c('orange', 'blue')}.
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @return Color codes
 #' @export
-mapColor <- function(x, range.min = NA, range.max = NA, levels = NULL, nbreaks = 10, colors = c('orange', 'blue'), ...) {
+mapColor <- function(x, range.min = NA, range.max = NA, levels = NA, nbreaks = 10, colors = c('orange', 'blue'), ...) {
     rbPal <- colorRampPalette(colors, ...)
     if (is.factor(x)) {
-        levels <- union(levels, levels(x))
-        levels(x) <- levels
+        glevels <- union(.decode.arg(levels), levels(x))
+        levels(x) <- glevels
         if (length(x) < 10*nlevels(x)) {
             stop("x should be longer than 10 times nlevels(x)")
         }
