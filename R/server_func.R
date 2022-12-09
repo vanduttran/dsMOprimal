@@ -441,7 +441,7 @@ crossLogin <- function(logins) {
                        password=loginfo$password,
                        driver=loginfo$driver,
                        options=loginfo$options)
-    datashield.login(myDf)
+    return (.login(myDf)) #datashield.login(myDf)
 }
 
 
@@ -671,7 +671,7 @@ crossAssignFunc <- function(conns, func, symbol) {
     logindata   <- .decode.arg(logins)
     
     ## assign crossprod matrix on each individual server
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
     tryCatch({
         ## take a snapshot of the current session
@@ -813,7 +813,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     
     ## compute loadings
     logindata <- .decode.arg(logins)
-    opals <- datashield.login(logins=logindata)
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     
     tryCatch({
         ## take a snapshot of the current session
@@ -875,7 +875,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
     
-    opals <- datashield.login(logins=.decode.arg(logins))
+    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
     nNode <- length(opals)
     
     tryCatch({
@@ -1042,7 +1042,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 
     ## assign centered data on each individual server
     ## NB: this block only works with some call a priori, e.g. .federateCov, or with require(DSOpal) !!!
-    opals <- datashield.login(logins=.decode.arg(logins))
+    opals <- .login(logins=.decode.arg(logins)) #datashield.login(logins=.decode.arg(logins))
     nNode <- length(opals)
     
     tryCatch({
