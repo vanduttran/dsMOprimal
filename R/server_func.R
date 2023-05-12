@@ -314,7 +314,23 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @import bigmemory
 #' @return Bigmemory description of the given matrix
 #' @export
-matrix2DscFD <- matrix2DscMate <- function(value) {
+matrix2DscFD <- function(value) {
+    valued <- .decode.arg(value)
+    # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
+    tcp <- do.call(rbind, .decode.arg(valued))
+    dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
+    rm(list=c("valued", "tcp"))
+    return (dscbigmatrix)
+}
+
+
+#' @title Bigmemory description of a matrix
+#' @description Bigmemory description of a matrix
+#' @param value Encoded value of a matrix
+#' @import bigmemory
+#' @return Bigmemory description of the given matrix
+#' @export
+matrix2DscMate <- function(value) {
     valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
     tcp <- do.call(rbind, .decode.arg(valued))
