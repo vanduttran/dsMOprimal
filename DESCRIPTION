@@ -28,7 +28,7 @@ AggregateMethods:
     crossAssign,
     crossAssignFunc,
     crossAggregateDual,
-    matrix2DscMate,
+    matrix2DscFD,
     pushToDscFD,
     pushToDscMate,
     loadings,
@@ -44,7 +44,7 @@ AssignMethods:
     tripleProdChunk,
     crossLogin,
     crossLogout,
-    matrix2DscFD,
+    matrix2DscMate,
     rebuildMatrixVar,
     crossAggregatePrimal
 License: GPL-3
