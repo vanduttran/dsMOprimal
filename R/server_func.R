@@ -1,13 +1,3 @@
-#' @title Ranking, deprecated
-#' @description Ranking of features in each sample 
-#' @param x A matrix or data frame, samples in rows and features in columns
-#' @return Ranking of features
-#' @export
-dsRank <- function(x) {
-    return (t(apply(x, 1, rank)))
-}
-
-
 #' @title Matrix dimension
 #' @description Dimension of a data frame or matrix
 #' @param x A matrix or data frame
@@ -50,36 +40,8 @@ dsFactor <- function(x) {
 #' @return Levels of x
 #' @export
 dsLevels <- function(x) {
-    #if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
     if (!is.factor(x)) stop("A factor is required.")
     return (levels(x))
-}
-
-
-#' @title Row means, deprecated
-#' @description Row means of linear transformations of a matrix 
-#' @param x A numeric matrix
-#' @param y A list of symmetric matrices of dimension (ncol(x), ncol(x))
-#' @return Row means of x if y = NULL, or row means of x %*% yy for each matrix yy in y otherwise
-#' @keywords internal
-.rowmeans <- function(x, y = NULL) {
-    if (is.null(y)) {
-        return (matrix(rowMeans(x), ncol=1, dimnames=list(rownames(x), "mean")))
-    } else if (!all(sapply(y, isSymmetric))) {
-        stop("y is not all symmetric.")
-    } else {
-        return (lapply(y, function(yy) matrix(rowMeans(tcrossprod(x, yy)), ncol=1, dimnames=list(rownames(x), "mean"))))
-    }
-}
-
-
-#' @title Column means, deprecated
-#' @description Column means of a matrix 
-#' @param x A numeric matrix
-#' @return Column means of x
-#' @keywords internal
-.colmeans <- function(x) {
-    return (matrix(colMeans(x), nrow=1, dimnames=list("mean", colnames(x))))
 }
 
 
