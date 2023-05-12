@@ -9,7 +9,7 @@ crossAggregateDual(conns, expr, async = T)
 \arguments{
 \item{conns}{A list of DSConnection-class.}
 
-\item{expr}{An encoded expression to evaluate. This is restricted to pushToDscDual.}
+\item{expr}{An encoded expression to evaluate. This is restricted to pushToDscFD.}
 
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }

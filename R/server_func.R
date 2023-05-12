@@ -314,7 +314,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @import bigmemory
 #' @return Bigmemory description of the given matrix
 #' @export
-matrix2Dsc <- function(value) {
+matrix2DscFD <- matrix2DscMate <- function(value) {
     valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
     tcp <- do.call(rbind, .decode.arg(valued))
@@ -475,13 +475,13 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 #' @title Cross aggregate through two-layer connection
 #' @description Call datashield.aggregate on remote servers through two-layer connection.
 #' @param conns A list of DSConnection-class.
-#' @param expr An encoded expression to evaluate. This is restricted to pushToDscDual.
+#' @param expr An encoded expression to evaluate. This is restricted to pushToDscFD.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @import DSI
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
-    if (grepl("^pushToDscDual\\(", expr)) {
+    if (grepl("^pushToDscFD\\(", expr)) {
         DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     } else {
         stop(paste0("Failed to execute: ", expr))
@@ -513,7 +513,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDscDual <- function(conns, symbol, async = T) {
+pushToDscFD <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
@@ -523,7 +523,7 @@ pushToDscDual <- function(conns, symbol, async = T) {
         dsc <- lapply(chunkList, function(z) {
             return (lapply(z, function(x) {
                 return (lapply(x, function(y) {
-                    expr <- list(as.symbol("matrix2Dsc"), y)
+                    expr <- list(as.symbol("matrix2DscFD"), y)
                     y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
                     return (y.dsc[[1]])
                 }))
@@ -532,7 +532,7 @@ pushToDscDual <- function(conns, symbol, async = T) {
     } else {
         dsc <- lapply(chunkList, function(x) {
             return (lapply(x, function(y) {
-                expr <- list(as.symbol("matrix2Dsc"), y)
+                expr <- list(as.symbol("matrix2DscFD"), y)
                 y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
                 return (y.dsc[[1]])
             }))
@@ -551,7 +551,7 @@ pushToDscDual <- function(conns, symbol, async = T) {
 #' @return Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
-pushToDscPrimal <- function(conns, symbol, sourcename, async = T) {
+pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
@@ -559,7 +559,7 @@ pushToDscPrimal <- function(conns, symbol, sourcename, async = T) {
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             DSI::datashield.assign(conns, paste(c(sourcename, i, j), collapse="__"), 
-                                   as.call(list(as.symbol("matrix2Dsc"), 
+                                   as.call(list(as.symbol("matrix2DscMate"), 
                                                 chunkList[[i]][[j]])), 
                                    async=async)
         })
@@ -728,11 +728,11 @@ crossAssignFunc <- function(conns, func, symbol) {
         datashield.assign(opals, 'FD', as.symbol(paste0("crossLogin('", .encode.arg(loginFDdata), "')")), async=T)
         ## send X'X from opals to FD
         tryCatch({
-            command <- list(as.symbol("pushToDscDual"),
+            command <- list(as.symbol("pushToDscFD"),
                             as.symbol("FD"),
                             'crossProdSelf',
                             async=T)
-            cat("Command: pushToDscDual(FD, 'crossProdSelf')", "\n")
+            cat("Command: pushToDscFD(FD, 'crossProdSelf')", "\n")
             crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
