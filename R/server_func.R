@@ -273,8 +273,6 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @importFrom utils combn
 #' @export
 crossProd <- function(x, pair = FALSE, chunk = 500) {
-    type <- match.arg(type, choices=c('self', 'cross'))
-    
     xblocks <- lapply(x, function(xx) {
         nblockscol <- ceiling(ncol(xx)/chunk)
         sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
