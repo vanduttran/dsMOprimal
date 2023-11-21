@@ -36,6 +36,8 @@ Default, NULL, all individuals are considered.}
 \code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1}
 }
 \value{
 Covariance matrix of the virtual cohort

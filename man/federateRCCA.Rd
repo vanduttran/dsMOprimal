@@ -37,6 +37,8 @@ Other assigned R variables in \code{func} are ignored.}
 
 \item{chunk}{Size of chunks into what the SSCP matrix is partitioned. Default: 500.}
 
+\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+
 \item{tune}{Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.}
 
 \item{tune_param}{Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
@@ -49,10 +51,12 @@ RCCA object
 Perform the regularized canonical correlation analysis for the virtual cohort
 }
 \examples{
+\dontrun{
 dataProc <- function(conns, symbol) {
     DSI::datashield.assign(conns, symbol[1], 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'), async=T)
     DSI::datashield.assign(conns, symbol[2], 'test.CNSIM', variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
 }
 dataProc(conns=opals, symbol=c("rawDataX", "rawDataY"))
 federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
+}
 }

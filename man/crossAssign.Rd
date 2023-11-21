@@ -4,7 +4,7 @@
 \alias{crossAssign}
 \title{Cross assign}
 \usage{
-crossAssign(conns, symbol, value, value.call, variables = NULL, async = T)
+crossAssign(conns, symbol, value, value.call, async = T)
 }
 \arguments{
 \item{conns}{A list of DSConnection-class.}

@@ -20,6 +20,8 @@
 
 \item{logins}{Login information of servers containing cohort data.}
 
+\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+
 \item{grid1}{Checking values for \code{lambda1}.}
 
 \item{grid2}{Checking values for \code{lambda2}.}
