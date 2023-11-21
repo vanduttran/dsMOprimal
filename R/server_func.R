@@ -621,6 +621,7 @@ pushToDscFD <- function(conns, symbol, async = T) {
     #         }))
     #     })
     # }
+        save(dsc, file='/tmp/dsc.RData')
     return (dsc)
 }
 
