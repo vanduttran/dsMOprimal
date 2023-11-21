@@ -84,20 +84,26 @@ setRowNames <- function(x, row.names) {
 
 #' @title Row names
 #' @description Get row names of a matrix 
-#' @param x A matrix or a data frame
+#' @param x A matrix, a data frame, or a list of matrices or data frames
 #' @return Row names of x
 #' @export
 rowNames <- function(x) {
+    if (is.list(x) && !is.data.frame(x)) {
+        return (rownames(x[[1]]))
+    }
     return (rownames(x))
 }
 
 
 #' @title Colnames
-#' @description Col names of a matrix 
-#' @param x A numeric matrix
-#' @return colnames of x
+#' @description Get column names of a matrix 
+#' @param x A matrix, a data frame, or a list of matrices or data frames
+#' @return Column names of x
 #' @export
 colNames <- function(x) {
+    if (is.list(x) && !is.data.frame(x)) {
+        return (lapply(x, colnames))
+    }
     return (colnames(x))
 }
 
@@ -114,8 +120,8 @@ colNames <- function(x) {
 #' @param scale  A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.
 #' @return The centered matrix.
 #' @export
-# x = list(AAA=matrix(1:12, ncol=4, dimnames=list(letters[1:3], LETTERS[1:4])),
-#          BBB=matrix(rnorm(15), ncol=5, dimnames=list(letters[1:3], LETTERS[5:9])))
+x = list(AAA=matrix(1:12, ncol=4, dimnames=list(letters[1:3], LETTERS[1:4])),
+         BBB=matrix(rnorm(15), ncol=5, dimnames=list(letters[1:3], LETTERS[5:9])))
 # y[[1]][,3] = 1
 # y[[2]][5] = NA
 # y[[2]][1,] = 1
