@@ -826,14 +826,16 @@ crossAssignFunc <- function(conns, func, symbol) {
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
             crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                lapply(dscblocks, function(dscblocki) {
-                    return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
-                })
+                # lapply(dscblocks, function(dscblocki) {
+                #     return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+                # })
+                .rebuildMatrixDsc(dscblocks[[1]], mc.cores=mc.cores)
             })
             ncps <- unique(lengths(crossProdSelf))
-            rescov <- mclapply(1:ncps, mc.core=mc.cores, function(i) {
-                .sumMatrices(lapply(crossProdSelf, function(cps) cps[[i]]))/(sum(nsamples)-1)
-            })
+            # rescov <- mclapply(1:ncps, mc.cores=mc.cores, function(i) {
+            #     .sumMatrices(lapply(crossProdSelf, function(cps) cps[[i]]))/(sum(nsamples)-1)
+            # })
+            rescov <- Reduce("+", crossProdSelf)/(sum(nsamples)-1)
         }, 
         error=function(e) {
             print(paste0("COVARIATES PUSH PROCESS: ", e));
