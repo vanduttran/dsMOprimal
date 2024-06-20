@@ -7,9 +7,9 @@
 #' @param some.object the object to be encoded
 #' @return encoded text with offending characters replaced by strings
 #' @keywords internal
-.encode.arg <- function(some.object, serialize.it = FALSE){
+.encode.arg <- function(some.object, serialize.it = TRUE, digits=20){
     if(serialize.it){
-        encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object, digits=20)), 'serialized')
+        encoded <- paste0(RCurl::base64Encode(jsonlite::serializeJSON(some.object, digits=digits)), 'serialized')
     } else {
         encoded <- RCurl::base64Encode(jsonlite::toJSON(some.object, null = 'null'))
     }
