@@ -7,7 +7,7 @@
 crossProd(x, pair = FALSE, chunk = 500)
 }
 \arguments{
-\item{x}{A list of numeric matrices}
+\item{x}{A list of numeric matrices.}
 
 \item{pair}{A boolean value indicating pairwise cross products are computed. Default, FALSE.}
 

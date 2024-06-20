@@ -42,9 +42,10 @@ Perform the principal component analysis for the virtual cohort
 \examples{
 \dontrun{
 dataProc <- function(conns, symbol) {
-    DSI::datashield.assign(conns, symbol, 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
+    DSI::datashield.assign(conns, symbol, 'test.CNSIM', variables=c('LAB_TRIG', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
 }
-dataProc(conns=opals, symbol="rawData")
-federatePCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg("rawData"))
+federatePCA(.encode.arg(loginFD), .encode.arg(logins),
+            .encode.arg(dataProc, serialize.it = T),
+            .encode.arg("rawData"))
 }
 }

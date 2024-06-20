@@ -7,7 +7,7 @@
 rowNames(x)
 }
 \arguments{
-\item{x}{A matrix or a data frame}
+\item{x}{A matrix, a data frame, or a list of matrices or data frames}
 }
 \value{
 Row names of x

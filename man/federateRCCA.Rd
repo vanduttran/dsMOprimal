@@ -53,10 +53,11 @@ Perform the regularized canonical correlation analysis for the virtual cohort
 \examples{
 \dontrun{
 dataProc <- function(conns, symbol) {
-    DSI::datashield.assign(conns, symbol[1], 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'), async=T)
-    DSI::datashield.assign(conns, symbol[2], 'test.CNSIM', variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'), async=T)
+    DSI::datashield.assign(conns, symbol[1], 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'))
+    DSI::datashield.assign(conns, symbol[2], 'test.CNSIM', variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
 }
-dataProc(conns=opals, symbol=c("rawDataX", "rawDataY"))
-federateRCCA(.encode.arg(loginFD), .encode.arg(logins), .encode.arg(dataProc, serialize.it = T), .encode.arg(c("rawDataX", "rawDataY")))
+federateRCCA(.encode.arg(loginFD), .encode.arg(logins), 
+             .encode.arg(dataProc, serialize.it = T), 
+             .encode.arg(c("rawDataX", "rawDataY")))
 }
 }

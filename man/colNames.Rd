@@ -7,11 +7,11 @@
 colNames(x)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A matrix, a data frame, or a list of matrices or data frames}
 }
 \value{
-colnames of x
+Column names of x
 }
 \description{
-Col names of a matrix
+Get column names of a matrix
 }

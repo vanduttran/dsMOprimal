@@ -10,9 +10,10 @@
   funcPreProc,
   querytables,
   querysubset = NULL,
-  covSpace = "X",
+  pair = FALSE,
   chunk = 500,
-  mc.cores = 1
+  mc.cores = 1,
+  connRes = FALSE
 )
 }
 \arguments{
@@ -31,9 +32,7 @@ Other assigned R variables in \code{func} are ignored.}
 \item{querysubset}{A list of index vectors indicating the subsets of individuals to consider. 
 Default, NULL, all individuals are considered.}
 
-\item{covSpace}{The space of variables where covariance matrix is computed. If \code{length(querytables)=1},
-\code{covSpace} is always \code{"X"}. If \code{length(querytables)=2}, it can be \code{"X"} for the first querytable,
-\code{"Y"} for the second querytable, and \code{"XY"} for covariance between the two querytables. Default, \code{"X"}.}
+\item{pair}{A boolean value indicating pairwise cross products are computed. Default, FALSE.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
 

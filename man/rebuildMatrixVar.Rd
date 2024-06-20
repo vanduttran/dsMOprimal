@@ -4,14 +4,16 @@
 \alias{rebuildMatrixVar}
 \title{Symmetric matrix reconstruction}
 \usage{
-rebuildMatrixVar(symbol, len, mc.cores = 1)
+rebuildMatrixVar(symbol, len1, len2, mc.cores = 1)
 }
 \arguments{
 \item{symbol}{Generic variable name}
 
-\item{len}{Length of list of lists of matrix blocks. Variables were generated as symbol11, symbol12, etc.}
+\item{len1}{First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{len2}{Second-order length of lists of matrix blocks.}
+
+\item{mc.cores}{Number of cores for parallel computing. Default: 1.}
 }
 \value{
 The complete symmetric matrix

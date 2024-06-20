@@ -1022,9 +1022,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
                                                          as.call(expr),
                                                          async=T))
-    return (pcaObj)
-    })
-    
+
     ## compute loadings
     logindata <- .decode.arg(logins)
     opals <- .login(logins=logindata) #datashield.login(logins=logindata)

@@ -7,7 +7,7 @@
 dsDim(x)
 }
 \arguments{
-\item{x}{A matrix or data frame}
+\item{x}{A matrix, a data frame, or a list of matrices or data frames}
 }
 \value{
 Dimension of x
