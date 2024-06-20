@@ -362,7 +362,8 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 matrix2DscFD <- function(value) {
     valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    tcp <- do.call(rbind, .decode.arg(valued))
+    tcp <- .decode.arg(valued)
+    #tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
@@ -378,7 +379,8 @@ matrix2DscFD <- function(value) {
 matrix2DscMate <- function(value) {
     valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    tcp <- do.call(rbind, .decode.arg(valued))
+    tcp <- .decode.arg(valued)
+    #tcp <- do.call(rbind, .decode.arg(valued))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("valued", "tcp"))
     return (dscbigmatrix)
