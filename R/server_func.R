@@ -193,6 +193,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
 #' @param seprow A numeric vectors indicating sizes of blocks in rows
 #' @param sepcol A numeric vectors indicating sizes of blocks in columns
 #' @returns List of blocks
+#' @importFrom arrow arrow_table
 #' @keywords internal
 .partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
@@ -257,6 +258,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @returns A list of cross product matrices
 #' @importFrom utils combn
+#' @importFrom arrow write_to_raw
 #' @export
 crossProd <- function(x, pair = FALSE, chunk = 500) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
@@ -337,6 +339,7 @@ crossProdRm <- function(x, y = NULL, chunk = 500) {
 #' @param y A list of numeric matrices. Default, NULL, y = x.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @returns \code{x \%*\% t(y)}
+#' @importFrom arrow write_to_raw
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(nrow(x)/chunk)
@@ -508,6 +511,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, mc.cores = 1) {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns \code{x \%*\% t(y)}
+#' @importFrom arrow write_to_raw
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     pids <- .decode.arg(mate)
