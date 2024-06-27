@@ -439,6 +439,7 @@ matrix2DscMate <- function(value) {
     } else {
         tcp <- uptcp[[1]]
     }
+    rownames(tcp) <- colnames(tcp)
     stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
     return (tcp)
