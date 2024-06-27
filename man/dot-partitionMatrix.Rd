@@ -7,14 +7,16 @@
 .partitionMatrix(x, seprow, sepcol = seprow)
 }
 \arguments{
-\item{x}{A symmetric matrix}
+\item{x}{A matrix}
 
-\item{sep}{A numeric vectors indicating sizes of square blocks}
+\item{seprow}{A numeric vectors indicating sizes of blocks in rows}
+
+\item{sepcol}{A numeric vectors indicating sizes of blocks in columns}
 }
 \value{
 List of blocks
 }
 \description{
-Partition a symmetric matrix into square blocks
+Partition a matrix into blocks
 }
 \keyword{internal}
