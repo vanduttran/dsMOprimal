@@ -1,7 +1,7 @@
 #' @title Matrix dimension
 #' @description Dimension of a data frame or matrix
 #' @param x A matrix, a data frame, or a list of matrices or data frames
-#' @return Dimension of x
+#' @returns Dimension of x
 #' @export
 dsDim <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
@@ -14,7 +14,7 @@ dsDim <- function(x) {
 #' @title Range of a variable in a data frame
 #' @description Return random approximated range of a numeric variable in a data frame
 #' @param x A variable of a data frame in form of 'data.frame$variable'
-#' @return Approximate range of x
+#' @returns Approximate range of x
 #' @importFrom stats runif
 #' @export
 dsRange <- function(x) {
@@ -30,7 +30,7 @@ dsRange <- function(x) {
 #' @title Factor coercion
 #' @description Factor coercion of a categorical variable in a data frame
 #' @param x A variable of a data frame in form of 'data.frame$variable'
-#' @return An object of class \code{factor}
+#' @returns An object of class \code{factor}
 #' @export
 dsFactor <- function(x) {
     if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
@@ -41,7 +41,7 @@ dsFactor <- function(x) {
 #' @title Levels attributes
 #' @description Return levels of a categorical variable in a data frame
 #' @param x A variable of a data frame in form of 'data.frame$variable'
-#' @return Levels of x
+#' @returns Levels of x
 #' @export
 dsLevels <- function(x) {
     if (!is.factor(x)) stop("A factor is required.")
@@ -54,7 +54,7 @@ dsLevels <- function(x) {
 #' @param x A numeric matrix
 #' @param row.names An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.
 #' @param envir A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}
-#' @return Matrix with rownames
+#' @returns Matrix with rownames
 #' @keywords internal
 setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
     if (length(row.names)==1) {
@@ -74,7 +74,7 @@ setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
 #' @description Assign row names to a matrix 
 #' @param x A matrix or a data frame
 #' @param row.names An encoded vector of names with the length of nrow(x)
-#' @return Matrix with row names
+#' @returns Matrix with row names
 #' @export
 setRowNames <- function(x, row.names) {
     rn <- .decode.arg(row.names)
@@ -88,7 +88,7 @@ setRowNames <- function(x, row.names) {
 #' @title Row names
 #' @description Get row names of a matrix 
 #' @param x A matrix, a data frame, or a list of matrices or data frames
-#' @return Row names of x
+#' @returns Row names of x
 #' @export
 rowNames <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
@@ -101,7 +101,7 @@ rowNames <- function(x) {
 #' @title Colnames
 #' @description Get column names of a matrix 
 #' @param x A matrix, a data frame, or a list of matrices or data frames
-#' @return Column names of x
+#' @returns Column names of x
 #' @export
 colNames <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
@@ -121,7 +121,7 @@ colNames <- function(x) {
 #' Default, TRUE, centering by column. Constant variables across samples are removed. 
 #' If FALSE, centering and scaling by row. Constant samples across variables are removed.
 #' @param scale  A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.
-#' @return The centered matrix.
+#' @returns The centered matrix.
 #' @export
 # x = list(AAA=matrix(1:12, ncol=4, dimnames=list(letters[1:3], LETTERS[1:4])),
 #          BBB=matrix(rnorm(15), ncol=5, dimnames=list(letters[1:3], LETTERS[5:9])))
@@ -138,13 +138,15 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     rn <- lapply(y, rownames)
     cn <- lapply(y, colnames)
     if (min(lengths(rn))==0 || min(lengths(cn))==0)
-        stop("Input data should have column (variable) names and row (sample) names")
+        stop("Input data should have column (variable) names and row (sample) names.")
+    if (min(lengths(rn)) < 3 || min(lengths(cn)) < 3)
+        stop("Input data should have at least 3 columns (variables) and 3 rows (samples).")
     if (min(lengths(rn))!=max(lengths(rn)))
-        stop("Input data should have the same number of rows (samples)")
+        stop("Input data should have the same number of rows (samples).")
     if (max(apply(do.call(cbind, rn), 1, function(rni) length(unique(rni)))) > 1)
-        stop("Input data blocks should have the same order or rows (samples)")
+        stop("Input data blocks should have the same order or rows (samples).")
     if (length(cn) > 1 && length(Reduce(intersect, cn)) > 0)
-        stop("Input data blocks should have different column names")
+        stop("Input data blocks should have different column names.")
     ## check for constant values across samples or variables
     if (isTRUE(byColumn)) {
         invisible(lapply(y, function(yy) {
@@ -181,17 +183,16 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
         }
     })
     
-    #if (length(y)==1) return (y[[1]])
     return (y)
 }
 
 
 #' @title Matrix partition
-#' @description Partition a symmetric matrix into square blocks
-#' @param x A symmetric matrix
-#' @param sep A numeric vectors indicating sizes of square blocks
-#' @return List of blocks
-#' @import parallel
+#' @description Partition a matrix into blocks
+#' @param x A matrix
+#' @param seprow A numeric vectors indicating sizes of blocks in rows
+#' @param sepcol A numeric vectors indicating sizes of blocks in columns
+#' @returns List of blocks
 #' @keywords internal
 .partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
@@ -205,7 +206,9 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     })
     parMat <- lapply(1:length(indrow), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
-            return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2], drop=F])
+            #return (x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2], drop=F])
+            xij <- x[indrow[[i]][1]:indrow[[i]][2], indcol[[j]][1]:indcol[[j]][2], drop=F]
+            return (arrow_table(as.data.frame(xij)))
         })
     })
     
@@ -216,7 +219,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
 #' @title Singular product
 #' @description Product of t(x) and first column of x \%*\% t(x)
 #' @param x A numeric matrix
-#' @return t(x) \%*\% (x \%*\% t(x))[,1]
+#' @returns t(x) \%*\% (x \%*\% t(x))[,1]
 #' @export
 singularProd <- function(x) {
     return (crossprod(tcrossprod(x)[, 1, drop=F], x))
@@ -229,7 +232,7 @@ singularProd <- function(x) {
 #' @param x A numeric matrix
 #' @param y A numeric matrix for the new basis of the same nrow to x.
 #' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
-#' @return operator(x, y)
+#' @returns operator(x, y)
 #' @export
 loadings <- function(x, y, operator = 'crossprod') {
     operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
@@ -252,7 +255,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @param x A list of numeric matrices.
 #' @param pair A boolean value indicating pairwise cross products are computed. Default, FALSE.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @return A list of cross product matrices
+#' @returns A list of cross product matrices
 #' @importFrom utils combn
 #' @export
 crossProd <- function(x, pair = FALSE, chunk = 500) {
@@ -264,7 +267,10 @@ crossProd <- function(x, pair = FALSE, chunk = 500) {
         tcpblocks <- .partitionMatrix(crossprod(xx), seprow=sepblockscol)
         return (lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp)
+                #tcpbin <- writeBin(as.vector(tcp), raw())
+                #return (.encode.arg(tcpbin))
+                return (.encode.arg(write_to_raw(tcp)))
+                #.encode.arg(tcp)
             }))
         }))
     })
@@ -279,14 +285,21 @@ crossProd <- function(x, pair = FALSE, chunk = 500) {
             nblockscol <- ceiling(ncol(x2)/chunk)
             sepblockscol <- rep(ceiling(ncol(x2)/nblockscol), nblockscol-1)
             sepblockscol <- c(sepblockscol, ncol(x2) - sum(sepblockscol))
-            tcpblocks <- .partitionMatrix(crossprod(x1, x2), seprow=sepblocksrow, sepcol=sepblockscol)
+            tcpblocks <- .partitionMatrix(crossprod(x1, x2), 
+                                          seprow=sepblocksrow, 
+                                          sepcol=sepblockscol)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp)
+                    #tcpbin <- writeBin(as.vector(tcp), raw())
+                    #return (.encode.arg(tcpbin))
+                    return (.encode.arg(write_to_raw(tcp)))
+                    #.encode.arg(tcp)
                 }))
             }))
         })
-        names(xblocks.cross) <- sapply(1:ncol(xpairs), function(xc) paste(names(x)[xpairs[,xc]], collapse='__'))
+        names(xblocks.cross) <- sapply(1:ncol(xpairs), function(xc) {
+            paste(names(x)[xpairs[,xc]], collapse='__')
+        })
         xblocks <- c(xblocks, xblocks.cross)
     }
     return (xblocks)
@@ -323,7 +336,7 @@ crossProdRm <- function(x, y = NULL, chunk = 500) {
 #' @param x A numeric matrix
 #' @param y A list of numeric matrices. Default, NULL, y = x.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @return \code{x \%*\% t(y)}
+#' @returns \code{x \%*\% t(y)}
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(nrow(x)/chunk)
@@ -334,7 +347,10 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp, serialize.it = F)
+                #tcpbin <- writeBin(as.vector(tcp), raw())
+                #return (.encode.arg(tcpbin))
+                return (.encode.arg(write_to_raw(tcp)))
+                #.encode.arg(tcp, serialize.it = F)
             }))
         })
         return (etcpblocks)
@@ -344,7 +360,10 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
             tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    .encode.arg(tcp, serialize.it = F)
+                    #tcpbin <- writeBin(as.vector(tcp), raw())
+                    #return (.encode.arg(tcpbin))
+                    return (.encode.arg(write_to_raw(tcp)))
+                    #.encode.arg(tcp, serialize.it = F)
                 }))
             }))
         })
@@ -357,15 +376,17 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
 #' @import bigmemory
-#' @return Bigmemory description of the given matrix
+#' @returns Bigmemory description of the given matrix
 #' @export
 matrix2DscFD <- function(value) {
-    valued <- .decode.arg(value)
+    #valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    tcp <- .decode.arg(valued)
+    #tcp <- .decode.arg(valued)
     #tcp <- do.call(rbind, .decode.arg(valued))
+    
+    tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
-    rm(list=c("valued", "tcp"))
+    rm(list=c("tcp"))
     return (dscbigmatrix)
 }
 
@@ -374,15 +395,17 @@ matrix2DscFD <- function(value) {
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
 #' @import bigmemory
-#' @return Bigmemory description of the given matrix
+#' @returns Bigmemory description of the given matrix
 #' @export
 matrix2DscMate <- function(value) {
-    valued <- .decode.arg(value)
+    #valued <- .decode.arg(value)
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    tcp <- .decode.arg(valued)
+    #tcp <- .decode.arg(valued)
     #tcp <- do.call(rbind, .decode.arg(valued))
+    
+    tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
-    rm(list=c("valued", "tcp"))
+    rm(list=c("tcp"))
     return (dscbigmatrix)
 }
 
@@ -391,7 +414,7 @@ matrix2DscMate <- function(value) {
 #' @description Rebuild a matrix from its partition
 #' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return The complete symmetric matrix
+#' @returns The complete symmetric matrix
 #' @keywords internal
 .rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
@@ -423,7 +446,7 @@ matrix2DscMate <- function(value) {
 #' @description Rebuild a symmetric matrix from its partition bigmemory objects
 #' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return The complete symmetric matrix
+#' @returns The complete symmetric matrix
 #' @keywords internal
 .rebuildMatrixDsc <- function(dscblocks, mc.cores = 1) {
     ## access to matrix blocks 
@@ -441,7 +464,7 @@ matrix2DscMate <- function(value) {
 #' @description Rebuild a matrix from its encoded partition
 #' @param blocks List of list of encoded matrix blocks
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return The complete symmetric matrix
+#' @returns The complete symmetric matrix
 #' @keywords internal
 .rebuildMatrixEnc <- function(blocks, mc.cores = 1) {
     ## decode matrix blocks
@@ -461,7 +484,7 @@ matrix2DscMate <- function(value) {
 #' @param len1 First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.
 #' @param len2 Second-order length of lists of matrix blocks.
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
-#' @return The complete symmetric matrix
+#' @returns The complete symmetric matrix
 #' @export
 rebuildMatrixVar <- function(symbol, len1, len2, mc.cores = 1) {
     ## access to matrix blocks
@@ -484,7 +507,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, mc.cores = 1) {
 #' @param mate Encoded value of a vector of mate servers' names
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return \code{x \%*\% t(y)}
+#' @returns \code{x \%*\% t(y)}
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     pids <- .decode.arg(mate)
@@ -502,7 +525,8 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
         tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
             return (lapply(tcpb, function(tcp) {
-                .encode.arg(tcp)
+                return (.encode.arg(write_to_raw(tcp)))
+                #.encode.arg(tcp)
             }))
         })
         return (etcpblocks)
@@ -578,7 +602,7 @@ crossAggregateDual <- function(conns, expr, async = T) {
 #' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @return Returned value of given expression on opal
+#' @returns Returned value of given expression on opal
 #' @import DSI
 #' @export
 dscPush <- function(conns, expr, async = T) {
@@ -594,7 +618,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @param conns A one-element list of DSConnection-class.
 #' @param symbol Name of an object to be pushed.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @return Bigmemory description of the pushed object on conns
+#' @returns Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
 pushToDscFD <- function(conns, symbol, async = T) {
@@ -634,7 +658,7 @@ pushToDscFD <- function(conns, symbol, async = T) {
 #' @param symbol Name of an object to be pushed.
 #' @param sourcename Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @return Bigmemory description of the pushed object on conns
+#' @returns Bigmemory description of the pushed object on conns
 #' @import DSI
 #' @export
 pushToDscMate <- function(conns, symbol, sourcename, async = T) {
@@ -721,7 +745,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @description Compute the sum of matrices stored in bigmemory objects
 #' @param dsc A list of big memory descriptions
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return Sum of matrices stored in dsc
+#' @returns Sum of matrices stored in dsc
 #' @import bigmemory parallel
 #' @keywords internal
 .sumMatrices <- function(dsc = NULL, mc.cores = 1) {
@@ -748,7 +772,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param pair A boolean value indicating pairwise cross products are computed. Default, FALSE.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return Covariance matrix of the virtual cohort
+#' @returns Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, pair = FALSE, chunk = 500, mc.cores = 1, connRes = FALSE) {
@@ -974,7 +998,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param ncomp Number of components. Default: 2.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @return PCA object
+#' @returns PCA object
 #' @import DSI parallel bigmemory
 #' @importFrom stats princomp
 #' @examples
@@ -1082,7 +1106,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. 
 #' @param grid1 Checking values for \code{lambda1}.
 #' @param grid2 Checking values for \code{lambda2}.
-#' @return Optimal values of \code{lambda1} and \code{lambda2}.
+#' @returns Optimal values of \code{lambda1} and \code{lambda2}.
 #' @import DSOpal DSI parallel bigmemory
 #' @importFrom graphics image
 #' @importFrom stats cor setNames
@@ -1211,7 +1235,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
 #' \code{grid2} checking values for \code{lambda2}.
-#' @return RCCA object
+#' @returns RCCA object
 #' @import DSOpal DSI parallel bigmemory
 #' @importFrom fda geigen
 #' @importFrom stats cov
@@ -1374,7 +1398,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 #' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.
 #' @param colors Encoded value of a vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{.encode.arg(c('orange', 'blue'))}.
 #' @param ... arguments to pass to \code{colorRampPalette}
-#' @return Color codes
+#' @returns Color codes
 #' @importFrom grDevices colorRampPalette
 #' @export
 mapColor <- function(x, range.min = NA, range.max = NA, levels = NA, nbreaks = 10, colors = .encode.arg(c('orange', 'blue')), ...) {
