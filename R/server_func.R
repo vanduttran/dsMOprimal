@@ -193,7 +193,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
 #' @param seprow A numeric vectors indicating sizes of blocks in rows
 #' @param sepcol A numeric vectors indicating sizes of blocks in columns
 #' @returns List of blocks
-#' @importFrom arrow arrow_table
+#' @import arrow
 #' @keywords internal
 .partitionMatrix <- function(x, seprow, sepcol = seprow) {
     stopifnot(sum(seprow)==nrow(x) && sum(sepcol)==ncol(x))
@@ -258,7 +258,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @returns A list of cross product matrices
 #' @importFrom utils combn
-#' @importFrom arrow write_to_raw
+#' @import arrow
 #' @export
 crossProd <- function(x, pair = FALSE, chunk = 500) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
@@ -339,7 +339,7 @@ crossProdRm <- function(x, y = NULL, chunk = 500) {
 #' @param y A list of numeric matrices. Default, NULL, y = x.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @returns \code{x \%*\% t(y)}
-#' @importFrom arrow write_to_raw
+#' @import arrow
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(nrow(x)/chunk)
@@ -378,8 +378,8 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @title Bigmemory description of a matrix
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
-#' @import bigmemory
 #' @returns Bigmemory description of the given matrix
+#' @import bigmemory arrow
 #' @export
 matrix2DscFD <- function(value) {
     #valued <- .decode.arg(value)
@@ -397,8 +397,8 @@ matrix2DscFD <- function(value) {
 #' @title Bigmemory description of a matrix
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
-#' @import bigmemory
 #' @returns Bigmemory description of the given matrix
+#' @import bigmemory arrow
 #' @export
 matrix2DscMate <- function(value) {
     #valued <- .decode.arg(value)
@@ -511,7 +511,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, mc.cores = 1) {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns \code{x \%*\% t(y)}
-#' @importFrom arrow write_to_raw
+#' @import arrow parallel
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     pids <- .decode.arg(mate)
@@ -543,6 +543,7 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
 #' @title Cross login
 #' @description Call datashield.login on remote servers
 #' @param logins An encoded dataframe with server, url, user, password, driver, and options fields.
+#' @returns Object(s) of class DSConnection
 #' @export
 crossLogin <- function(logins) {
     require(DSOpal)
