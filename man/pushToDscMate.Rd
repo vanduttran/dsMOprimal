@@ -9,7 +9,7 @@ pushToDscMate(conns, symbol, sourcename, async = T)
 \arguments{
 \item{conns}{A list of DSConnection-classes.}
 
-\item{symbol}{Name of an object to be pushed.}
+\item{symbol}{Name of the object to be pushed.}
 
 \item{sourcename}{Name of the pushed object source.}
 

@@ -5,7 +5,7 @@
 #' @export
 dsDim <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
-        return (dim(x[[1]]))
+        return (lapply(x, dim))
     }
     return (dim(x))
 }
@@ -132,6 +132,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     ## convert x to numeric matrix
     if (is.list(x) && !is.data.frame(x)) {
         y <- lapply(x, function(xx) apply(xx, c(1,2), as.numeric))
+        names(y) <- names(x)
     } else {
         y <- list(apply(x, c(1,2), as.numeric))
     }
@@ -182,7 +183,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
             t(scale(t(yy), center=TRUE, scale=TRUE))
         }
     })
-    
+
     return (y)
 }
 
@@ -254,7 +255,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @title Matrix cross product
 #' @description Calculates the cross product of given matrices
 #' @param x A list of numeric matrices.
-#' @param pair A boolean value indicating pairwise cross products are computed. Default, FALSE.
+#' @param pair A logical value indicating pairwise cross products are computed. Default, FALSE.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @returns A list of cross product matrices
 #' @importFrom utils combn
@@ -337,15 +338,56 @@ crossProdRm <- function(x, y = NULL, chunk = 500) {
 #' @description Calculates the cross product x \%*\% t(y)
 #' @param x A numeric matrix
 #' @param y A list of numeric matrices. Default, NULL, y = x.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
 #' @returns \code{x \%*\% t(y)}
 #' @import arrow
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
+    if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices.')
+    if (is.null(y)) {
+        etcpblocks <- lapply(1:length(x), function(i) {
+            nblocksrow <- ceiling(nrow(x[[i]])/chunk)
+            sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow), nblocksrow-1)
+            sepblocksrow <- c(sepblocksrow, nrow(x[[i]]) - sum(sepblocksrow))
+            
+            tcpblocks <- .partitionMatrix(tcrossprod(x[[i]]), seprow=sepblocksrow)
+            return (lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    #tcpbin <- writeBin(as.vector(tcp), raw())
+                    #return (.encode.arg(tcpbin))
+                    return (.encode.arg(write_to_raw(tcp)))
+                    #.encode.arg(tcp, serialize.it = F)
+                }))
+            }))
+        })
+    } else {
+        if (!is.list(y) || is.data.frame(y)) stop('y should be a list of matrices.')
+        if (length(x)==1 || length(x)==length(y)) {
+            etcpblocks <- lapply(1:length(x), function(i) {
+                ix <- min(i, length(x))
+                nblocksrow <- ceiling(nrow(x[[ix]])/chunk)
+                sepblocksrow <- rep(ceiling(nrow(x[[ix]])/nblocksrow), nblocksrow-1)
+                sepblocksrow <- c(sepblocksrow, nrow(x[[ix]]) - sum(sepblocksrow))
+                
+                tcpblocks <- .partitionMatrix(tcrossprod(x[[ix]], y[[i]]), seprow=sepblocksrow, sepcol=nrow(y[[i]]))
+                return (lapply(tcpblocks, function(tcpb) {
+                    return (lapply(tcpb, function(tcp) {
+                        return (.encode.arg(write_to_raw(tcp)))
+                    }))
+                }))
+            })
+        } else {
+            stop("x should be of length 1 of length(y).")
+        }
+    }
+    return (etcpblocks)
+}
+
+tcrossProdRm <- function(x, y = NULL, chunk = 500) {
     nblocksrow <- ceiling(nrow(x)/chunk)
     sepblocksrow <- rep(ceiling(nrow(x)/nblocksrow), nblocksrow-1)
     sepblocksrow <- c(sepblocksrow, nrow(x) - sum(sepblocksrow))
-
+    
     if (is.null(y)) {
         tcpblocks <- .partitionMatrix(tcrossprod(x), seprow=sepblocksrow)
         etcpblocks <- lapply(tcpblocks, function(tcpb) {
@@ -413,11 +455,11 @@ matrix2DscMate <- function(value) {
 }
 
 
-#' @title Symmetric matrix reconstruction
-#' @description Rebuild a matrix from its partition
-#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @returns The complete symmetric matrix
+#' @title Matrix reconstruction
+#' @description Rebuild a matrix from its partition.
+#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix.
+#' @param mc.cores Number of cores for parallel computing. Default. 1.
+#' @returns The reconstructed matrix.
 #' @keywords internal
 .rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
@@ -435,13 +477,15 @@ matrix2DscMate <- function(value) {
             ## with the first layer of blocks
             tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
             rm(list=c("no1tcp"))
+            rownames(tcp) <- colnames(tcp)
+            stopifnot(isSymmetric(tcp))
         }
     } else {
+        ## for either asymmetric matrix or column-wise blocks
         tcp <- uptcp[[1]]
     }
-    rownames(tcp) <- colnames(tcp)
-    stopifnot(isSymmetric(tcp))
     rm(list=c("uptcp"))
+    
     return (tcp)
 }
 
@@ -490,17 +534,29 @@ matrix2DscMate <- function(value) {
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @returns The complete symmetric matrix
 #' @export
-rebuildMatrixVar <- function(symbol, len1, len2, mc.cores = 1) {
+rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1) {
     ## access to matrix blocks
+    # matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
+    #     lapply(1:len2, function(j) {
+    #         lapply(1:(len2-j+1), function(k) {
+    #             dscblock <- get(paste(c(symbol, i, j, k), collapse="__"))#, envir = .GlobalEnv) #parent.frame())
+    #             return (as.matrix(attach.big.matrix(dscblock)))
+    #         })
+    #     })
+    # })
     matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
         lapply(1:len2, function(j) {
-               lapply(1:(len2-j+1), function(k) {
-                   dscblock <- get(paste(c(symbol, i, j, k), collapse="__"), envir = .GlobalEnv) #parent.frame())
-                   return (as.matrix(attach.big.matrix(dscblock)))
-               })
+            lapply(1:len3[j], function(k) {
+                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"))#, envir = .GlobalEnv) #parent.frame())
+                return (as.matrix(attach.big.matrix(dscblock)))
+            })
         })
     })
-    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
+    tcp <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
+        .rebuildMatrix(matblocks[[i]], mc.cores=mc.cores)
+    })
+    names(tcp) <- querytables
+    
     return (tcp)
 }
 
@@ -622,7 +678,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A one-element list of DSConnection-class.
-#' @param symbol Name of an object to be pushed.
+#' @param symbol Name of the object to be pushed.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Bigmemory description of the pushed object on conns
 #' @import DSI
@@ -631,7 +687,7 @@ pushToDscFD <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
-    chunkList <- get(symbol, envir = .GlobalEnv) #parent.frame())
+    chunkList <- get(symbol)#, envir = .GlobalEnv) #parent.frame())
     stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
     #if (is.list(chunkList[[1]][[1]])) {
         dsc <- lapply(chunkList, function(z) {
@@ -653,7 +709,7 @@ pushToDscFD <- function(conns, symbol, async = T) {
     #         }))
     #     })
     # }
-        save(dsc, file='/tmp/dsc.RData')
+        #save(dsc, file='/tmp/dsc.RData')
     return (dsc)
 }
 
@@ -661,7 +717,7 @@ pushToDscFD <- function(conns, symbol, async = T) {
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A list of DSConnection-classes.
-#' @param symbol Name of an object to be pushed.
+#' @param symbol Name of the object to be pushed.
 #' @param sourcename Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Bigmemory description of the pushed object on conns
@@ -671,21 +727,27 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
-    chunkList <- get(symbol, envir = .GlobalEnv) #parent.frame())
+    chunkList <- get(symbol)#, envir = .GlobalEnv) #parent.frame())
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             lapply(1:length(chunkList[[i]][[j]]), function(k) {
-                DSI::datashield.assign(conns, paste(c(sourcename, i, j, k), collapse="__"), 
-                                       as.call(list(as.symbol("matrix2DscMate"), 
-                                                    chunkList[[i]][[j]][[k]])), 
+                DSI::datashield.assign(conns, paste(c(sourcename, i, j, k), collapse="__"),
+                                       as.call(list(as.symbol("matrix2DscMate"),
+                                                    chunkList[[i]][[j]][[k]])),
                                        async=async)
             })
         })
     }))
+    # for (i in 1:length(chunkList))
+    #      for (j in 1:length(chunkList[[i]]))
+    #          for (k in 1:length(chunkList[[i]][[j]]))
+    #              assign(paste(c(sourcename, i, j, k), collapse="__"), matrix2DscMate(chunkList[[i]][[j]][[k]]))
     DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), 
                            as.call(list(as.symbol("rebuildMatrixVar"),
-                                        sourcename,
-                                        length(chunkList))),
+                                        symbol=sourcename,
+                                        len1=length(chunkList),
+                                        len2=length(chunkList[[1]]),
+                                        len3=lengths(chunkList[[1]]))),
                            async=async)
 }
 
@@ -775,9 +837,10 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' Other assigned R variables in \code{func} are ignored.
 #' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
 #' Default, NULL, all individuals are considered.
-#' @param pair A boolean value indicating pairwise cross products are computed. Default, FALSE.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
+#' @param pair A logical value indicating pairwise cross products are computed. Default, FALSE.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @param connRes A logical value indicating if the connection to \code{logins} is returned. Default, no. 
 #' @returns Covariance matrix of the virtual cohort
 #' @import DSI parallel bigmemory
 #' @keywords internal
@@ -828,9 +891,11 @@ crossAssignFunc <- function(conns, func, symbol) {
         }
         
         ## number of samples
-        nsamples <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[1])
+        nsamples <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[[1]][1])
+        
         ## variables
         variables <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
+        names(variables) <- querytables
         
         ## compute X'X
         datashield.assign(opals, "crossProdSelf", 
@@ -856,28 +921,30 @@ crossAssignFunc <- function(conns, func, symbol) {
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
             crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-                # lapply(dscblocks, function(dscblocki) {
-                #     return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
-                # })
-                .rebuildMatrixDsc(dscblocks[[1]], mc.cores=mc.cores)
+                cps <- lapply(dscblocks, function(dscblocki) {
+                    return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+                })
+                names(cps) <- querytables
+                return (cps)
             })
-            ncps <- unique(lengths(crossProdSelf))
-            # rescov <- mclapply(1:ncps, mc.cores=mc.cores, function(i) {
-            #     .sumMatrices(lapply(crossProdSelf, function(cps) cps[[i]]))/(sum(nsamples)-1)
-            # })
-            rescov <- Reduce("+", crossProdSelf)/(sum(nsamples)-1)
+            rescov <- mclapply(querytables, mc.cores=mc.cores, function(qtabi) {
+                Reduce("+", lapply(crossProdSelf, function(cps) cps[[qtabi]]))/(sum(nsamples)-1)
+            })
+            names(rescov) <- querytables
         }, 
         error=function(e) {
             print(paste0("COVARIATES PUSH PROCESS: ", e));
             return(paste0("COVARIATES PUSH PROCESS: ", e))
-        }, 
-        finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
-        
+        }) 
+        #finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, error=function(e) {
         print(paste0("COVARIATES PROCESS: ", e))
         return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
     })
-    if (connRes) datashield.logout(opals) else opals <- NULL
+    if (!connRes) {
+        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    }
     gc(reset=F)
     
     return (list(cov=rescov,
@@ -1005,7 +1072,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns PCA object
-#' @import DSI parallel bigmemory
+#' @import DSI parallel bigmemory arrow
 #' @importFrom stats princomp
 #' @examples
 #' \dontrun{
@@ -1028,8 +1095,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     querytables <- .decode.arg(symbol)
 
     ## compute covariance matrices for the virtual cohort
-    fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk, mc.cores=mc.cores)
+    fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk, mc.cores=mc.cores, connRes=T)
     
+    ## pca object
     pcaObjs <- mclapply(fedCov$cov, mc.cores=mc.cores, function(covmat) {
         pcaObj <- princomp(covmat=covmat)
         
@@ -1038,17 +1106,48 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
             print(paste0("Security issue: maximum ", nsdevpos - 1, 
                          " components could be inquired."))
             ncomp <- nsdevpos - 1
-            if (ncomp < 2) stop("Less than 2 components were identified.")
+            if (ncomp < 2) stop("Less than 2 components were found.")
         }
         
         pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
         return (pcaObj)
     })
     
+    ## pca loadings
     loadings <- mclapply(pcaObjs, mc.cores=mc.cores, function(pcaObj) {
-        return (pcaObj$loadings)
+        xx <- t(pcaObj$loadings)
+        nblockscol <- ceiling(ncol(xx)/chunk)
+        sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
+        sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
+        tcpblocks <- .partitionMatrix(xx, seprow=ncomp, sepcol=sepblockscol)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                return (.encode.arg(write_to_raw(tcp)))
+            }))
+        }))
     })
-    pushToDscMate(opals, loadings, 'FD')
+    names(loadings) <- querytables
+    
+    ## send loadings back to fedCov$conns
+    pushToDscMate(fedCov$conns, 'loadings', 'FD')
+    
+    ## compute X*loadings'
+    datashield.assign(opals, "scores", 
+                      as.call(list(as.symbol("tcrossProd"),
+                                   x=as.symbol("centeredData"),
+                                   y=as.symbol("loadings"),
+                                   chunk=chunk)),
+                      async=T)
+    
+    command <- list(as.symbol("pushToDscFD"),
+                    as.symbol("FD"),
+                    'scores',
+                    async=T)
+    cat("Command: pushToDscFD(FD, 'scores')", "\n")
+    scoresDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+    .printTime(paste0("scores communicated to FD: "))
+    
+    ## TOREMOVE
     expr <- list(as.symbol("loadings"),
                  as.symbol("centeredData"),
                  .encode.arg(loadings), #TODO: this can be bugged due to large loadings matrix
@@ -1057,39 +1156,39 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                                                          as.call(expr),
                                                          async=T))
 
-    ## compute loadings
-    logindata <- .decode.arg(logins)
-    opals <- .login(logins=logindata) #datashield.login(logins=logindata)
-    
-    tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-        
-        datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables, ')')), async=T)
-        expr <- list(as.symbol("loadings"),
-                     as.symbol("centeredData"),
-                     .encode.arg(pcaObj$loadings), #TODO: this can be bugged due to large loadings matrix
-                     "prod")
-        pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
-                                                             as.call(expr),
-                                                             async=T))
-    },
-    error=function(e) {
-        print(paste0("LOADINGS MAKING PROCESS: ", e))
-        return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    },
-    finally=datashield.logout(opals))
+    # ## compute loadings
+    # logindata <- .decode.arg(logins)
+    # opals <- .login(logins=logindata) #datashield.login(logins=logindata)
+    # 
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    #     
+    #     datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables, ')')), async=T)
+    #     expr <- list(as.symbol("loadings"),
+    #                  as.symbol("centeredData"),
+    #                  .encode.arg(pcaObj$loadings), #TODO: this can be bugged due to large loadings matrix
+    #                  "prod")
+    #     pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
+    #                                                          as.call(expr),
+    #                                                          async=T))
+    # },
+    # error=function(e) {
+    #     print(paste0("LOADINGS MAKING PROCESS: ", e))
+    #     return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
+    # },
+    # finally=datashield.logout(opals))
     
     return (pcaObj)
 }

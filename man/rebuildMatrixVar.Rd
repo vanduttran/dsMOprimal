@@ -4,7 +4,7 @@
 \alias{rebuildMatrixVar}
 \title{Symmetric matrix reconstruction}
 \usage{
-rebuildMatrixVar(symbol, len1, len2, mc.cores = 1)
+rebuildMatrixVar(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1)
 }
 \arguments{
 \item{symbol}{Generic variable name}

@@ -9,7 +9,7 @@ pushToDscFD(conns, symbol, async = T)
 \arguments{
 \item{conns}{A one-element list of DSConnection-class.}
 
-\item{symbol}{Name of an object to be pushed.}
+\item{symbol}{Name of the object to be pushed.}
 
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }

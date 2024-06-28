@@ -32,11 +32,13 @@ Other assigned R variables in \code{func} are ignored.}
 \item{querysubset}{A list of index vectors indicating the subsets of individuals to consider. 
 Default, NULL, all individuals are considered.}
 
-\item{pair}{A boolean value indicating pairwise cross products are computed. Default, FALSE.}
+\item{pair}{A logical value indicating pairwise cross products are computed. Default, FALSE.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default: 1}
+
+\item{connRes}{A logical value indicating if the connection to \code{logins} is returned. Default, no.}
 }
 \value{
 Covariance matrix of the virtual cohort
