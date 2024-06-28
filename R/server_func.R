@@ -747,7 +747,8 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
                                         symbol=sourcename,
                                         len1=length(chunkList),
                                         len2=length(chunkList[[1]]),
-                                        len3=lengths(chunkList[[1]]))),
+                                        len3=lengths(chunkList[[1]]),
+                                        querytables=names(chunkList))),
                            async=async)
 }
 
@@ -1128,69 +1129,48 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     })
     names(loadings) <- querytables
     
-    ## send loadings back to fedCov$conns
-    pushToDscMate(fedCov$conns, 'loadings', 'FD')
+    ## send loadings back to non-FD servers
+    tryCatch({
+        opals <- fedCov$conns
+        pushToDscMate(opals, 'loadings', 'FD', async=T)
+        
+        ## compute X*loadings_FD'
+        datashield.assign(opals, "scores", 
+                          as.call(list(as.symbol("tcrossProd"),
+                                       x=as.symbol("centeredData"),
+                                       y=as.symbol("loadings_FD"),
+                                       chunk=chunk)),
+                          async=T)
+        
+        command <- list(as.symbol("pushToDscFD"),
+                        as.symbol("FD"),
+                        'scores',
+                        async=T)
+        cat("Command: pushToDscFD(FD, 'scores')", "\n")
+        scoresDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+        .printTime(paste0("scores communicated to FD: "))
+        
+        scoresLoc <- lapply(scoresDSC, function(dscblocks) {
+            cps <- lapply(dscblocks, function(dscblocki) {
+                return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+            })
+            names(cps) <- querytables
+            return (cps)
+        })
+        gc()
+        for (qtabi in querytables) {
+            pcaObjs[[qtabi]]$scores <- do.call(rbind, lapply(scoresLoc, function(sl) sl[[qtabi]]))
+        }
+        # TODO: remove big memory file in /tmp
+    }, error=function(e) {
+        print(paste0("LOADINGS MAKING PROCESS: ", e))
+        return (paste0("LOADINGS MAKING PROCESS: ", e))
+    }, finally={
+        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    })
     
-    ## compute X*loadings'
-    datashield.assign(opals, "scores", 
-                      as.call(list(as.symbol("tcrossProd"),
-                                   x=as.symbol("centeredData"),
-                                   y=as.symbol("loadings"),
-                                   chunk=chunk)),
-                      async=T)
-    
-    command <- list(as.symbol("pushToDscFD"),
-                    as.symbol("FD"),
-                    'scores',
-                    async=T)
-    cat("Command: pushToDscFD(FD, 'scores')", "\n")
-    scoresDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
-    .printTime(paste0("scores communicated to FD: "))
-    
-    ## TOREMOVE
-    expr <- list(as.symbol("loadings"),
-                 as.symbol("centeredData"),
-                 .encode.arg(loadings), #TODO: this can be bugged due to large loadings matrix
-                 "prod")
-    pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
-                                                         as.call(expr),
-                                                         async=T))
-
-    # ## compute loadings
-    # logindata <- .decode.arg(logins)
-    # opals <- .login(logins=logindata) #datashield.login(logins=logindata)
-    # 
-    # tryCatch({
-    #     ## take a snapshot of the current session
-    #     safe.objs <- .ls.all()
-    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-    #     ## lock everything so no objects can be changed
-    #     .lock.unlock(safe.objs, lockBinding)
-    #     ## apply funcPreProc for preparation of querytables on opals
-    #     ## TODO: control hacking!
-    #     ## TODO: control identical colnames!
-    #     funcPreProc(conns=opals, symbol=querytables)
-    #     ## unlock back everything
-    #     .lock.unlock(safe.objs, unlockBinding)
-    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
-    #     .cleanup(safe.objs)
-    #     
-    #     datashield.assign(opals, "centeredData", as.symbol(paste0('center(', querytables, ')')), async=T)
-    #     expr <- list(as.symbol("loadings"),
-    #                  as.symbol("centeredData"),
-    #                  .encode.arg(pcaObj$loadings), #TODO: this can be bugged due to large loadings matrix
-    #                  "prod")
-    #     pcaObj$scores <- do.call(rbind, datashield.aggregate(opals,
-    #                                                          as.call(expr),
-    #                                                          async=T))
-    # },
-    # error=function(e) {
-    #     print(paste0("LOADINGS MAKING PROCESS: ", e))
-    #     return (paste0("LOADINGS MAKING PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors(), ' --- ', datashield.logout(opals)))
-    # },
-    # finally=datashield.logout(opals))
-    
-    return (pcaObj)
+    return (pcaObjs)
 }
 
 
