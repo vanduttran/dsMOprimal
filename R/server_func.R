@@ -689,7 +689,7 @@ dscPush <- function(conns, expr, async = T) {
 #' @description Bigmemory description of a pushed object
 #' @param conns A one-element list of DSConnection-class.
 #' @param symbol Name of the object to be pushed.
-#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @param async See DSI::datashield.aggregate options. Default, TRUE.
 #' @returns Bigmemory description of the pushed object on conns.
 #' @importFrom DSI datashield.aggregate
 #' @export
@@ -732,29 +732,29 @@ pushToDscFD <- function(conns, symbol, async = T) {
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Bigmemory description of the pushed object on conns
 #' @importFrom DSI datashield.assign
-#' @export
+#' @keywords internal
 pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
-    
-    chunkList <- get(symbol,  envir = parent.frame()) #)
-    print(class(chunkList))
-    print(length(chunkList))
-    print(lengths(chunkList))
-    chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
-    print(class(chunkList))
-    print(length(chunkList))
-    print(lengths(chunkList))
-    print(ls(pos = 1))
-    print(ls(name = 1))
-    chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
-    print(class(chunkList))
-    print(length(chunkList))
-    print(lengths(chunkList))
-    chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
-    print(class(chunkList))
-    print(length(chunkList))
-    print(lengths(chunkList))
+    chunkList <- symbol
+    # chunkList <- get(symbol,  envir = parent.frame()) #)
+    # print(class(chunkList))
+    # print(length(chunkList))
+    # print(lengths(chunkList))
+    # chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
+    # print(class(chunkList))
+    # print(length(chunkList))
+    # print(lengths(chunkList))
+    # print(ls(pos = 1))
+    # print(ls(name = 1))
+    # chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
+    # print(class(chunkList))
+    # print(length(chunkList))
+    # print(lengths(chunkList))
+    # chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
+    # print(class(chunkList))
+    # print(length(chunkList))
+    # print(lengths(chunkList))
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             lapply(1:length(chunkList[[i]][[j]]), function(k) {
@@ -1161,9 +1161,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     names(loadings) <- querytables
     
     ## send loadings back to non-FD servers
-    #tryCatch({
+    tryCatch({
         opals <- fedCov$conns
-        pushToDscMate(opals, 'loadings', 'FD', async=T)
+        pushToDscMate(opals, loadings, 'FD', async=T)
         
         ## compute X*loadings_FD'
         datashield.assign(opals, "scores", 
@@ -1194,13 +1194,13 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         for (qtabi in querytables) {
             pcaObjs[[qtabi]]$scores <- do.call(rbind, lapply(scoresLoc, function(sl) sl[[qtabi]]))
         }
-    # }, error=function(e) {
-    #     print(paste0("LOADINGS MAKING PROCESS: ", e))
-    #     return (paste0("LOADINGS MAKING PROCESS: ", e))
-    # }, finally={
-    #     datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
-    #     datashield.logout(opals)
-    # })
+    }, error=function(e) {
+        print(paste0("LOADINGS MAKING PROCESS: ", e))
+        return (paste0("LOADINGS MAKING PROCESS: ", e))
+    }, finally={
+        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    })
     
     return (pcaObjs)
 }
