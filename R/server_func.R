@@ -1166,7 +1166,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         
         scoresLoc <- lapply(scoresDSC, function(dscblocks) {
             cps <- lapply(dscblocks, function(dscblocki) {
-                return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+                cpsi <- .rebuildMatrixDsc(dscblocki, mc.cores=mc.cores)
+                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                return (cpsi)
             })
             names(cps) <- querytables
             return (cps)
