@@ -737,7 +737,16 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
+    print(ls(pos = 1))
+    print(ls(name = 1))
     chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
+    print(class(chunkList))
+    print(length(chunkList))
+    print(lengths(chunkList))
+    chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
+    print(class(chunkList))
+    print(length(chunkList))
+    print(lengths(chunkList))
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             lapply(1:length(chunkList[[i]][[j]]), function(k) {
