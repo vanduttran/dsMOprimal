@@ -14,7 +14,7 @@ pushToDscFD(conns, symbol, async = T)
 \item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
 }
 \value{
-Bigmemory description of the pushed object on conns
+Bigmemory description of the pushed object on conns.
 }
 \description{
 Bigmemory description of a pushed object

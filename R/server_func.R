@@ -421,7 +421,8 @@ tcrossProdRm <- function(x, y = NULL, chunk = 500) {
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
 #' @returns Bigmemory description of the given matrix
-#' @import bigmemory arrow
+#' @importFrom arrow read_ipc_stream
+#' @importFrom bigmemory as.big.matrix describe
 #' @export
 matrix2DscFD <- function(value) {
     #valued <- .decode.arg(value)
@@ -440,7 +441,8 @@ matrix2DscFD <- function(value) {
 #' @description Bigmemory description of a matrix
 #' @param value Encoded value of a matrix
 #' @returns Bigmemory description of the given matrix
-#' @import bigmemory arrow
+#' @importFrom arrow read_ipc_stream
+#' @importFrom bigmemory as.big.matrix describe
 #' @export
 matrix2DscMate <- function(value) {
     #valued <- .decode.arg(value)
@@ -460,6 +462,7 @@ matrix2DscMate <- function(value) {
 #' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix.
 #' @param mc.cores Number of cores for parallel computing. Default. 1.
 #' @returns The reconstructed matrix.
+#' @importFrom parallel mclapply
 #' @keywords internal
 .rebuildMatrix <- function(matblocks, mc.cores = 1) {
     uptcp <- lapply(matblocks, function(bl) do.call(cbind, bl))
@@ -495,6 +498,8 @@ matrix2DscMate <- function(value) {
 #' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns The complete symmetric matrix
+#' @importFrom parallel mclapply
+#' @importFrom bigmemory attach.big.matrix
 #' @keywords internal
 .rebuildMatrixDsc <- function(dscblocks, mc.cores = 1) {
     ## access to matrix blocks 
@@ -513,6 +518,7 @@ matrix2DscMate <- function(value) {
 #' @param blocks List of list of encoded matrix blocks
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns The complete symmetric matrix
+#' @importFrom parallel mclapply
 #' @keywords internal
 .rebuildMatrixEnc <- function(blocks, mc.cores = 1) {
     ## decode matrix blocks
@@ -533,6 +539,8 @@ matrix2DscMate <- function(value) {
 #' @param len2 Second-order length of lists of matrix blocks.
 #' @param mc.cores Number of cores for parallel computing. Default: 1.
 #' @returns The complete symmetric matrix
+#' @importFrom bigmemory attach.big.matrix
+#' @importFrom parallel mclapply
 #' @export
 rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1) {
     ## access to matrix blocks
@@ -547,7 +555,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.co
     matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
         lapply(1:len2, function(j) {
             lapply(1:len3[j], function(k) {
-                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"))#, envir = .GlobalEnv) #parent.frame())
+                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"), pos=1)#, envir = .GlobalEnv) #parent.frame())
                 return (as.matrix(attach.big.matrix(dscblock)))
             })
         })
@@ -568,7 +576,8 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.co
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns \code{x \%*\% t(y)}
-#' @import arrow parallel
+#' @importFrom arrow write_to_raw
+#' @importFrom parallel mclapply
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     pids <- .decode.arg(mate)
@@ -578,7 +587,7 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
     
     tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-        y <- get(paste("crossProdSelf", pid, sep='_'), envir = .GlobalEnv) #parent.frame())
+        y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
 
         stopifnot(isSymmetric(y))
         # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
@@ -618,6 +627,7 @@ crossLogin <- function(logins) {
 #' @title Cross logout
 #' @description Call datashield.logout on remote servers.
 #' @param opals A list of opal objects
+#' @importFrom DSI datashield.logout
 #' @export
 crossLogout <- function(opals) {
     require(DSOpal)
@@ -630,7 +640,7 @@ crossLogout <- function(opals) {
 #' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @import DSI
+#' @importFrom DSI datashield.aggregate
 #' @export
 crossAggregatePrimal <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
@@ -647,7 +657,7 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 #' @param conns A list of DSConnection-class.
 #' @param expr An encoded expression to evaluate. This is restricted to pushToDscFD.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @import DSI
+#' @importFrom DSI datashield.aggregate
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
@@ -665,7 +675,7 @@ crossAggregateDual <- function(conns, expr, async = T) {
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Returned value of given expression on opal
-#' @import DSI
+#' @importFrom DSI datashield.aggregate
 #' @export
 dscPush <- function(conns, expr, async = T) {
   expr <- .decode.arg(expr)
@@ -680,14 +690,14 @@ dscPush <- function(conns, expr, async = T) {
 #' @param conns A one-element list of DSConnection-class.
 #' @param symbol Name of the object to be pushed.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @returns Bigmemory description of the pushed object on conns
-#' @import DSI
+#' @returns Bigmemory description of the pushed object on conns.
+#' @importFrom DSI datashield.aggregate
 #' @export
 pushToDscFD <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
-    chunkList <- get(symbol)#, envir = .GlobalEnv) #parent.frame())
+    chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
     stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
     #if (is.list(chunkList[[1]][[1]])) {
         dsc <- lapply(chunkList, function(z) {
@@ -721,13 +731,13 @@ pushToDscFD <- function(conns, symbol, async = T) {
 #' @param sourcename Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Bigmemory description of the pushed object on conns
-#' @import DSI
+#' @importFrom DSI datashield.assign
 #' @export
 pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
-    chunkList <- get(symbol)#, envir = .GlobalEnv) #parent.frame())
+    chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             lapply(1:length(chunkList[[i]][[j]]), function(k) {
@@ -760,7 +770,7 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
 #' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
 #' @param async See DSI::datashield.assign options. Default: TRUE.
-#' @import DSI
+#' @importFrom DSI datashield.assign
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, async = T) {
     valued <- .decode.arg(value)
@@ -781,7 +791,7 @@ crossAssign <- function(conns, symbol, value, value.call, async = T) {
 #' @param symbol Encoded vector of names of R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data to compute covariance matrix.
 #' Other assigned R variables in \code{func} are ignored.
-#' @import DSI
+#' @importFrom DSI datashield.logout
 #' @export
 crossAssignFunc <- function(conns, func, symbol) {
     funcPreProc <- .decode.arg(func)
@@ -814,8 +824,9 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @description Compute the sum of matrices stored in bigmemory objects
 #' @param dsc A list of big memory descriptions
 #' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @returns Sum of matrices stored in dsc
-#' @import bigmemory parallel
+#' @returns Sum of matrices stored in dsc.
+#' @importFrom bigmemory attach.big.matrix
+#' @importFrom parallel mclapply
 #' @keywords internal
 .sumMatrices <- function(dsc = NULL, mc.cores = 1) {
     dscmat <- mclapply(dsc, mc.cores=mc.cores, function(dscblocks) {
@@ -843,7 +854,8 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @param connRes A logical value indicating if the connection to \code{logins} is returned. Default, no. 
 #' @returns Covariance matrix of the virtual cohort
-#' @import DSI parallel bigmemory
+#' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.symbols datashield.errors
+#' @importFrom parallel mclapply
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, pair = FALSE, chunk = 500, mc.cores = 1, connRes = FALSE) {
     loginFDdata <- .decode.arg(loginFD)
@@ -1073,8 +1085,10 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns PCA object
-#' @import DSI parallel bigmemory arrow
+#' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
 #' @importFrom stats princomp
+#' @importFrom arrow write_to_raw
+#' @importFrom parallel mclapply
 #' @examples
 #' \dontrun{
 #' dataProc <- function(conns, symbol) {
@@ -1161,7 +1175,6 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         for (qtabi in querytables) {
             pcaObjs[[qtabi]]$scores <- do.call(rbind, lapply(scoresLoc, function(sl) sl[[qtabi]]))
         }
-        # TODO: remove big memory file in /tmp
     }, error=function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))
         return (paste0("LOADINGS MAKING PROCESS: ", e))

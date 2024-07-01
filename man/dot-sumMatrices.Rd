@@ -12,7 +12,7 @@
 \item{mc.cores}{Number of cores for parallel computing. Default: 1}
 }
 \value{
-Sum of matrices stored in dsc
+Sum of matrices stored in dsc.
 }
 \description{
 Compute the sum of matrices stored in bigmemory objects
