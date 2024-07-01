@@ -737,6 +737,10 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
     
+    chunkList <- get(symbol,  envir = parent.frame()) #)
+    print(class(chunkList))
+    print(length(chunkList))
+    print(lengths(chunkList))
     chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
     print(class(chunkList))
     print(length(chunkList))
@@ -1157,7 +1161,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     names(loadings) <- querytables
     
     ## send loadings back to non-FD servers
-    tryCatch({
+    #tryCatch({
         opals <- fedCov$conns
         pushToDscMate(opals, 'loadings', 'FD', async=T)
         
@@ -1190,13 +1194,13 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         for (qtabi in querytables) {
             pcaObjs[[qtabi]]$scores <- do.call(rbind, lapply(scoresLoc, function(sl) sl[[qtabi]]))
         }
-    }, error=function(e) {
-        print(paste0("LOADINGS MAKING PROCESS: ", e))
-        return (paste0("LOADINGS MAKING PROCESS: ", e))
-    }, finally={
-        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
-        datashield.logout(opals)
-    })
+    # }, error=function(e) {
+    #     print(paste0("LOADINGS MAKING PROCESS: ", e))
+    #     return (paste0("LOADINGS MAKING PROCESS: ", e))
+    # }, finally={
+    #     datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+    #     datashield.logout(opals)
+    # })
     
     return (pcaObjs)
 }
