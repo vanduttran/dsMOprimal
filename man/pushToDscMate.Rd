@@ -21,3 +21,4 @@ Bigmemory description of the pushed object on conns
 \description{
 Bigmemory description of a pushed object
 }
+\keyword{internal}

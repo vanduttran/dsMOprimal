@@ -747,7 +747,7 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     # print(lengths(chunkList))
     # print(ls(pos = 1))
     # print(ls(name = 1))
-    # chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
+    #chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
     # print(class(chunkList))
     # print(length(chunkList))
     # print(lengths(chunkList))
@@ -769,7 +769,8 @@ pushToDscMate <- function(conns, symbol, sourcename, async = T) {
     #      for (j in 1:length(chunkList[[i]]))
     #          for (k in 1:length(chunkList[[i]][[j]]))
     #              assign(paste(c(sourcename, i, j, k), collapse="__"), matrix2DscMate(chunkList[[i]][[j]][[k]]))
-    DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"), 
+    DSI::datashield.assign(conns, paste("pushed", sourcename, sep="_"),
+    #DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"),                     
                            as.call(list(as.symbol("rebuildMatrixVar"),
                                         symbol=sourcename,
                                         len1=length(chunkList),
@@ -1169,7 +1170,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         datashield.assign(opals, "scores", 
                           as.call(list(as.symbol("tcrossProd"),
                                        x=as.symbol("centeredData"),
-                                       y=as.symbol("loadings_FD"),
+                                       y=as.symbol("pushed_FD"),
                                        chunk=chunk)),
                           async=T)
         
