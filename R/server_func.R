@@ -727,57 +727,43 @@ pushToDscFD <- function(conns, symbol, async = T) {
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A list of DSConnection-classes.
-#' @param symbol Name of the object to be pushed.
+#' @param object The object to be pushed.
 #' @param sourcename Name of the pushed object source.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Bigmemory description of the pushed object on conns
 #' @importFrom DSI datashield.assign
 #' @keywords internal
-pushToDscMate <- function(conns, symbol, sourcename, async = T) {
+pushToDscMate <- function(conns, object, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
-    chunkList <- symbol
-    # chunkList <- get(symbol,  envir = parent.frame()) #)
-    # print(class(chunkList))
-    # print(length(chunkList))
-    # print(lengths(chunkList))
-    # chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
-    # print(class(chunkList))
-    # print(length(chunkList))
-    # print(lengths(chunkList))
-    # print(ls(pos = 1))
-    # print(ls(name = 1))
-    #chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
-    # print(class(chunkList))
-    # print(length(chunkList))
-    # print(lengths(chunkList))
-    # chunkList <- get(symbol,  envir = .GlobalEnv) #parent.frame())
-    # print(class(chunkList))
-    # print(length(chunkList))
-    # print(lengths(chunkList))
+
+    if (!is.list(object)) 
+        stop("object is not a list.")
+    if (length(setdiff(sapply(object, class), "list")))
+        stop("object is not a list of lists")
+    if (length(setdiff(sapply(object, function(x) sapply(x, class)), "list")))
+        stop("object is not a list of lists of lists")
+    
+    chunkList <- object
+    
     invisible(lapply(1:length(chunkList), function(i) {
         lapply(1:length(chunkList[[i]]), function(j) {
             lapply(1:length(chunkList[[i]][[j]]), function(k) {
-                DSI::datashield.assign(conns, paste(c(sourcename, i, j, k), collapse="__"),
-                                       as.call(list(as.symbol("matrix2DscMate"),
-                                                    chunkList[[i]][[j]][[k]])),
-                                       async=async)
+                datashield.assign(conns, paste(c(sourcename, i, j, k), collapse="__"),
+                                  as.call(list(as.symbol("matrix2DscMate"),
+                                               chunkList[[i]][[j]][[k]])),
+                                  async=async)
             })
         })
     }))
-    # for (i in 1:length(chunkList))
-    #      for (j in 1:length(chunkList[[i]]))
-    #          for (k in 1:length(chunkList[[i]][[j]]))
-    #              assign(paste(c(sourcename, i, j, k), collapse="__"), matrix2DscMate(chunkList[[i]][[j]][[k]]))
-    DSI::datashield.assign(conns, paste("pushed", sourcename, sep="_"),
-    #DSI::datashield.assign(conns, paste(symbol, sourcename, sep="_"),                     
-                           as.call(list(as.symbol("rebuildMatrixVar"),
-                                        symbol=sourcename,
-                                        len1=length(chunkList),
-                                        len2=length(chunkList[[1]]),
-                                        len3=lengths(chunkList[[1]]),
-                                        querytables=names(chunkList))),
-                           async=async)
+    datashield.assign(conns, paste("pushed", sourcename, sep="_"),
+                      as.call(list(as.symbol("rebuildMatrixVar"),
+                                   symbol=sourcename,
+                                   len1=length(chunkList),
+                                   len2=length(chunkList[[1]]),
+                                   len3=lengths(chunkList[[1]]),
+                                   querytables=names(chunkList))),
+                      async=async)
 }
 
 
@@ -1099,9 +1085,9 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param symbol Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param ncomp Number of components. Default: 2.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @param ncomp Number of components. Default, 2.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns PCA object
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
 #' @importFrom stats princomp
@@ -1128,7 +1114,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     querytables <- .decode.arg(symbol)
 
     ## compute covariance matrices for the virtual cohort
-    fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, chunk=chunk, mc.cores=mc.cores, connRes=T)
+    fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables,
+                           chunk=chunk, mc.cores=mc.cores, connRes=T)
     
     ## pca object
     pcaObjs <- mclapply(fedCov$cov, mc.cores=mc.cores, function(covmat) {
@@ -1164,7 +1151,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     ## send loadings back to non-FD servers
     tryCatch({
         opals <- fedCov$conns
-        pushToDscMate(opals, loadings, 'FD', async=T)
+        pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
         ## compute X*loadings_FD'
         datashield.assign(opals, "scores", 
@@ -1179,7 +1166,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                         'scores',
                         async=T)
         cat("Command: pushToDscFD(FD, 'scores')", "\n")
-        scoresDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+        scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
         .printTime(paste0("scores communicated to FD: "))
         
         scoresLoc <- lapply(scoresDSC, function(dscblocks) {
@@ -1193,7 +1180,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         })
         gc()
         for (qtabi in querytables) {
-            pcaObjs[[qtabi]]$scores <- do.call(rbind, lapply(scoresLoc, function(sl) sl[[qtabi]]))
+            pcaObjs[[qtabi]]$scores <- do.call(rbind,
+                                               lapply(scoresLoc, function(sl) sl[[qtabi]]))
         }
     }, error=function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))

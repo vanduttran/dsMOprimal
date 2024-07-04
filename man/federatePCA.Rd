@@ -27,11 +27,11 @@ symbol (name of the R symbol) (see datashield.assign).}
 The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
 Other assigned R variables in \code{func} are ignored.}
 
-\item{ncomp}{Number of components. Default: 2.}
+\item{ncomp}{Number of components. Default, 2.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 PCA object

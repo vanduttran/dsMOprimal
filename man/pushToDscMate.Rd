@@ -4,12 +4,12 @@
 \alias{pushToDscMate}
 \title{Bigmemory description of a pushed object}
 \usage{
-pushToDscMate(conns, symbol, sourcename, async = T)
+pushToDscMate(conns, object, sourcename, async = T)
 }
 \arguments{
 \item{conns}{A list of DSConnection-classes.}
 
-\item{symbol}{Name of the object to be pushed.}
+\item{object}{The object to be pushed.}
 
 \item{sourcename}{Name of the pushed object source.}
 
