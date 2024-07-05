@@ -7,16 +7,16 @@
 pushToDscMate(conns, object, sourcename, async = T)
 }
 \arguments{
-\item{conns}{A list of DSConnection-classes.}
+\item{conns}{A list of Opal connections.}
 
 \item{object}{The object to be pushed.}
 
 \item{sourcename}{Name of the pushed object source.}
 
-\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
+\item{async}{See DSI::datashield.assign options. Default: TRUE.}
 }
 \value{
-Bigmemory description of the pushed object on conns
+Bigmemory description of the pushed object on \code{conns}.
 }
 \description{
 Bigmemory description of a pushed object

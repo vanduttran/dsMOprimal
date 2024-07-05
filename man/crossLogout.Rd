@@ -4,10 +4,10 @@
 \alias{crossLogout}
 \title{Cross logout}
 \usage{
-crossLogout(opals)
+crossLogout(conns)
 }
 \arguments{
-\item{opals}{A list of opal objects}
+\item{conns}{A list of Opal connections.}
 }
 \description{
 Call datashield.logout on remote servers.

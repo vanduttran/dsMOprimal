@@ -7,7 +7,7 @@
 crossAssign(conns, symbol, value, value.call, async = T)
 }
 \arguments{
-\item{conns}{A list of DSConnection-class.}
+\item{conns}{A list of Opal connections.}
 
 \item{symbol}{Name of an R symbol.}
 

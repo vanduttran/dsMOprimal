@@ -27,7 +27,7 @@
 \item{grid2}{Checking values for \code{lambda2}.}
 
 \item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of DSConnection-classes), 
+Two arguments are required: conns (list of Opal connections), 
 symbol (names of the two R symbols) (see datashield.assign).}
 
 \item{symbol}{Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.

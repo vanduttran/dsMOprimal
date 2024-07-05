@@ -7,11 +7,11 @@
 crossAggregatePrimal(conns, expr, async = T)
 }
 \arguments{
-\item{conns}{A list of DSConnection-class.}
+\item{conns}{A list of Opal connections.}
 
 \item{expr}{An encoded expression to evaluate.}
 
-\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
+\item{async}{See DSI::datashield.aggregate options. Default, TRUE.}
 }
 \description{
 Call datashield.aggregate on remote servers.

@@ -4,17 +4,17 @@
 \alias{pushToDscFD}
 \title{Bigmemory description of a pushed object}
 \usage{
-pushToDscFD(conns, symbol, async = T)
+pushToDscFD(conns, object, async = T)
 }
 \arguments{
-\item{conns}{A one-element list of DSConnection-class.}
+\item{conns}{A list of Opal connections. Only one connection is accepted.}
 
-\item{symbol}{Name of the object to be pushed.}
+\item{object}{The object to be pushed.}
 
 \item{async}{See DSI::datashield.aggregate options. Default, TRUE.}
 }
 \value{
-Bigmemory description of the pushed object on conns.
+Bigmemory description of the pushed object on \code{conns}.
 }
 \description{
 Bigmemory description of a pushed object

@@ -626,26 +626,26 @@ crossLogin <- function(logins) {
 
 #' @title Cross logout
 #' @description Call datashield.logout on remote servers.
-#' @param opals A list of opal objects
+#' @param conns A list of Opal connections.
 #' @importFrom DSI datashield.logout
 #' @export
-crossLogout <- function(opals) {
+crossLogout <- function(conns) {
     require(DSOpal)
-    DSI::datashield.logout(opals)
+    datashield.logout(conns)
 }
 
 
 #' @title Cross aggregate
 #' @description Call datashield.aggregate on remote servers.
-#' @param conns A list of DSConnection-class.
+#' @param conns A list of Opal connections.
 #' @param expr An encoded expression to evaluate.
-#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @param async See DSI::datashield.aggregate options. Default, TRUE.
 #' @importFrom DSI datashield.aggregate
 #' @export
 crossAggregatePrimal <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^singularProd\\(", expr)) {
-        DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+        datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -654,9 +654,9 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 
 #' @title Cross aggregate through two-layer connection
 #' @description Call datashield.aggregate on remote servers through two-layer connection.
-#' @param conns A list of DSConnection-class.
+#' @param conns A list of Opal connections.
 #' @param expr An encoded expression to evaluate. This is restricted to pushToDscFD.
-#' @param async See DSI::datashield.aggregate options. Default: TRUE.
+#' @param async See DSI::datashield.aggregate options. Default, TRUE.
 #' @importFrom DSI datashield.aggregate
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
@@ -671,7 +671,7 @@ crossAggregateDual <- function(conns, expr, async = T) {
 
 #' @title Description of a pushed value
 #' @description Description of a pushed value
-#' @param conns A list of DSConnection-class.
+#' @param conns A list of Opal connections.
 #' @param expr An encoded expression to evaluate.
 #' @param async See DSI::datashield.aggregate options. Default: TRUE.
 #' @returns Returned value of given expression on opal
@@ -687,55 +687,55 @@ dscPush <- function(conns, expr, async = T) {
 
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
-#' @param conns A one-element list of DSConnection-class.
-#' @param symbol Name of the object to be pushed.
+#' @param conns A list of Opal connections. Only one connection is accepted.
+#' @param object The object to be pushed.
 #' @param async See DSI::datashield.aggregate options. Default, TRUE.
-#' @returns Bigmemory description of the pushed object on conns.
+#' @returns Bigmemory description of the pushed object on \code{conns}.
 #' @importFrom DSI datashield.aggregate
 #' @export
-pushToDscFD <- function(conns, symbol, async = T) {
+pushToDscFD <- function(conns, object, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
-    chunkList <- symbol
-    #chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
-    stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
-    #if (is.list(chunkList[[1]][[1]])) {
-        dsc <- lapply(chunkList, function(z) {
-            return (lapply(z, function(x) {
-                return (lapply(x, function(y) {
-                    expr <- list(as.symbol("matrix2DscFD"), y)
-                    y.dsc <- datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
-                    return (y.dsc[[1]])
-                }))
+    
+    if (!is.list(object)) 
+        stop("object is not a list.")
+    if (length(setdiff(sapply(object, class), "list")))
+        stop("object is not a list of lists")
+    if (length(setdiff(sapply(object, function(x) sapply(x, class)), "list")))
+        stop("object is not a list of lists of lists")
+    
+    chunkList <- object
+    
+    dsc <- lapply(chunkList, function(clomics) {
+        return (lapply(clomics, function(clrow) {
+            return (lapply(clrow, function(clcol) {
+                expr <- list(as.symbol("matrix2DscFD"), clcol)
+                clcoldsc <- datashield.aggregate(conns=conns,
+                                                 expr=as.call(expr),
+                                                 async=async)
+                return (clcoldsc[[1]])
             }))
-        })
-        names(dsc) <- names(chunkList)
-    # } else { # this will not happen with crossProd (list of crossprod matrices) after v115
-    #     dsc <- lapply(chunkList, function(x) {
-    #         return (lapply(x, function(y) {
-    #             expr <- list(as.symbol("matrix2DscFD"), y)
-    #             y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
-    #             return (y.dsc[[1]])
-    #         }))
-    #     })
-    # }
-        #save(dsc, file='/tmp/dsc.RData')
+        }))
+    })
+    names(dsc) <- names(chunkList)
+    
     return (dsc)
 }
 
 
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
-#' @param conns A list of DSConnection-classes.
+#' @param conns A list of Opal connections.
 #' @param object The object to be pushed.
 #' @param sourcename Name of the pushed object source.
-#' @param async See DSI::datashield.aggregate options. Default: TRUE.
-#' @returns Bigmemory description of the pushed object on conns
+#' @param async See DSI::datashield.assign options. Default: TRUE.
+#' @returns Bigmemory description of the pushed object on \code{conns}.
 #' @importFrom DSI datashield.assign
 #' @keywords internal
 pushToDscMate <- function(conns, object, sourcename, async = T) {
     ## TODO: check for allowed conns
-    stopifnot(is.list(conns) && length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
+    stopifnot(is.list(conns) &&
+                  length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
 
     if (!is.list(object)) 
         stop("object is not a list.")
@@ -769,7 +769,7 @@ pushToDscMate <- function(conns, object, sourcename, async = T) {
 
 #' @title Cross assign
 #' @description Call datashield.assign on remote servers.
-#' @param conns A list of DSConnection-class.
+#' @param conns A list of Opal connections.
 #' @param symbol Name of an R symbol.
 #' @param value A variable name or an R expression with allowed assign function calls.
 #' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
@@ -788,9 +788,9 @@ crossAssign <- function(conns, symbol, value, value.call, async = T) {
 
 #' @title Cross assign a preprocessing function
 #' @description Call preprocessing function on remote servers.
-#' @param conns A list of DSConnection-class.
+#' @param conns A list of Opal connections.
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' Two arguments are required: conns (list of Opal connections), 
 #' symbol (name of the R symbol) (see datashield.assign).
 #' @param symbol Encoded vector of names of R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variables will be used as the input raw data to compute covariance matrix.
@@ -818,7 +818,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         .cleanup(safe.objs)
     }, error=function(e) {
         print(paste0("DATA MAKING CROSS PROCESS: ", e))
-        DSI::datashield.logout(conns)
+        datashield.logout(conns)
     })
     return (NULL)
 }
@@ -846,7 +846,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
 #' @param funcPreProc Definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' Two arguments are required: conns (list of Opal connections),
 #' symbol (name of the R symbol) (see datashield.assign).
 #' @param querytables Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
@@ -1081,7 +1081,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data)
 #' @param logins Login information of other servers containing cohort data
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' Two arguments are required: conns (list of Opal connections), 
 #' symbol (name of the R symbol) (see datashield.assign).
 #' @param symbol Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
 #' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
@@ -1201,7 +1201,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data).
 #' @param logins Login information of servers containing cohort data.
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' Two arguments are required: conns (list of Opal connections), 
 #' symbol (names of the two R symbols) (see datashield.assign).
 #' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
@@ -1330,7 +1330,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data).
 #' @param logins Login information of servers containing cohort data.
 #' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of DSConnection-classes), 
+#' Two arguments are required: conns (list of Opal connections), 
 #' symbol (names of the two R symbols) (see datashield.assign).
 #' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.

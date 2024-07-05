@@ -7,7 +7,7 @@
 dscPush(conns, expr, async = T)
 }
 \arguments{
-\item{conns}{A list of DSConnection-class.}
+\item{conns}{A list of Opal connections.}
 
 \item{expr}{An encoded expression to evaluate.}
 

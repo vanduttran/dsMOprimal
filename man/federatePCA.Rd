@@ -20,7 +20,7 @@ federatePCA(
 \item{logins}{Login information of other servers containing cohort data}
 
 \item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of DSConnection-classes), 
+Two arguments are required: conns (list of Opal connections), 
 symbol (name of the R symbol) (see datashield.assign).}
 
 \item{symbol}{Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
