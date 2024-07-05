@@ -662,7 +662,7 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^pushToDscFD\\(", expr)) {
-        DSI::datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+        datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -696,15 +696,15 @@ dscPush <- function(conns, expr, async = T) {
 pushToDscFD <- function(conns, symbol, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
-    
-    chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
+    chunkList <- symbol
+    #chunkList <- get(symbol, pos=1)#, envir = .GlobalEnv) #parent.frame())
     stopifnot(is.list(chunkList) && is.list(chunkList[[1]]))
     #if (is.list(chunkList[[1]][[1]])) {
         dsc <- lapply(chunkList, function(z) {
             return (lapply(z, function(x) {
                 return (lapply(x, function(y) {
                     expr <- list(as.symbol("matrix2DscFD"), y)
-                    y.dsc <- DSI::datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
+                    y.dsc <- datashield.aggregate(conns=conns, expr=as.call(expr), async=async)
                     return (y.dsc[[1]])
                 }))
             }))
@@ -931,10 +931,11 @@ crossAssignFunc <- function(conns, func, symbol) {
         tryCatch({
             command <- list(as.symbol("pushToDscFD"),
                             as.symbol("FD"),
-                            'crossProdSelf',
+                            # 'crossProdSelf',
+                            as.symbol("crossProdSelf"),
                             async=T)
             cat("Command: pushToDscFD(FD, 'crossProdSelf')", "\n")
-            crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+            crossProdSelfDSC <- datashield.aggregate(opals, as.call(command), async=T)
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
             crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
@@ -1039,7 +1040,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                             'crossProdSelf',
                             async=T)
             cat("Command: pushToDscFD(FD, 'crossProdSelf')", "\n")
-            crossProdSelfDSC <- DSI::datashield.aggregate(opals, as.call(command), async=T)
+            crossProdSelfDSC <- datashield.aggregate(opals, as.call(command), async=T)
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
             crossProdSelfDSC <- lapply(crossProdSelfDSC, function(dscblocks) {
@@ -1048,14 +1049,14 @@ crossAssignFunc <- function(conns, func, symbol) {
             rescov <- .sumMatrices(crossProdSelfDSC)/(sum(size)-1)
             ## set dimnames to covariance matrix
             if (covSpace=="X" || covSpace=="XY") {
-                rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
+                rownames(rescov) <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
             } else {
-                rownames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
+                rownames(rescov) <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
             }
             if (covSpace=="Y" || covSpace=="XY") {
-                colnames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
+                colnames(rescov) <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData2)'), async=T)[[1]]
             } else {
-                colnames(rescov) <- DSI::datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
+                colnames(rescov) <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
             }
         }, 
         error=function(e) {
@@ -1163,7 +1164,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
         
         command <- list(as.symbol("pushToDscFD"),
                         as.symbol("FD"),
-                        'scores',
+                        as.symbol('scores'),
                         async=T)
         cat("Command: pushToDscFD(FD, 'scores')", "\n")
         scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
@@ -1248,10 +1249,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     })
     
     tryCatch({
-        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-        sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+        datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+        sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+        sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
         
         ## random Mfold partitions to leave out
