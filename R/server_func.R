@@ -697,11 +697,13 @@ pushToDscFD <- function(conns, object, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) && length(conns)==1 && class(conns[[1]])=="OpalConnection")
     
-    if (!is.list(object)) 
+    ## check object format
+    if (!is.list(object))
         stop("object is not a list.")
-    if (length(setdiff(sapply(object, class), "list")))
+    if (length(setdiff(unlist(lapply(object, class)), "list")) > 0)
         stop("object is not a list of lists")
-    if (length(setdiff(sapply(object, function(x) sapply(x, class)), "list")))
+    if (length(setdiff(unlist(lapply(object, function(x)
+        lapply(x, class))), "list")) > 0)
         stop("object is not a list of lists of lists")
     
     chunkList <- object
@@ -737,11 +739,13 @@ pushToDscMate <- function(conns, object, sourcename, async = T) {
     stopifnot(is.list(conns) &&
                   length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
 
+    ## check object format
     if (!is.list(object)) 
         stop("object is not a list.")
-    if (length(setdiff(sapply(object, class), "list")))
+    if (length(setdiff(unlist(lapply(object, class)), "list")) > 0)
         stop("object is not a list of lists")
-    if (length(setdiff(sapply(object, function(x) sapply(x, class)), "list")))
+    if (length(setdiff(unlist(lapply(object, function(x) 
+        lapply(x, class))), "list")) > 0)
         stop("object is not a list of lists of lists")
     
     chunkList <- object
@@ -860,6 +864,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @returns Covariance matrix of the virtual cohort
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.symbols datashield.errors
 #' @importFrom parallel mclapply
+#' @import dplyr
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, pair = FALSE, chunk = 500, mc.cores = 1, connRes = FALSE) {
     loginFDdata <- .decode.arg(loginFD)
@@ -894,7 +899,12 @@ crossAssignFunc <- function(conns, func, symbol) {
         ## center data
         if (is.null(querysubset)) {
             datashield.assign(opals, "centeredData", 
-                              as.symbol(paste0('center(list(', paste(querytables, collapse=','), '))')),
+                              as.symbol(
+                                  paste0("center(list(", 
+                                         sapply(querytables, function(x)
+                                             paste(x, '=', x)) %>%
+                                             paste(collapse=", "),
+                                         "))")),
                               async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
@@ -912,8 +922,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         
         ## variables
         variables <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
-        names(variables) <- querytables
-        
+
         ## compute X'X
         datashield.assign(opals, "crossProdSelf", 
                           as.call(list(as.symbol("crossProd"),
@@ -1370,14 +1379,20 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
         stop("Two data matrices are required!")
     }
 
-    ## estimating the parameters of regularization
+    ## estimate the parameters of regularization
     if (isTRUE(tune)) {
         tune_param <- .decode.arg(tune_param)
-        tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables, mc.cores = mc.cores,
-                              nfold=tune_param$nfold, grid1=tune_param$grid1, grid2=tune_param$grid2)
+        tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
+                              mc.cores=mc.cores, nfold=tune_param$nfold, 
+                              grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
+    
+    ## compute covariance matrices for the virtual cohort
+    fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, pair=T,
+                           chunk=chunk, mc.cores=mc.cores, connRes=T)
+    
     ## covariance matrices for the virtual cohort
     Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk=chunk, mc.cores=mc.cores)
     Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk=chunk, mc.cores=mc.cores)
