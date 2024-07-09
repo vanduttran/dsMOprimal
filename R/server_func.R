@@ -947,26 +947,39 @@ crossAssignFunc <- function(conns, func, symbol) {
             crossProdSelfDSC <- datashield.aggregate(opals, as.call(command), async=T)
             .printTime(paste0(".federateSSCP X'X communicated to FD: "))
             
+            ## names of crossProd matrices
+            if (pair) {
+                xpairs <- combn(1:length(querytables), 2)
+                crossNames <- sapply(1:ncol(xpairs), function(xc) {
+                    paste(querytables[xpairs[,xc]], collapse='__')
+                })
+            } else {
+                crossNames <- c()
+            }
+            crossProdNames <- c(querytables, crossNames)
+            
             crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
                 cps <- lapply(dscblocks, function(dscblocki) {
                     return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
                 })
-                names(cps) <- querytables
+                if (is.null(names(cps))) names(cps) <- crossProdNames
                 return (cps)
             })
-            rescov <- mclapply(querytables, mc.cores=mc.cores, function(qtabi) {
+            rescov <- mclapply(names(crossProdSelf[[1]]), mc.cores=mc.cores, function(qtabi) {
                 Reduce("+", lapply(crossProdSelf, function(cps) cps[[qtabi]]))/(sum(nsamples)-1)
             })
-            names(rescov) <- querytables
+            names(rescov) <- names(crossProdSelf[[1]])
         }, 
         error=function(e) {
-            print(paste0("COVARIATES PUSH PROCESS: ", e));
-            return(paste0("COVARIATES PUSH PROCESS: ", e))
+            print(paste0("COVARIATES PUSH PROCESS: ", e))
+            return (paste0("COVARIATES PUSH PROCESS: ", e))
         }) 
         #finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, error=function(e) {
         print(paste0("COVARIATES PROCESS: ", e))
-        return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
+        return (paste0("COVARIATES PROCESS: ", e,
+                       ' --- ', datashield.symbols(opals),
+                       ' --- ', datashield.errors()))
     })
     if (!connRes) {
         datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
@@ -1069,15 +1082,17 @@ crossAssignFunc <- function(conns, func, symbol) {
             }
         }, 
         error=function(e) {
-            print(paste0("COVARIATES PUSH PROCESS: ", e));
-            return(paste0("COVARIATES PUSH PROCESS: ", e))
+            print(paste0("COVARIATES PUSH PROCESS: ", e))
+            return (paste0("COVARIATES PUSH PROCESS: ", e))
         }, 
         finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
         
     }, 
     error=function(e) {
         print(paste0("COVARIATES PROCESS: ", e))
-        return(paste0("COVARIATES PROCESS: ", e, ' --- ', datashield.symbols(opals), ' --- ', datashield.errors()))
+        return (paste0("COVARIATES PROCESS: ", e,
+                       ' --- ', datashield.symbols(opals),
+                       ' --- ', datashield.errors()))
     }, 
     finally=datashield.logout(opals))
     gc(reset=F)
@@ -1352,9 +1367,11 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
 #' \code{grid2} checking values for \code{lambda2}.
 #' @returns RCCA object
-#' @import DSOpal DSI parallel bigmemory
+#' @import DSOpal bigmemory
 #' @importFrom fda geigen
 #' @importFrom stats cov
+#' @importFrom DSI datashield.assign datashield.aggregate
+#' @importFrom parallel mclapply
 #' @examples
 #' \dontrun{
 #' dataProc <- function(conns, symbol) {
@@ -1383,7 +1400,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     if (isTRUE(tune)) {
         tune_param <- .decode.arg(tune_param)
         tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
-                              mc.cores=mc.cores, nfold=tune_param$nfold, 
+                              mc.cores=mc.cores, nfold=tune_param$nfold,
                               grid1=tune_param$grid1, grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
@@ -1392,18 +1409,21 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## compute covariance matrices for the virtual cohort
     fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, pair=T,
                            chunk=chunk, mc.cores=mc.cores, connRes=T)
+    Cxx <- fedCov$cov[[1]]
+    Cyy <- fedCov$cov[[2]]
+    Cxy <- fedCov$cov[[3]]
     
     ## covariance matrices for the virtual cohort
-    Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk=chunk, mc.cores=mc.cores)
-    Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk=chunk, mc.cores=mc.cores)
-    Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk=chunk, mc.cores=mc.cores)
+    #Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk=chunk, mc.cores=mc.cores)
+    #Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk=chunk, mc.cores=mc.cores)
+    #Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk=chunk, mc.cores=mc.cores)
 
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, ncol(Cxx))
     Cyy <- Cyy + diag(lambda2, ncol(Cyy))
     
     ## CCA core call
-    res <- fda::geigen(Cxy, Cxx, Cyy)
+    res <- geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
     rownames(res$xcoef) <- rownames(Cxx)
     rownames(res$ycoef) <- rownames(Cyy)
@@ -1411,35 +1431,37 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
 
     ## assign centered data on each individual server
     ## NB: this block only works with some call a priori, e.g. .federateCov, or with require(DSOpal) !!!
-    opals <- .login(logins=.decode.arg(logins)) #datashield.login(logins=.decode.arg(logins))
-    nNode <- length(opals)
+    # opals <- .login(logins=.decode.arg(logins)) #datashield.login(logins=.decode.arg(logins))
+    # nNode <- length(opals)
+    # 
+    # tryCatch({
+    #     ## take a snapshot of the current session
+    #     safe.objs <- .ls.all()
+    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
+    #     ## lock everything so no objects can be changed
+    #     .lock.unlock(safe.objs, lockBinding)
+    #     
+    #     ## apply funcPreProc for preparation of querytables on opals
+    #     ## TODO: control hacking!
+    #     ## TODO: control identical colnames!
+    #     funcPreProc(conns=opals, symbol=querytables)
+    #     
+    #     ## unlock back everything
+    #     .lock.unlock(safe.objs, unlockBinding)
+    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
+    #     .cleanup(safe.objs)
+    # }, error=function(e) {
+    #     print(paste0("DATA MAKING PROCESS: ", e))
+    #     datashield.logout(opals)
+    # })
+    
+    opals <- fedCov$conns
     
     tryCatch({
-        ## take a snapshot of the current session
-        safe.objs <- .ls.all()
-        safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-        ## lock everything so no objects can be changed
-        .lock.unlock(safe.objs, lockBinding)
-        
-        ## apply funcPreProc for preparation of querytables on opals
-        ## TODO: control hacking!
-        ## TODO: control identical colnames!
-        funcPreProc(conns=opals, symbol=querytables)
-        
-        ## unlock back everything
-        .lock.unlock(safe.objs, unlockBinding)
-        ## get rid of any sneaky objects that might have been created in the filters as side effects
-        .cleanup(safe.objs)
-    }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
-        datashield.logout(opals)
-    })
-    
-    tryCatch({
-        DSI::datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        DSI::datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        sizex <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-        sizey <- sapply(DSI::datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+        datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+        sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+        sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
         stopifnot(all(sizex==sizey))
         sampleNames <- DSI::datashield.aggregate(opals, as.symbol('rowNames(centeredDatax)'), async=T)
         sampleNames <- unlist(lapply(names(sampleNames), function(x) paste0(x, "_", sampleNames[[x]])), use.names=F)
