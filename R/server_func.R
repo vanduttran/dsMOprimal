@@ -87,12 +87,12 @@ setRowNames <- function(x, row.names) {
 
 #' @title Row names
 #' @description Get row names of a matrix 
-#' @param x A matrix, a data frame, or a list of matrices or data frames
+#' @param x A matrix, a data frame, or a list of matrices or data frames.
 #' @returns Row names of x
 #' @export
 rowNames <- function(x) {
     if (is.list(x) && !is.data.frame(x)) {
-        return (rownames(x[[1]]))
+        return (lapply(x, rownames))
     }
     return (rownames(x))
 }
@@ -100,7 +100,7 @@ rowNames <- function(x) {
 
 #' @title Colnames
 #' @description Get column names of a matrix 
-#' @param x A matrix, a data frame, or a list of matrices or data frames
+#' @param x A matrix, a data frame, or a list of matrices or data frames.
 #' @returns Column names of x
 #' @export
 colNames <- function(x) {
@@ -537,7 +537,8 @@ matrix2DscMate <- function(value) {
 #' @param symbol Generic variable name
 #' @param len1 First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.
 #' @param len2 Second-order length of lists of matrix blocks.
-#' @param mc.cores Number of cores for parallel computing. Default: 1.
+#' @param len3 Third-order length of lists of matrix blocks.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The complete symmetric matrix
 #' @importFrom bigmemory attach.big.matrix
 #' @importFrom parallel mclapply
@@ -553,8 +554,8 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.co
     #     })
     # })
     matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
-        lapply(1:len2, function(j) {
-            lapply(1:len3[j], function(k) {
+        lapply(1:len2[i], function(j) {
+            lapply(1:len3[[i]][j], function(k) {
                 dscblock <- get(paste(c(symbol, i, j, k), collapse="__"), pos=1)#, envir = .GlobalEnv) #parent.frame())
                 return (as.matrix(attach.big.matrix(dscblock)))
             })
@@ -734,7 +735,7 @@ pushToDscFD <- function(conns, object, async = T) {
 #' @returns Bigmemory description of the pushed object on \code{conns}.
 #' @importFrom DSI datashield.assign
 #' @keywords internal
-pushToDscMate <- function(conns, object, sourcename, async = T) {
+.pushToDscMate <- function(conns, object, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) &&
                   length(setdiff(unique(sapply(conns, class)), "OpalConnection"))==0)
@@ -764,8 +765,8 @@ pushToDscMate <- function(conns, object, sourcename, async = T) {
                       as.call(list(as.symbol("rebuildMatrixVar"),
                                    symbol=sourcename,
                                    len1=length(chunkList),
-                                   len2=length(chunkList[[1]]),
-                                   len3=lengths(chunkList[[1]]),
+                                   len2=lengths(chunkList),
+                                   len3=lapply(chunkList, lengths),
                                    querytables=names(chunkList))),
                       async=async)
 }
@@ -864,6 +865,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @returns Covariance matrix of the virtual cohort
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.symbols datashield.errors
 #' @importFrom parallel mclapply
+#' @importFrom utils combn
 #' @import dplyr
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables, querysubset = NULL, pair = FALSE, chunk = 500, mc.cores = 1, connRes = FALSE) {
@@ -1132,7 +1134,8 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @examples
 #' \dontrun{
 #' dataProc <- function(conns, symbol) {
-#'     DSI::datashield.assign(conns, symbol, 'test.CNSIM', variables=c('LAB_TRIG', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
+#'     DSI::datashield.assign(conns, symbol, 'test.CNSIM',
+#'         variables=c('LAB_TRIG', 'LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
 #' }
 #' federatePCA(.encode.arg(loginFD), .encode.arg(logins),
 #'             .encode.arg(dataProc, serialize.it = T),
@@ -1187,7 +1190,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     ## send loadings back to non-FD servers
     tryCatch({
         opals <- fedCov$conns
-        pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
+        .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
         ## compute X*loadings_FD'
         datashield.assign(opals, "scores", 
@@ -1394,13 +1397,18 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #'              .encode.arg(c("rawDataX", "rawDataY")))
 #' }
 #' @export
-federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0, chunk = 500, mc.cores = 1,
+federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
+                         lambda1 = 0, lambda2 = 0, chunk = 500, mc.cores = 1,
                          tune = FALSE, 
                          tune_param = .encode.arg(list(nfold = 5, 
                                                        grid1 = seq(0.001, 1, length = 5), 
                                                        grid2 = seq(0.001, 1, length = 5)))) {
-    require(DSOpal)
+    #require(DSOpal)
     .printTime("federateRCCA started")
+    if (ncomp < 2) {
+        print("ncomp should be at least 2. ncomp will be set to 2.")
+        ncomp <- 2
+    }
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
     if (length(querytables) != 2) {
@@ -1436,8 +1444,11 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     ## CCA core call
     res <- geigen(Cxy, Cxx, Cyy)
     names(res) <- c("cor", "xcoef", "ycoef")
+    res$xcoef <- res$xcoef[, 1:ncomp, drop=F]
+    res$ycoef <- res$ycoef[, 1:ncomp, drop=F]
     rownames(res$xcoef) <- rownames(Cxx)
     rownames(res$ycoef) <- rownames(Cyy)
+    colnames(res$xcoef) <- colnames(res$ycoef) <- paste0("Comp.", 1:ncomp)
     res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
     ## assign centered data on each individual server
@@ -1465,26 +1476,87 @@ federateRCCA <- function(loginFD, logins, func, symbol, lambda1 = 0, lambda2 = 0
     #     print(paste0("DATA MAKING PROCESS: ", e))
     #     datashield.logout(opals)
     # })
-    
-    opals <- fedCov$conns
+     
+    ## rcca coefs
+    loadings <- mclapply(res[c("xcoef", "ycoef")], mc.cores=mc.cores, function(ccacoef) {
+        xx <- t(ccacoef)
+        nblockscol <- ceiling(ncol(xx)/chunk)
+        sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
+        sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
+        tcpblocks <- .partitionMatrix(xx, seprow=ncomp, sepcol=sepblockscol)
+        return (lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                return (.encode.arg(write_to_raw(tcp)))
+            }))
+        }))
+    })
+
+    ## send coefs back to non-FD servers
+    tryCatch({
+        opals <- fedCov$conns
+        .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
+        
+        ## compute X*loadings_FD'
+        datashield.assign(opals, "scores", 
+                          as.call(list(as.symbol("tcrossProd"),
+                                       x=as.symbol("centeredData"),
+                                       y=as.symbol("pushed_FD"),
+                                       chunk=chunk)),
+                          async=T)
+        
+        command <- list(as.symbol("pushToDscFD"),
+                        as.symbol("FD"),
+                        as.symbol('scores'),
+                        async=T)
+        cat("Command: pushToDscFD(FD, 'scores')", "\n")
+        scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
+        .printTime(paste0("scores communicated to FD: "))
+        
+        scoresLoc <- lapply(scoresDSC, function(dscblocks) {
+            cps <- lapply(dscblocks, function(dscblocki) {
+                cpsi <- .rebuildMatrixDsc(dscblocki, mc.cores=mc.cores)
+                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                return (cpsi)
+            })
+            names(cps) <- querytables
+            return (cps)
+        })
+        gc()
+        for (qtabi in querytables) {
+            pcaObjs[[qtabi]]$scores <- do.call(rbind,
+                                               lapply(scoresLoc, function(sl) sl[[qtabi]]))
+        }
+    }, error=function(e) {
+        print(paste0("LOADINGS MAKING PROCESS: ", e))
+        return (paste0("LOADINGS MAKING PROCESS: ", e))
+    }, finally={
+        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    })
     
     tryCatch({
-        datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-        sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-        stopifnot(all(sizex==sizey))
-        sampleNames <- DSI::datashield.aggregate(opals, as.symbol('rowNames(centeredDatax)'), async=T)
-        sampleNames <- unlist(lapply(names(sampleNames), function(x) paste0(x, "_", sampleNames[[x]])), use.names=F)
+        #datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+        #datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+        #sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+        #sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+        #stopifnot(all(sizex==sizey))
+        ## assuming rownames of all blocks match to each other
+        sampleNames <- datashield.aggregate(
+            opals,
+            as.symbol('rowNames(centeredData)'),
+            async=T)
+        sampleNames <- unlist(lapply(names(sampleNames), function(x)
+            paste0(x, "_", sampleNames[[x]][[1]])), use.names=F)
         res$names <- list(Xnames=rownames(Cxx),
                           Ynames=rownames(Cyy),
                           ind.names=sampleNames)
         ## canonical covariates
-        cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+        
+        cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                        as.symbol("centeredDatax"),
                                                                        .encode.arg(res$xcoef),
                                                                        "prod")), async=T))
-        cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+        cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                        as.symbol("centeredDatay"),
                                                                        .encode.arg(res$ycoef),
                                                                        "prod")), async=T))
