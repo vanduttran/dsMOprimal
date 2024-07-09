@@ -957,7 +957,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                 crossNames <- c()
             }
             crossProdNames <- c(querytables, crossNames)
-            
+            ## rebuild the SSCP matrices
             crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
                 cps <- lapply(dscblocks, function(dscblocki) {
                     return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
@@ -965,10 +965,21 @@ crossAssignFunc <- function(conns, func, symbol) {
                 if (is.null(names(cps))) names(cps) <- crossProdNames
                 return (cps)
             })
+            ## sum on individual cohorts 
             rescov <- mclapply(names(crossProdSelf[[1]]), mc.cores=mc.cores, function(qtabi) {
                 Reduce("+", lapply(crossProdSelf, function(cps) cps[[qtabi]]))/(sum(nsamples)-1)
             })
             names(rescov) <- names(crossProdSelf[[1]])
+            # set rownames and colnames
+            if (pair) {
+                for (crn in crossNames) {
+                    crntype <- strsplit(crn, split="__")[[1]]
+                    if (is.null(rownames(rescov[[crn]])))
+                        rownames(rescov[[crn]]) <- rownames(rescov[[crntype[1]]])
+                    if (is.null(colnames(rescov[[crn]])))
+                        colnames(rescov[[crn]]) <- colnames(rescov[[crntype[2]]])
+                }
+            }
         }, 
         error=function(e) {
             print(paste0("COVARIATES PUSH PROCESS: ", e))
