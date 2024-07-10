@@ -506,7 +506,7 @@ matrix2DscMate <- function(value) {
     ## access to matrix blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
-            return (as.matrix(attach.big.matrix(x)))
+            return ((attach.big.matrix(x))[,,drop=F])
         })
     })
     tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
@@ -539,6 +539,7 @@ matrix2DscMate <- function(value) {
 #' @param len1 First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.
 #' @param len2 Second-order length of lists of matrix blocks.
 #' @param len3 Third-order length of lists of matrix blocks.
+#' @param querytables Names to be assigned to the result. 
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The complete symmetric matrix
 #' @importFrom bigmemory attach.big.matrix
@@ -546,19 +547,12 @@ matrix2DscMate <- function(value) {
 #' @export
 rebuildMatrixVar <- function(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1) {
     ## access to matrix blocks
-    # matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
-    #     lapply(1:len2, function(j) {
-    #         lapply(1:(len2-j+1), function(k) {
-    #             dscblock <- get(paste(c(symbol, i, j, k), collapse="__"))#, envir = .GlobalEnv) #parent.frame())
-    #             return (as.matrix(attach.big.matrix(dscblock)))
-    #         })
-    #     })
-    # })
     matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
         lapply(1:len2[i], function(j) {
             lapply(1:len3[[i]][j], function(k) {
-                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"), pos=1)#, envir = .GlobalEnv) #parent.frame())
-                return (as.matrix(attach.big.matrix(dscblock)))
+                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"),
+                                pos=1)#, envir = .GlobalEnv) #parent.frame())
+                return ((attach.big.matrix(dscblock))[,,drop=F])
             })
         })
     })
@@ -840,7 +834,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @keywords internal
 .sumMatrices <- function(dsc = NULL, mc.cores = 1) {
     dscmat <- mclapply(dsc, mc.cores=mc.cores, function(dscblocks) {
-        y <- as.matrix(attach.big.matrix(dscblocks))
+        y <- (attach.big.matrix(dscblocks))[,,drop=F]
         return (y)
     })
     return (Reduce("+", dscmat))
@@ -1020,11 +1014,12 @@ crossAssignFunc <- function(conns, func, symbol) {
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors()))
     })
-            if (!connRes) {
-                datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
-                datashield.logout(opals)
-            }
-            gc(reset=F)
+    if (!connRes) {
+        datashield.assign(opals, 'crossEnd',
+                          as.symbol("crossLogout(FD)"), async=T)
+        datashield.logout(opals)
+    }
+    gc(reset=F)
             
     return (list(cov=rescov,
                  conns=opals))
@@ -1393,7 +1388,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                 res$ycoef <- res$ycoef[, 1:ncomp, drop=F]
                 rownames(res$xcoef) <- rownames(Cxx)
                 rownames(res$ycoef) <- rownames(Cyy)
-                colnames(res$xcoef) <- colnames(res$ycoef) <- paste0("Comp.", 1:ncomp)
+                colnames(res$xcoef) <- colnames(res$ycoef) <- 
+                    paste0("Comp.", 1:ncomp)
                 
                 ## rcca coefs
                 loadings <- mclapply(
@@ -1419,7 +1415,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                 ## send coefs back to non-FD servers
                 tryCatch({
                     mopals <- fedCov$conns
-                    .pushToDscMate(conns=mopals, object=loadings, sourcename='FD', async=T)
+                    .pushToDscMate(conns=mopals, object=loadings,
+                                   sourcename='FD', async=T)
                     
                     ## centeredData for foldslef
                     invisible(lapply(names(mopals), function(opn) {
@@ -1433,7 +1430,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                                                              as.symbol),
                                                       querytables)
                                       )),
-                                      subset=.encode.arg(foldslef[[m]][[opn]]))),
+                                      subset=.encode.arg(foldslef[[m]][[opn]])
+                                      )),
                             async=T)
                     }))
                     

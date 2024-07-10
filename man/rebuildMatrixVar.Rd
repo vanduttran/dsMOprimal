@@ -15,6 +15,8 @@ rebuildMatrixVar(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1)
 
 \item{len3}{Third-order length of lists of matrix blocks.}
 
+\item{querytables}{Names to be assigned to the result.}
+
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
