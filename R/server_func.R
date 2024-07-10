@@ -132,7 +132,6 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     ## convert x to numeric matrix
     if (is.list(x) && !is.data.frame(x)) {
         y <- lapply(x, function(xx) apply(xx, c(1,2), as.numeric))
-        names(y) <- names(x)
     } else {
         y <- list(apply(x, c(1,2), as.numeric))
     }
@@ -152,12 +151,14 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     if (isTRUE(byColumn)) {
         invisible(lapply(y, function(yy) {
             lenuni <- apply(yy, 2, function(yc) length(unique(yc)))
-            if (min(lenuni)==1) stop(paste0("Constant variables: ", colnames(yy)[which(lenuni==1)]))
+            if (min(lenuni)==1) stop(paste0("Constant variables: ",
+                                            colnames(yy)[which(lenuni==1)]))
         }))
     } else {
         invisible(lapply(y, function(yy) {
             lenuni <- apply(yy, 1, function(yc) length(unique(yc)))
-            if (min(lenuni)==1) stop(paste0("Constant samples: ", rownames(yy)[which(lenuni==1)]))
+            if (min(lenuni)==1) stop(paste0("Constant samples: ",
+                                            rownames(yy)[which(lenuni==1)]))
         }))
     }
     ## check for missing values
@@ -900,31 +901,56 @@ crossAssignFunc <- function(conns, func, symbol) {
     tryCatch({
         ## center data
         if (is.null(querysubset)) {
-            datashield.assign(opals, "centeredData", 
-                              as.symbol(
-                                  paste0("center(list(", 
-                                         sapply(querytables, function(x)
-                                             paste(x, '=', x)) %>%
-                                             paste(collapse=", "),
-                                         "))")),
+            datashield.assign(opals,
+                              "centeredData",
+                              as.call(c(as.symbol("center"),
+                                        x=as.call(c(as.symbol("list"),
+                                                    setNames(
+                                                        lapply(querytables,
+                                                               as.symbol),
+                                                        querytables))))),
+                              # as.symbol(
+                              #     paste0("center(x=list(", 
+                              #            sapply(querytables, function(x)
+                              #                paste(x, '=', x)) %>%
+                              #                paste(., collapse=", "),
+                              #            "))")),
                               async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
             lapply(names(opals), function(opn) {
-                datashield.assign(opals[opn], "centeredData", 
-                                  as.call(list(as.symbol("center"),
-                                               x=as.symbol(querytables),
-                                               subset=.encode.arg(querysubset[[opn]]))),
-                                  async=T)
+                # datashield.assign(opals[opn], "centeredData", 
+                #                   as.call(list(as.symbol("center"),
+                #                                x=as.symbol(querytables),
+                #                                subset=.encode.arg(querysubset[[opn]]))),
+                #                   async=T)
+                datashield.assign(
+                    opals[opn],
+                    "centeredData",
+                    as.call(c(as.symbol("center"),
+                              x=as.call(c(as.symbol("list"),
+                                          setNames(
+                                              lapply(querytables,
+                                                     as.symbol),
+                                              querytables)
+                              )),
+                              subset=.encode.arg(querysubset[[opn]]))),
+                    async=T)
             })
         }
         
         ## number of samples
-        nsamples <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredData)'), async=T), function(x) x[[1]][1])
+        nsamples <- sapply(
+            datashield.aggregate(opals,
+                                 as.symbol('dsDim(centeredData)'),
+                                 async=T),
+            function(x) x[[1]][1])
         
         ## variables
-        variables <- datashield.aggregate(opals[1], as.symbol('colNames(centeredData)'), async=T)[[1]]
-
+        variables <- datashield.aggregate(opals[1],
+                                          as.symbol('colNames(centeredData)'),
+                                          async=T)[[1]]
+        
         ## compute X'X
         datashield.assign(opals, "crossProdSelf", 
                           as.call(list(as.symbol("crossProd"),
@@ -986,7 +1012,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         error=function(e) {
             print(paste0("COVARIATES PUSH PROCESS: ", e))
             return (paste0("COVARIATES PUSH PROCESS: ", e))
-        }) 
+        })
         #finally=datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T))
     }, error=function(e) {
         print(paste0("COVARIATES PROCESS: ", e))
@@ -994,12 +1020,12 @@ crossAssignFunc <- function(conns, func, symbol) {
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors()))
     })
-    if (!connRes) {
-        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
-        datashield.logout(opals)
-    }
-    gc(reset=F)
-    
+            if (!connRes) {
+                datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+                datashield.logout(opals)
+            }
+            gc(reset=F)
+            
     return (list(cov=rescov,
                  conns=opals))
 }
@@ -1255,9 +1281,12 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @import DSOpal DSI parallel bigmemory
 #' @importFrom graphics image
 #' @importFrom stats cor setNames
+#' @importFrom DSI datashield.logout
 #' @keywords internal
-.estimateR <- function(loginFD, logins, funcPreProc, querytables, mc.cores = 1,
-                       nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 = seq(0.001, 1, length = 5)) {
+.estimateR <- function(loginFD, logins, funcPreProc, querytables,
+                       mc.cores = 1, nfold = 5,
+                       grid1 = seq(0.001, 1, length = 5),
+                       grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
@@ -1287,33 +1316,82 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
     })
     
     tryCatch({
-        datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-        sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-        stopifnot(all(sizex==sizey))
+        ## center data
+        datashield.assign(opals,
+                          "centeredData",
+                          as.call(c(as.symbol("center"),
+                                    x=as.call(c(as.symbol("list"),
+                                                setNames(
+                                                    lapply(querytables,
+                                                           as.symbol),
+                                                    querytables)))
+                          )),
+                          async=T)
+        
+        # datashield.assign(opals, "centeredData", 
+        #                   as.symbol(
+        #                       paste0("center(list(", 
+        #                              sapply(querytables, function(x)
+        #                                  paste(x, '=', x)) %>%
+        #                                  paste(collapse=", "),
+        #                              "))")),
+        #                   async=T)
+        
+        ## number of samples
+        nsamples <- sapply(
+            datashield.aggregate(opals,
+                                 as.symbol('dsDim(centeredData)'),
+                                 async=T),
+            function(x) x[[1]][1])
+        if (is.null(names(nsamples))) names(nsamples) <- names(opals)
+        
+        ## variables
+        variables <- datashield.aggregate(opals[1],
+                                          as.symbol('colNames(centeredData)'),
+                                          async=T)[[1]]
         
         ## random Mfold partitions to leave out
-        names(sizex) <- names(opals)
-        foldspar <- split(unlist(lapply(names(opals), function(opn) {
-            paste(opn, 1:sizex[opn], sep="_")
-        }))[sample(1:sum(sizex))], rep(1:nfold, length = sum(sizex)))
+        foldspar <- split(
+            unlist(mclapply(names(opals),
+                            mc.cores=min(nNode, mc.cores),
+                            function(opn) {     
+                                paste(opn, 1:nsamples[opn], sep="_")
+                            }))[sample(1:sum(nsamples))], 
+            rep(1:nfold, length = sum(nsamples)))
         foldslef <- lapply(foldspar, function(fl) {
-            setNames(mclapply(names(opals), mc.cores=min(nNode, detectCores()), function(opn) {
-                sort(as.numeric(sub(fl[grep(opn, fl)], pattern=paste0(opn,"_"), replacement='')))
+            setNames(mclapply(names(opals),
+                              mc.cores=min(nNode, mc.cores),
+                              function(opn) {
+                                  fl[grep(opn, fl)] %>%
+                                      sub(.,
+                                          pattern=paste0(opn,"_"),
+                                          replacement='') %>%
+                                      as.numeric(.) %>%
+                                      sort(.)
             }), names(opals))
         })
         ## remaining individuals on each cohort
         foldsrem <- lapply(foldslef, function(fl) {
-            setNames(mclapply(names(opals), mc.cores=min(nNode, detectCores()), function(opn) {
-                setdiff(1:sizex[opn], fl[[opn]])
-            }), names(opals))
+            setNames(mclapply(names(opals),
+                              mc.cores=min(nNode, mc.cores),
+                              function(opn) {
+                                  setdiff(1:nsamples[opn], fl[[opn]])
+                              }), names(opals))
         })
         grid <- expand.grid(grid1, grid2)
         cv.score <- apply(grid, 1, function(lambda) {
             xscore <- NULL
             yscore <- NULL
             for (m in 1:nfold) {
+                ## compute covariance matrices for the virtual cohort
+                fedCov <- .federateCov(loginFD, logins, funcPreProc,
+                                       querytables, querysubset=foldsrem[[m]],
+                                       pair=T, chunk=chunk, mc.cores=mc.cores,
+                                       connRes=T)
+                Cxx <- fedCov$cov[[1]]
+                Cyy <- fedCov$cov[[2]]
+                Cxy <- fedCov$cov[[3]]
+                
                 ## covariance matrices for the virtual cohort
                 Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X", mc.cores = mc.cores)
                 Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y", mc.cores = mc.cores)
@@ -1329,14 +1407,14 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                 rownames(res$ycoef) <- rownames(Cyy)
                 ## tuning scores
                 lapply(names(opals), function(opn) {
-                    DSI::datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    DSI::datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
                 })
-                cvx <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                                     as.symbol("centeredDataxm"),
                                                                                     .encode.arg(res$xcoef[,1,drop=F]),
                                                                                     "prod")), async=T))
-                cvy <- do.call(rbind, DSI::datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
                                                                                     as.symbol("centeredDataym"),
                                                                                     .encode.arg(res$ycoef[,1,drop=F]),
                                                                                     "prod")), async=T))
@@ -1345,7 +1423,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
             }
             return (cor(xscore, yscore, use = "pairwise"))
         })
-    }, finally=DSI::datashield.logout(opals))
+    }, finally=datashield.logout(opals))
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
     plot <- FALSE
@@ -1518,56 +1596,54 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 colnames(cpsi) <- paste0("Comp.", 1:ncomp)
                 return (cpsi)
             })
-            names(cps) <- querytables
+            names(cps) <- c("xcoef", "ycoef")
             return (cps)
         })
         gc()
-        for (qtabi in querytables) {
-            pcaObjs[[qtabi]]$scores <- do.call(rbind,
-                                               lapply(scoresLoc, function(sl) sl[[qtabi]]))
-        }
+        cvx <- scoresLoc[[1]]$xcoef
+        cvy <- scoresLoc[[1]]$ycoef
     }, error=function(e) {
-        print(paste0("LOADINGS MAKING PROCESS: ", e))
-        return (paste0("LOADINGS MAKING PROCESS: ", e))
+        print(paste0("COVARIATES MAKING PROCESS: ", e))
+        return (paste0("COVARIATES MAKING PROCESS: ", e))
     }, finally={
         datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     })
     
-    tryCatch({
-        #datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-        #datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-        #sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-        #sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-        #stopifnot(all(sizex==sizey))
-        ## assuming rownames of all blocks match to each other
-        sampleNames <- datashield.aggregate(
-            opals,
-            as.symbol('rowNames(centeredData)'),
-            async=T)
-        sampleNames <- unlist(lapply(names(sampleNames), function(x)
-            paste0(x, "_", sampleNames[[x]][[1]])), use.names=F)
-        res$names <- list(Xnames=rownames(Cxx),
-                          Ynames=rownames(Cyy),
-                          ind.names=sampleNames)
-        ## canonical covariates
-        
-        cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                       as.symbol("centeredDatax"),
-                                                                       .encode.arg(res$xcoef),
-                                                                       "prod")), async=T))
-        cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                       as.symbol("centeredDatay"),
-                                                                       .encode.arg(res$ycoef),
-                                                                       "prod")), async=T))
-    }, error=function(e) print(paste0("COVARIATES PROCESS: ", e)), finally=DSI::datashield.logout(opals))
+    # tryCatch({
+    #     #datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
+    #     #datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
+    #     #sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
+    #     #sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
+    #     #stopifnot(all(sizex==sizey))
+    #     ## assuming rownames of all blocks match to each other
+    #     sampleNames <- datashield.aggregate(
+    #         opals,
+    #         as.symbol('rowNames(centeredData)'),
+    #         async=T)
+    #     sampleNames <- unlist(lapply(names(sampleNames), function(x)
+    #         paste0(x, "_", sampleNames[[x]][[1]])), use.names=F)
+    #     res$names <- list(Xnames=rownames(Cxx),
+    #                       Ynames=rownames(Cyy),
+    #                       ind.names=sampleNames)
+    #     ## canonical covariates
+    #     
+    #     cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+    #                                                                    as.symbol("centeredDatax"),
+    #                                                                    .encode.arg(res$xcoef),
+    #                                                                    "prod")), async=T))
+    #     cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+    #                                                                    as.symbol("centeredDatay"),
+    #                                                                    .encode.arg(res$ycoef),
+    #                                                                    "prod")), async=T))
+    # }, error=function(e) print(paste0("COVARIATES PROCESS: ", e)), finally=DSI::datashield.logout(opals))
     
     ## loadings: correlation between raw data and canonical covariates
     ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
-    invdiagcovx <- diag(1/sqrt(diag(Cxx)))
-    invdiagcovy <- diag(1/sqrt(diag(Cyy)))
-    invdiagcovcvx <- diag(1/sqrt(diag(cov(cvx))))
-    invdiagcovcvy <- diag(1/sqrt(diag(cov(cvy))))
+    invdiagcovx <- diag(1/sqrt(diag(Cxx)), nrow=nrow(Cxx), ncol=ncol(Cxx))
+    invdiagcovy <- diag(1/sqrt(diag(Cyy)), nrow=nrow(Cyy), ncol=ncol(Cyy))
+    invdiagcovcvx <- diag(1/sqrt(diag(cov(cvx))), nrow=ncomp, ncol=ncomp)
+    invdiagcovcvy <- diag(1/sqrt(diag(cov(cvy))), nrow=ncomp, ncol=ncomp)
     # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
@@ -1576,7 +1652,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (xx[[1]])
     # }))
-    xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
+    #xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
+    xxscores <- crossprod(t(crossprod(invdiagcovx, Cxx)), tcrossprod(res$xcoef, invdiagcovcvx))
     # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatay"),
@@ -1585,7 +1662,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (yx[[1]])
     # }))
-    yxscores <- invdiagcovy %*% t(Cxy) %*% res$xcoef %*% invdiagcovcvx
+    #yxscores <- invdiagcovy %*% t(Cxy) %*% res$xcoef %*% invdiagcovcvx
+    yxscores <- crossprod(t(tcrossprod(invdiagcovy, Cxy)), tcrossprod(res$xcoef, invdiagcovcvx))
     # xyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
@@ -1594,7 +1672,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (xy[[1]])
     # }))
-    xyscores <- invdiagcovx %*% Cxy %*% res$ycoef %*% invdiagcovcvy
+    #xyscores <- invdiagcovx %*% Cxy %*% res$ycoef %*% invdiagcovcvy
+    xyscores <- crossprod(t(crossprod(invdiagcovx, Cxy)), tcrossprod(res$ycoef, invdiagcovcvy))
     # yyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatay"),
@@ -1603,7 +1682,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (yy[[1]])
     # }))
-    yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
+    #yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
+    yyscores <- crossprod(t(crossprod(invdiagcovy, Cyy)), tcrossprod(res$ycoef, invdiagcovcvy))
     
     res$scores <- list(xscores=cvx,
                        yscores=cvy,

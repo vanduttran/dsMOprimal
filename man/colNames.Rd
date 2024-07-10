@@ -7,7 +7,7 @@
 colNames(x)
 }
 \arguments{
-\item{x}{A matrix, a data frame, or a list of matrices or data frames}
+\item{x}{A matrix, a data frame, or a list of matrices or data frames.}
 }
 \value{
 Column names of x

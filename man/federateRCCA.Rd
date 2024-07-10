@@ -9,6 +9,7 @@ federateRCCA(
   logins,
   func,
   symbol,
+  ncomp = 2,
   lambda1 = 0,
   lambda2 = 0,
   chunk = 500,
