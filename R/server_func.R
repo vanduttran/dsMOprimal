@@ -1328,15 +1328,6 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                           )),
                           async=T)
         
-        # datashield.assign(opals, "centeredData", 
-        #                   as.symbol(
-        #                       paste0("center(list(", 
-        #                              sapply(querytables, function(x)
-        #                                  paste(x, '=', x)) %>%
-        #                                  paste(collapse=", "),
-        #                              "))")),
-        #                   async=T)
-        
         ## number of samples
         nsamples <- sapply(
             datashield.aggregate(opals,
@@ -1392,48 +1383,130 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
                 Cyy <- fedCov$cov[[2]]
                 Cxy <- fedCov$cov[[3]]
                 
-                ## covariance matrices for the virtual cohort
-                Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="X", mc.cores = mc.cores)
-                Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="Y", mc.cores = mc.cores)
-                Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, querysubset=foldsrem[[m]], covSpace="XY", mc.cores = mc.cores)
-                
                 ## add parameters of regularization
-                Cxx <- Cxx + diag(lambda[1], ncol(Cxx))
-                Cyy <- Cyy + diag(lambda[2], ncol(Cyy))
+                Cxx <- Cxx + diag(lambda[1], nrow=nrow(Cxx), ncol=ncol(Cxx))
+                Cyy <- Cyy + diag(lambda[2], nrow=nrow(Cyy), ncol=ncol(Cyy))
+                
                 ## CCA core call
-                res <- fda::geigen(Cxy, Cxx, Cyy)
+                res <- geigen(Cxy, Cxx, Cyy)
                 names(res) <- c("cor", "xcoef", "ycoef")
+                ncomp <- 1
+                res$xcoef <- res$xcoef[, 1:ncomp, drop=F]
+                res$ycoef <- res$ycoef[, 1:ncomp, drop=F]
                 rownames(res$xcoef) <- rownames(Cxx)
                 rownames(res$ycoef) <- rownames(Cyy)
-                ## tuning scores
-                lapply(names(opals), function(opn) {
-                    datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                colnames(res$xcoef) <- colnames(res$ycoef) <- paste0("Comp.", 1:ncomp)
+                
+                ## rcca coefs
+                loadings <- mclapply(
+                    res[c("xcoef", "ycoef")],
+                    mc.cores=mc.cores,
+                    function(ccacoef) {
+                        xx <- t(ccacoef)
+                        nblockscol <- ceiling(ncol(xx)/chunk)
+                        sepblockscol <- rep(ceiling(ncol(xx)/nblockscol),
+                                            nblockscol-1)
+                        sepblockscol <- c(sepblockscol,
+                                          ncol(xx) - sum(sepblockscol))
+                        tcpblocks <- .partitionMatrix(xx,
+                                                      seprow=ncomp,
+                                                      sepcol=sepblockscol)
+                        return (lapply(tcpblocks, function(tcpb) {
+                            return (lapply(tcpb, function(tcp) {
+                                return (.encode.arg(write_to_raw(tcp)))
+                            }))
+                        }))
+                    })
+                
+                ## send coefs back to non-FD servers
+                tryCatch({
+                    mopals <- fedCov$conns
+                    .pushToDscMate(conns=mopals, object=loadings, sourcename='FD', async=T)
+                    
+                    ## centeredData for foldslef
+                    invisible(lapply(names(mopals), function(opn) {
+                        datashield.assign(
+                            mopals[opn],
+                            "centeredDatam",
+                            as.call(c(as.symbol("center"),
+                                      x=as.call(c(as.symbol("list"),
+                                                  setNames(
+                                                      lapply(querytables,
+                                                             as.symbol),
+                                                      querytables)
+                                      )),
+                                      subset=.encode.arg(foldslef[[m]][[opn]]))),
+                            async=T)
+                    }))
+                    
+                    # ## tuning scores
+                    # lapply(names(opals), function(opn) {
+                    #     datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    #     datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
+                    # })
+                    # cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                    #                                                                as.symbol("centeredDataxm"),
+                    #                                                                .encode.arg(res$xcoef[,1,drop=F]),
+                    #                                                                "prod")), async=T))
+                    # cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
+                    #                                                                as.symbol("centeredDataym"),
+                    #                                                                .encode.arg(res$ycoef[,1,drop=F]),
+                    #                                                                "prod")), async=T))
+                    
+                    ## compute X*loadings_FD'
+                    datashield.assign(mopals, "scores", 
+                                      as.call(list(as.symbol("tcrossProd"),
+                                                   x=as.symbol("centeredDatam"),
+                                                   y=as.symbol("pushed_FD"),
+                                                   chunk=chunk)),
+                                      async=T)
+                    
+                    command <- list(as.symbol("pushToDscFD"),
+                                    as.symbol("FD"),
+                                    as.symbol('scores'),
+                                    async=T)
+                    cat("Command: pushToDscFD(FD, 'scores')", "\n")
+                    scoresDSC <- datashield.aggregate(mopals, as.call(command), async=T)
+                    .printTime(paste0("scores communicated to FD: "))
+                    
+                    scoresLoc <- lapply(scoresDSC, function(dscblocks) {
+                        cps <- lapply(dscblocks, function(dscblocki) {
+                            cpsi <- .rebuildMatrixDsc(dscblocki, mc.cores=mc.cores)
+                            colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                            return (cpsi)
+                        })
+                        names(cps) <- c("xcoef", "ycoef")
+                        return (cps)
+                    })
+                    gc()
+                    cvx <- scoresLoc[[1]]$xcoef
+                    cvy <- scoresLoc[[1]]$ycoef
+                }, error=function(e) {
+                    print(paste0("COVARIATES MAKING PROCESS: ", e))
+                    return (paste0("COVARIATES MAKING PROCESS: ", e))
+                }, finally={
+                    datashield.assign(mopals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+                    datashield.logout(mopals)
                 })
-                cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                                    as.symbol("centeredDataxm"),
-                                                                                    .encode.arg(res$xcoef[,1,drop=F]),
-                                                                                    "prod")), async=T))
-                cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                                                                                    as.symbol("centeredDataym"),
-                                                                                    .encode.arg(res$ycoef[,1,drop=F]),
-                                                                                    "prod")), async=T))
+                
                 xscore <- c(xscore, cvx)
                 yscore <- c(yscore, cvy)
             }
             return (cor(xscore, yscore, use = "pairwise"))
         })
     }, finally=datashield.logout(opals))
+    
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
-    plot <- FALSE
-    if (isTRUE(plot)) image(list(grid1 = grid1, grid2 = grid2, mat = mat))
+    #plot <- FALSE
+    #if (isTRUE(plot))
+    #    image(list(grid1 = grid1, grid2 = grid2, mat = mat))
     opt <- cv.score.grid[which.max(cv.score.grid[,3]), ]
-    out <- list(opt.lambda1 = opt[[1]], 
-                opt.lambda2 = opt[[2]], 
+    out <- list(opt.lambda1 = opt[[1]],
+                opt.lambda2 = opt[[2]],
                 opt.score   = opt[[3]],
-                grid1       = grid1, 
-                grid2       = grid2, 
+                grid1       = grid1,
+                grid2       = grid2,
                 mat         = mat)
     out$call <- match.call()
     class(out) <- "estimateR"
@@ -1476,11 +1549,13 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' }
 #' @export
 federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
-                         lambda1 = 0, lambda2 = 0, chunk = 500, mc.cores = 1,
+                         lambda1 = 0, lambda2 = 0,
+                         chunk = 500, mc.cores = 1,
                          tune = FALSE, 
-                         tune_param = .encode.arg(list(nfold = 5, 
-                                                       grid1 = seq(0.001, 1, length = 5), 
-                                                       grid2 = seq(0.001, 1, length = 5)))) {
+                         tune_param = .encode.arg(list(
+                             nfold = 5, 
+                             grid1 = seq(0.001, 1, length = 5), 
+                             grid2 = seq(0.001, 1, length = 5)))) {
     #require(DSOpal)
     .printTime("federateRCCA started")
     if (ncomp < 2) {
@@ -1516,8 +1591,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk=chunk, mc.cores=mc.cores)
 
     ## add parameters of regularization
-    Cxx <- Cxx + diag(lambda1, ncol(Cxx))
-    Cyy <- Cyy + diag(lambda2, ncol(Cyy))
+    Cxx <- Cxx + diag(lambda1, nrow=nrow(Cxx), ncol=ncol(Cxx))
+    Cyy <- Cyy + diag(lambda2, nrow=nrow(Cyy), ncol=ncol(Cyy))
     
     ## CCA core call
     res <- geigen(Cxy, Cxx, Cyy)
