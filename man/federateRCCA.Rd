@@ -32,18 +32,20 @@ symbol (names of the two R symbols) (see datashield.assign).}
 The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
 Other assigned R variables in \code{func} are ignored.}
 
+\item{ncomp}{Number of components (covariates). Default, 2.}
+
 \item{lambda1}{Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.}
 
 \item{lambda2}{Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.}
 
-\item{chunk}{Size of chunks into what the SSCP matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the SSCP matrix is partitioned. Default, 500.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
 \item{tune}{Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.}
 
-\item{tune_param}{Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
-\code{grid2} checking values for \code{lambda2}.}
+\item{tune_param}{Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} tuning values for \code{lambda1}.
+\code{grid2} tuning values for \code{lambda2}.}
 }
 \value{
 RCCA object

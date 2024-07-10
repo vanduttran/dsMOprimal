@@ -1264,19 +1264,17 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @description Estimate optimized parameters of regulation lambda1 and lambda2
 #' @param loginFD Login information of the FD server (one of the servers containing cohort data).
 #' @param logins Login information of servers containing cohort data.
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections), 
-#' symbol (names of the two R symbols) (see datashield.assign).
-#' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
-#' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
+#' @param funcPreProc Definition of a function for preparation of raw data matrices. 
+#' Two arguments are required: conns (list of Opal connections),
+#' symbol (name of the R symbol) (see datashield.assign).
+#' @param querytables Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
 #' Other assigned R variables in \code{func} are ignored.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @param lambda1 Regularized parameter value for first data set. Default, 0.
-#' @param lambda2 Regularized parameter value for second data set. Default, 0.
-#' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
-#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. 
-#' @param grid1 Checking values for \code{lambda1}.
-#' @param grid2 Checking values for \code{lambda2}.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param nfold n-fold cross-validation. Default, 5.
+#' @param grid1 Tuning values for \code{lambda1}.
+#' @param grid2 Tuning values for \code{lambda2}.
 #' @returns Optimal values of \code{lambda1} and \code{lambda2}.
 #' @import DSOpal DSI parallel bigmemory
 #' @importFrom graphics image
@@ -1284,7 +1282,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @importFrom DSI datashield.logout
 #' @keywords internal
 .estimateR <- function(loginFD, logins, funcPreProc, querytables,
-                       mc.cores = 1, nfold = 5,
+                       chunk = 500, mc.cores = 1, nfold = 5,
                        grid1 = seq(0.001, 1, length = 5),
                        grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
@@ -1524,13 +1522,14 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2, chunk = 500, m
 #' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
 #' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
 #' Other assigned R variables in \code{func} are ignored.
+#' @param ncomp Number of components (covariates). Default, 2.
 #' @param lambda1 Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.
 #' @param lambda2 Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.
-#' @param chunk Size of chunks into what the SSCP matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @param chunk Size of chunks into what the SSCP matrix is partitioned. Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
-#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} checking values for \code{lambda1}.
-#' \code{grid2} checking values for \code{lambda2}.
+#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} tuning values for \code{lambda1}.
+#' \code{grid2} tuning values for \code{lambda2}.
 #' @returns RCCA object
 #' @import DSOpal bigmemory
 #' @importFrom fda geigen
@@ -1585,11 +1584,6 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     Cyy <- fedCov$cov[[2]]
     Cxy <- fedCov$cov[[3]]
     
-    ## covariance matrices for the virtual cohort
-    #Cxx <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="X", chunk=chunk, mc.cores=mc.cores)
-    #Cyy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="Y", chunk=chunk, mc.cores=mc.cores)
-    #Cxy <- .federateCov(loginFD, logins, funcPreProc, querytables, covSpace="XY", chunk=chunk, mc.cores=mc.cores)
-
     ## add parameters of regularization
     Cxx <- Cxx + diag(lambda1, nrow=nrow(Cxx), ncol=ncol(Cxx))
     Cyy <- Cyy + diag(lambda2, nrow=nrow(Cyy), ncol=ncol(Cyy))
@@ -1604,32 +1598,6 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     colnames(res$xcoef) <- colnames(res$ycoef) <- paste0("Comp.", 1:ncomp)
     res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
-    ## assign centered data on each individual server
-    ## NB: this block only works with some call a priori, e.g. .federateCov, or with require(DSOpal) !!!
-    # opals <- .login(logins=.decode.arg(logins)) #datashield.login(logins=.decode.arg(logins))
-    # nNode <- length(opals)
-    # 
-    # tryCatch({
-    #     ## take a snapshot of the current session
-    #     safe.objs <- .ls.all()
-    #     safe.objs[['.GlobalEnv']] <- setdiff(safe.objs[['.GlobalEnv']], '.Random.seed')  # leave alone .Random.seed for sample()
-    #     ## lock everything so no objects can be changed
-    #     .lock.unlock(safe.objs, lockBinding)
-    #     
-    #     ## apply funcPreProc for preparation of querytables on opals
-    #     ## TODO: control hacking!
-    #     ## TODO: control identical colnames!
-    #     funcPreProc(conns=opals, symbol=querytables)
-    #     
-    #     ## unlock back everything
-    #     .lock.unlock(safe.objs, unlockBinding)
-    #     ## get rid of any sneaky objects that might have been created in the filters as side effects
-    #     .cleanup(safe.objs)
-    # }, error=function(e) {
-    #     print(paste0("DATA MAKING PROCESS: ", e))
-    #     datashield.logout(opals)
-    # })
-     
     ## rcca coefs
     loadings <- mclapply(res[c("xcoef", "ycoef")], mc.cores=mc.cores, function(ccacoef) {
         xx <- t(ccacoef)
@@ -1681,44 +1649,18 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         print(paste0("COVARIATES MAKING PROCESS: ", e))
         return (paste0("COVARIATES MAKING PROCESS: ", e))
     }, finally={
-        datashield.assign(opals, 'crossEnd', as.symbol("crossLogout(FD)"), async=T)
+        datashield.assign(opals, 'crossEnd',
+                          as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     })
     
-    # tryCatch({
-    #     #datashield.assign(opals, "centeredDatax", as.symbol(paste0('center(', querytables[1], ')')), async=T)
-    #     #datashield.assign(opals, "centeredDatay", as.symbol(paste0('center(', querytables[2], ')')), async=T)
-    #     #sizex <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatax)'), async=T), function(x) x[1])
-    #     #sizey <- sapply(datashield.aggregate(opals, as.symbol('dsDim(centeredDatay)'), async=T), function(x) x[1])
-    #     #stopifnot(all(sizex==sizey))
-    #     ## assuming rownames of all blocks match to each other
-    #     sampleNames <- datashield.aggregate(
-    #         opals,
-    #         as.symbol('rowNames(centeredData)'),
-    #         async=T)
-    #     sampleNames <- unlist(lapply(names(sampleNames), function(x)
-    #         paste0(x, "_", sampleNames[[x]][[1]])), use.names=F)
-    #     res$names <- list(Xnames=rownames(Cxx),
-    #                       Ynames=rownames(Cyy),
-    #                       ind.names=sampleNames)
-    #     ## canonical covariates
-    #     
-    #     cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-    #                                                                    as.symbol("centeredDatax"),
-    #                                                                    .encode.arg(res$xcoef),
-    #                                                                    "prod")), async=T))
-    #     cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-    #                                                                    as.symbol("centeredDatay"),
-    #                                                                    .encode.arg(res$ycoef),
-    #                                                                    "prod")), async=T))
-    # }, error=function(e) print(paste0("COVARIATES PROCESS: ", e)), finally=DSI::datashield.logout(opals))
-    
-    ## loadings: correlation between raw data and canonical covariates
+    ## correlation between raw data and canonical covariates
     ## formula: cor(a,b) = diag(1/sqrt(diag(cov(a)))) %*% cov(a,b) %*% diag(1/sqrt(diag(cov(b))))
     invdiagcovx <- diag(1/sqrt(diag(Cxx)), nrow=nrow(Cxx), ncol=ncol(Cxx))
     invdiagcovy <- diag(1/sqrt(diag(Cyy)), nrow=nrow(Cyy), ncol=ncol(Cyy))
     invdiagcovcvx <- diag(1/sqrt(diag(cov(cvx))), nrow=ncomp, ncol=ncomp)
     invdiagcovcvy <- diag(1/sqrt(diag(cov(cvy))), nrow=ncomp, ncol=ncomp)
+    
     # xxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
@@ -1728,7 +1670,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #     return (xx[[1]])
     # }))
     #xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
-    xxscores <- crossprod(t(crossprod(invdiagcovx, Cxx)), tcrossprod(res$xcoef, invdiagcovcvx))
+    xxscores <- crossprod(t(crossprod(invdiagcovx, Cxx)),
+                          tcrossprod(res$xcoef, invdiagcovcvx))
+    
     # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatay"),
@@ -1738,7 +1682,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #     return (yx[[1]])
     # }))
     #yxscores <- invdiagcovy %*% t(Cxy) %*% res$xcoef %*% invdiagcovcvx
-    yxscores <- crossprod(t(tcrossprod(invdiagcovy, Cxy)), tcrossprod(res$xcoef, invdiagcovcvx))
+    yxscores <- crossprod(t(tcrossprod(invdiagcovy, Cxy)),
+                          tcrossprod(res$xcoef, invdiagcovcvx))
+    
     # xyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatax"),
@@ -1748,7 +1694,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #     return (xy[[1]])
     # }))
     #xyscores <- invdiagcovx %*% Cxy %*% res$ycoef %*% invdiagcovcvy
-    xyscores <- crossprod(t(crossprod(invdiagcovx, Cxy)), tcrossprod(res$ycoef, invdiagcovcvy))
+    xyscores <- crossprod(t(crossprod(invdiagcovx, Cxy)),
+                          tcrossprod(res$ycoef, invdiagcovcvy))
+    
     # yyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
     #                                                         as.symbol("centeredDatay"),
@@ -1758,7 +1706,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #     return (yy[[1]])
     # }))
     #yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
-    yyscores <- crossprod(t(crossprod(invdiagcovy, Cyy)), tcrossprod(res$ycoef, invdiagcovcvy))
+    yyscores <- crossprod(t(crossprod(invdiagcovy, Cyy)),
+                          tcrossprod(res$ycoef, invdiagcovcvy))
     
     res$scores <- list(xscores=cvx,
                        yscores=cvy,

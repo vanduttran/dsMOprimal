@@ -9,6 +9,7 @@
   logins,
   funcPreProc,
   querytables,
+  chunk = 500,
   mc.cores = 1,
   nfold = 5,
   grid1 = seq(0.001, 1, length = 5),
@@ -20,27 +21,23 @@
 
 \item{logins}{Login information of servers containing cohort data.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{funcPreProc}{Definition of a function for preparation of raw data matrices. 
+Two arguments are required: conns (list of Opal connections),
+symbol (name of the R symbol) (see datashield.assign).}
 
-\item{grid1}{Checking values for \code{lambda1}.}
-
-\item{grid2}{Checking values for \code{lambda2}.}
-
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of Opal connections), 
-symbol (names of the two R symbols) (see datashield.assign).}
-
-\item{symbol}{Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
-The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
+\item{querytables}{Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
+The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
 Other assigned R variables in \code{func} are ignored.}
 
-\item{lambda1}{Regularized parameter value for first data set. Default, 0.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
 
-\item{lambda2}{Regularized parameter value for second data set. Default, 0.}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{tune}{Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.}
+\item{nfold}{n-fold cross-validation. Default, 5.}
 
-\item{tune_param}{Tuning parameters. \code{nfold} n-fold cross-validation.}
+\item{grid1}{Tuning values for \code{lambda1}.}
+
+\item{grid2}{Tuning values for \code{lambda2}.}
 }
 \value{
 Optimal values of \code{lambda1} and \code{lambda2}.
