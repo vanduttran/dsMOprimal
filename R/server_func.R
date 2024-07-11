@@ -1134,8 +1134,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         })
         gc()
         for (qtabi in querytables) {
-            pcaObjs[[qtabi]]$scores <- do.call(rbind,
-                                               lapply(scoresLoc, function(sl) sl[[qtabi]]))
+            pcaObjs[[qtabi]]$scores <- do.call(
+                rbind,
+                lapply(scoresLoc, function(sl) sl[[qtabi]])
+            )
         }
     }, error=function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))
