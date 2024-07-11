@@ -11,7 +11,7 @@ dscPush(conns, expr, async = T)
 
 \item{expr}{An encoded expression to evaluate.}
 
-\item{async}{See DSI::datashield.aggregate options. Default: TRUE.}
+\item{async}{See DSI::datashield.aggregate options. Default, TRUE.}
 }
 \value{
 Returned value of given expression on opal

@@ -58,7 +58,7 @@
 #' @description This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server
 #' @param logins A data frame of login information. See \code{datashield.login}
 #' @return Object(s) of class DSConnection
-#' @import DSI
+#' @importFrom DSI datashield.login datashield.logout
 #' @keywords internal
 .login <- function(logins) {
     opals <- list()

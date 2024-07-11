@@ -17,9 +17,11 @@ mapColor(
 \arguments{
 \item{x}{A factor or a numeric vector}
 
-\item{range.min}{Global minimum of x, including other nodes. Default: \code{min(x)}.}
+\item{range.min}{Global minimum of x, including other nodes.
+Default, \code{min(x)}.}
 
-\item{range.max}{Global maximum of x, including other nodes. Default: \code{max(x)}.}
+\item{range.max}{Global maximum of x, including other nodes.
+Default, \code{max(x)}.}
 
 \item{levels}{Encoded value of a character vector indicating the global levels of x, when x is a factor. Default: \code{.encode.arg(levels(x))}.}
 

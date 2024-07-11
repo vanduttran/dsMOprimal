@@ -7,11 +7,12 @@
 tcrossProd(x, y = NULL, chunk = 500)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A list of numeric matrices.}
 
 \item{y}{A list of numeric matrices. Default, NULL, y = x.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 }
 \value{
 \code{x \%*\% t(y)}
