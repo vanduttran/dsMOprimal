@@ -13,12 +13,14 @@ dsDim <- function(x) {
 
 #' @title Range of a variable in a data frame
 #' @description Return random approximated range of a numeric variable in a data frame
-#' @param x A variable of a data frame in form of 'data.frame$variable'
+#' @param x A variable of a data frame in form of 'data.frame$variable'.
 #' @returns Approximate range of x
 #' @importFrom stats runif
 #' @export
 dsRange <- function(x) {
-    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
+    if (!grepl("$", deparse(substitute(x))))
+        stop("x should be a variable of a data frame in form of
+             'data.frame$variable'.")
     rx <- range(x)
     drx <- diff(rx)
     range.min <- rx[1] - drx*runif(1, 1e-2, 1)/100
@@ -29,11 +31,13 @@ dsRange <- function(x) {
 
 #' @title Factor coercion
 #' @description Factor coercion of a categorical variable in a data frame
-#' @param x A variable of a data frame in form of 'data.frame$variable'
+#' @param x A variable of a data frame in form of 'data.frame$variable'.
 #' @returns An object of class \code{factor}
 #' @export
 dsFactor <- function(x) {
-    if (!grepl("$", deparse(substitute(x)))) stop("x should be a variable of a data frame in form of 'data.frame$variable'.")
+    if (!grepl("$", deparse(substitute(x))))
+        stop("x should be a variable of a data frame in form
+             of 'data.frame$variable'.")
     return (as.factor(x))
 }
 
@@ -78,8 +82,10 @@ setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
 #' @export
 setRowNames <- function(x, row.names) {
     rn <- .decode.arg(row.names)
-    if (nrow(x) != length(rn)) stop("Cannot assign row.names of length different from nrow(x).")
-    if (any(duplicated(rn))) stop("Repeated rownames.")
+    if (nrow(x) != length(rn))
+        stop("Cannot assign row.names of length different from nrow(x).")
+    if (any(duplicated(rn)))
+        stop("Repeated rownames.")
     rownames(x) <- rn
     return (x)
 }
@@ -138,9 +144,11 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     rn <- lapply(y, rownames)
     cn <- lapply(y, colnames)
     if (min(lengths(rn))==0 || min(lengths(cn))==0)
-        stop("Input data should have column (variable) names and row (sample) names.")
+        stop("Input data should have column (variable)
+             names and row (sample) names.")
     if (min(lengths(rn)) < 3 || min(lengths(cn)) < 3)
-        stop("Input data should have at least 3 columns (variables) and 3 rows (samples).")
+        stop("Input data should have at least 3 columns (variables) and
+             3 rows (samples).")
     if (min(lengths(rn))!=max(lengths(rn)))
         stop("Input data should have the same number of rows (samples).")
     if (max(apply(do.call(cbind, rn), 1, function(rni) length(unique(rni)))) > 1)
@@ -385,7 +393,9 @@ tcrossProdRm <- function(x, y = NULL, chunk = 500) {
     } else {
         # TOIMPROVE: control distribution of each element of y for security
         etcpblocks <- lapply(y, function(yy) {
-            tcpblocks <- .partitionMatrix(tcrossprod(x, yy), seprow=sepblocksrow, sepcol=1)
+            tcpblocks <- .partitionMatrix(tcrossprod(x, yy),
+                                          seprow=sepblocksrow,
+                                          sepcol=1)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     #tcpbin <- writeBin(as.vector(tcp), raw())
@@ -1147,7 +1157,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     })
-    
+    class(pcaObjs) <- "federatePCA"
     return (pcaObjs)
 }
 
@@ -1175,7 +1185,8 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' @importFrom arrow write_to_raw
 #' @keywords internal
 .estimateR <- function(loginFD, logins, funcPreProc, querytables,
-                       chunk = 500, mc.cores = 1, nfold = 5,
+                       chunk = 500, mc.cores = 1,
+                       nfold = 5,
                        grid1 = seq(0.001, 1, length = 5),
                        grid2 = seq(0.001, 1, length = 5)) {
     stopifnot(length(querytables) == 2)
@@ -1210,6 +1221,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         datashield.logout(opals)
     })
     
+    ## tuning with nfold
     tryCatch({
         ## center data
         datashield.assign(opals,
@@ -1311,9 +1323,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         }))
                     })
                 
-                ## send coefs back to non-FD servers
+                ## compute scores on foldslef[[m]]
                 tryCatch({
                     mopals <- fedCov$conns
+                    ## send coefs back to non-FD servers
                     .pushToDscMate(conns=mopals, object=loadings,
                                    sourcename='FD', async=T)
                     
@@ -1334,21 +1347,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                             async=T)
                     }))
                     
-                    # ## tuning scores
-                    # lapply(names(opals), function(opn) {
-                    #     datashield.assign(opals[opn], "centeredDataxm", as.symbol(paste0("center(", querytables[1], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    #     datashield.assign(opals[opn], "centeredDataym", as.symbol(paste0("center(", querytables[2], ", subset='", .encode.arg(foldslef[[m]][[opn]]), "')")), async=T)
-                    # })
-                    # cvx <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                    #                                                                as.symbol("centeredDataxm"),
-                    #                                                                .encode.arg(res$xcoef[,1,drop=F]),
-                    #                                                                "prod")), async=T))
-                    # cvy <- do.call(rbind, datashield.aggregate(opals, as.call(list(as.symbol("loadings"),
-                    #                                                                as.symbol("centeredDataym"),
-                    #                                                                .encode.arg(res$ycoef[,1,drop=F]),
-                    #                                                                "prod")), async=T))
-                    
-                    ## compute X*loadings_FD'
+                    ## compute X*coefs'
                     datashield.assign(mopals, "scores", 
                                       as.call(list(as.symbol("tcrossProd"),
                                                    x=as.symbol("centeredDatam"),
@@ -1376,8 +1375,11 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         return (cps)
                     })
                     gc()
-                    cvx <- scoresLoc[[1]]$xcoef
-                    cvy <- scoresLoc[[1]]$ycoef
+                    cvx <- do.call(rbind, lapply(scoresLoc, function(sl)
+                        sl$xcoef))
+                    cvy <- do.call(rbind, lapply(scoresLoc, function(sl)
+                        sl$ycoef))
+                    ## TODO: would rownames be necessary?
                 }, error=function(e) {
                     print(paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
                     return (paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
@@ -1470,8 +1472,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     if (isTRUE(tune)) {
         tune_param <- .decode.arg(tune_param)
         tuneres <- .estimateR(loginFD, logins, funcPreProc, querytables,
-                              mc.cores=mc.cores, nfold=tune_param$nfold,
-                              grid1=tune_param$grid1, grid2=tune_param$grid2)
+                              chunk=chunk, mc.cores=mc.cores,
+                              nfold=tune_param$nfold,
+                              grid1=tune_param$grid1,
+                              grid2=tune_param$grid2)
         lambda1 <- tuneres$opt.lambda1
         lambda2 <- tuneres$opt.lambda2
     }
@@ -1488,25 +1492,28 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     Cyy <- Cyy + diag(lambda2, nrow=nrow(Cyy), ncol=ncol(Cyy))
     
     ## CCA core call
-    res <- geigen(Cxy, Cxx, Cyy)
-    names(res) <- c("cor", "xcoef", "ycoef")
-    res$xcoef <- res$xcoef[, 1:ncomp, drop=F]
-    res$ycoef <- res$ycoef[, 1:ncomp, drop=F]
-    rownames(res$xcoef) <- rownames(Cxx)
-    rownames(res$ycoef) <- rownames(Cyy)
-    colnames(res$xcoef) <- colnames(res$ycoef) <- paste0("Comp.", 1:ncomp)
-    res$lambda <- list(lambda1=lambda1, lambda2=lambda2)
+    rccaObj <- geigen(Cxy, Cxx, Cyy)
+    names(rccaObj) <- c("cor", "xcoef", "ycoef")
+    rccaObj$xcoef <- rccaObj$xcoef[, 1:ncomp, drop=F]
+    rccaObj$ycoef <- rrccaObjes$ycoef[, 1:ncomp, drop=F]
+    rownames(rccaObj$xcoef) <- rownames(Cxx)
+    rownames(rccaObj$ycoef) <- rownames(Cyy)
+    colnames(rccaObj$xcoef) <- colnames(rccaObj$ycoef) <- 
+        paste0("Comp.", 1:ncomp)
+    rccaObj$lambda <- list(lambda1=lambda1, lambda2=lambda2)
 
     ## rcca coefs
     loadings <- mclapply(
-        res[c("xcoef", "ycoef")],
+        rccaObj[c("xcoef", "ycoef")],
         mc.cores=mc.cores,
         function(ccacoef) {
             xx <- t(ccacoef)
             nblockscol <- ceiling(ncol(xx)/chunk)
             sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
             sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
-            tcpblocks <- .partitionMatrix(xx, seprow=ncomp, sepcol=sepblockscol)
+            tcpblocks <- .partitionMatrix(xx,
+                                          seprow=ncomp,
+                                          sepcol=sepblockscol)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     return (.encode.arg(write_to_raw(tcp)))
@@ -1514,12 +1521,13 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
             }))
         })
     
-    ## send coefs back to non-FD servers
+    ## compute scores
     tryCatch({
         opals <- fedCov$conns
+        ## send coefs back to non-FD servers
         .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
-        ## compute X*loadings_FD'
+        ## compute X*coefs'
         datashield.assign(opals, "scores", 
                           as.call(list(as.symbol("tcrossProd"),
                                        x=as.symbol("centeredData"),
@@ -1545,8 +1553,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
             return (cps)
         })
         gc()
-        cvx <- scoresLoc[[1]]$xcoef
-        cvy <- scoresLoc[[1]]$ycoef
+        cvx <- do.call(rbind, lapply(scoresLoc, function(sl) sl$xcoef))
+        cvy <- do.call(rbind, lapply(scoresLoc, function(sl) sl$ycoef))
+        ## TODO: would rownames be necessary?
     }, error=function(e) {
         print(paste0("COEF PUSH PROCESS: ", e))
         return (paste0("COEF PUSH PROCESS: ", e))
@@ -1571,9 +1580,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (xx[[1]])
     # }))
-    #xxscores <- invdiagcovx %*% Cxx %*% res$xcoef %*% invdiagcovcvx
+    #xxscores <- invdiagcovx %*% Cxx %*% rccaObj$xcoef %*% invdiagcovcvx
     xxscores <- crossprod(t(crossprod(invdiagcovx, Cxx)),
-                          tcrossprod(res$xcoef, invdiagcovcvx))
+                          tcrossprod(rccaObj$xcoef, invdiagcovcvx))
     
     # yxscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yx <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
@@ -1583,9 +1592,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (yx[[1]])
     # }))
-    #yxscores <- invdiagcovy %*% t(Cxy) %*% res$xcoef %*% invdiagcovcvx
+    #yxscores <- invdiagcovy %*% t(Cxy) %*% rccaObj$xcoef %*% invdiagcovcvx
     yxscores <- crossprod(t(tcrossprod(invdiagcovy, Cxy)),
-                          tcrossprod(res$xcoef, invdiagcovcvx))
+                          tcrossprod(rccaObj$xcoef, invdiagcovcvx))
     
     # xyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     xy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
@@ -1595,9 +1604,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (xy[[1]])
     # }))
-    #xyscores <- invdiagcovx %*% Cxy %*% res$ycoef %*% invdiagcovcvy
+    #xyscores <- invdiagcovx %*% Cxy %*% rccaObj$ycoef %*% invdiagcovcvy
     xyscores <- crossprod(t(crossprod(invdiagcovx, Cxy)),
-                          tcrossprod(res$ycoef, invdiagcovcvy))
+                          tcrossprod(rccaObj$ycoef, invdiagcovcvy))
     
     # yyscores <- Reduce('+', lapply(names(opals), function(opn) {
     #     yy <- datashield.aggregate(opals[opn], as.call(list(as.symbol("loadings"),
@@ -1607,18 +1616,18 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     #                                async=T)
     #     return (yy[[1]])
     # }))
-    #yyscores <- invdiagcovy %*% Cyy %*% res$ycoef %*% invdiagcovcvy
+    #yyscores <- invdiagcovy %*% Cyy %*% rccaObj$ycoef %*% invdiagcovcvy
     yyscores <- crossprod(t(crossprod(invdiagcovy, Cyy)),
-                          tcrossprod(res$ycoef, invdiagcovcvy))
+                          tcrossprod(rccaObj$ycoef, invdiagcovcvy))
     
-    res$scores <- list(xscores=cvx,
+    rccaObj$scores <- list(xscores=cvx,
                        yscores=cvy,
                        corr.X.xscores=xxscores,
                        corr.Y.xscores=yxscores,
                        corr.X.yscores=xyscores,
                        corr.Y.yscores=yyscores)
-    
-    return (res)
+    class(rccaObj) <- "federateRCCA"
+    return (rccaObj)
 }
 
 

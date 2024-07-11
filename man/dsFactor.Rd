@@ -7,7 +7,7 @@
 dsFactor(x)
 }
 \arguments{
-\item{x}{A variable of a data frame in form of 'data.frame$variable'}
+\item{x}{A variable of a data frame in form of 'data.frame$variable'.}
 }
 \value{
 An object of class \code{factor}
