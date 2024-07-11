@@ -1483,46 +1483,47 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     ## compute covariance matrices for the virtual cohort
     fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables, pair=T,
                            chunk=chunk, mc.cores=mc.cores, connRes=T)
-    Cxx <- fedCov$cov[[1]]
-    Cyy <- fedCov$cov[[2]]
-    Cxy <- fedCov$cov[[3]]
     
-    ## add parameters of regularization
-    Cxx <- Cxx + diag(lambda1, nrow=nrow(Cxx), ncol=ncol(Cxx))
-    Cyy <- Cyy + diag(lambda2, nrow=nrow(Cyy), ncol=ncol(Cyy))
-    
-    ## CCA core call
-    rccaObj <- geigen(Cxy, Cxx, Cyy)
-    names(rccaObj) <- c("cor", "xcoef", "ycoef")
-    rccaObj$xcoef <- rccaObj$xcoef[, 1:ncomp, drop=F]
-    rccaObj$ycoef <- rccaObj$ycoef[, 1:ncomp, drop=F]
-    rownames(rccaObj$xcoef) <- rownames(Cxx)
-    rownames(rccaObj$ycoef) <- rownames(Cyy)
-    colnames(rccaObj$xcoef) <- colnames(rccaObj$ycoef) <- 
-        paste0("Comp.", 1:ncomp)
-    rccaObj$lambda <- list(lambda1=lambda1, lambda2=lambda2)
-
-    ## rcca coefs
-    loadings <- mclapply(
-        rccaObj[c("xcoef", "ycoef")],
-        mc.cores=mc.cores,
-        function(ccacoef) {
-            xx <- t(ccacoef)
-            nblockscol <- ceiling(ncol(xx)/chunk)
-            sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
-            sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
-            tcpblocks <- .partitionMatrix(xx,
-                                          seprow=ncomp,
-                                          sepcol=sepblockscol)
-            return (lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    return (.encode.arg(write_to_raw(tcp)))
-                }))
-            }))
-        })
-    
-    ## compute scores
+    ## compute rcca
     tryCatch({
+        Cxx <- fedCov$cov[[1]]
+        Cyy <- fedCov$cov[[2]]
+        Cxy <- fedCov$cov[[3]]
+        
+        ## add parameters of regularization
+        Cxx <- Cxx + diag(lambda1, nrow=nrow(Cxx), ncol=ncol(Cxx))
+        Cyy <- Cyy + diag(lambda2, nrow=nrow(Cyy), ncol=ncol(Cyy))
+        
+        ## CCA core call
+        rccaObj <- geigen(Cxy, Cxx, Cyy)
+        names(rccaObj) <- c("cor", "xcoef", "ycoef")
+        rccaObj$xcoef <- rccaObj$xcoef[, 1:ncomp, drop=F]
+        rccaObj$ycoef <- rccaObj$ycoef[, 1:ncomp, drop=F]
+        rownames(rccaObj$xcoef) <- rownames(Cxx)
+        rownames(rccaObj$ycoef) <- rownames(Cyy)
+        colnames(rccaObj$xcoef) <- colnames(rccaObj$ycoef) <- 
+            paste0("Comp.", 1:ncomp)
+        rccaObj$lambda <- list(lambda1=lambda1, lambda2=lambda2)
+        
+        ## rcca coefs
+        loadings <- mclapply(
+            rccaObj[c("xcoef", "ycoef")],
+            mc.cores=mc.cores,
+            function(ccacoef) {
+                xx <- t(ccacoef)
+                nblockscol <- ceiling(ncol(xx)/chunk)
+                sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
+                sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
+                tcpblocks <- .partitionMatrix(xx,
+                                              seprow=ncomp,
+                                              sepcol=sepblockscol)
+                return (lapply(tcpblocks, function(tcpb) {
+                    return (lapply(tcpb, function(tcp) {
+                        return (.encode.arg(write_to_raw(tcp)))
+                    }))
+                }))
+            })
+    
         opals <- fedCov$conns
         ## send coefs back to non-FD servers
         .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
