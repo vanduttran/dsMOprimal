@@ -1495,7 +1495,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     rccaObj <- geigen(Cxy, Cxx, Cyy)
     names(rccaObj) <- c("cor", "xcoef", "ycoef")
     rccaObj$xcoef <- rccaObj$xcoef[, 1:ncomp, drop=F]
-    rccaObj$ycoef <- rrccaObjes$ycoef[, 1:ncomp, drop=F]
+    rccaObj$ycoef <- rccaObj$ycoef[, 1:ncomp, drop=F]
     rownames(rccaObj$xcoef) <- rownames(Cxx)
     rownames(rccaObj$ycoef) <- rownames(Cyy)
     colnames(rccaObj$xcoef) <- colnames(rccaObj$ycoef) <- 
