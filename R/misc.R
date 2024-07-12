@@ -26,12 +26,12 @@
 
 
 #' @title Decode from base64 and deserialize from json if necessary
-#' @description Work around the restrictions imposed by the Opal server on function arguments
+#' @description Work around the restrictions imposed by the Opal server on function arguments.
 #' The Opal server is very picky as regards function arguments. The workaround is
 #' to serialize and encode them on the client and strip the right padding.
 #' See \code{dsSwissKnife:::.decode.arg}.
-#' @details It looks for the string 'base64' in the argument to determine if it's encoded
-#' @param some.thing the thing to be decoded and deserialized from json if necessary
+#' @details It looks for the string 'base64' in the argument to determine if it's encoded.
+#' @param some.thing the thing to be decoded and deserialized from json if necessary.
 #' @return the decoded and deserialized argument
 #' @importFrom jsonlite unserializeJSON fromJSON
 #' @importFrom RCurl base64Decode
@@ -62,8 +62,8 @@
 
 
 #' @title Wrapper of datashield.login
-#' @description This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server
-#' @param logins A data frame of login information. See \code{datashield.login}
+#' @description This function ensures datashield.login to all the servers without error of simultaneously connecting to the same server.
+#' @param logins A data frame of login information. See \code{datashield.login}.
 #' @return Object(s) of class DSConnection
 #' @importFrom DSI datashield.login datashield.logout
 #' @import DSOpal
@@ -95,10 +95,10 @@
 
 
 #' @title List all objects in all environments
-#' @description \code{ls.all} returns all objects in all environments
+#' @description \code{ls.all} returns all objects in all environments.
 #' See \code{dsSwissKnife:::.ls.all}.
-#' @param start A character string of the environment (default .GlobalEnv)
-#' @return A list of environment names and the respective objects defined in each environment
+#' @param start A character string of the environment (default .GlobalEnv).
+#' @return A list of environment names and the respective objects defined in each environment.
 #' @keywords internal
 .ls.all <- function(start = '.GlobalEnv'){
     envir <- get(start)
@@ -114,10 +114,10 @@
 
 
 #' @title Locks or unlocks bindings in environments
-#' @description Locks or unlocks bindings in environments
+#' @description Locks or unlocks bindings in environments.
 #' See \code{dsSwissKnife:::.lock.unlock}.
-#' @param what a list of  environments and their respective objects - the output of ls.all above
-#' @param func a function, either lockBinding or unlockBinding
+#' @param what a list of  environments and their respective objects - the output of ls.all above.
+#' @param func a function, either lockBinding or unlockBinding.
 #' @keywords internal
 .lock.unlock <- function(what, func){
     stopifnot(deparse(substitute(func)) %in% c('lockBinding', 'unlockBinding'))
@@ -130,10 +130,10 @@
 
 
 #' @title Remove objects from the current workspace
-#' @description This function removes objects from the current workspace
+#' @description This function removes objects from the current workspace.
 #' See \code{dsSwissKnife:::.cleanup}.
-#' @param what a list of  environments and their respective objects - the output of a previous call to ls.all
-#' @param start a character the environment name where to start (default .GlobalEnv)
+#' @param what a list of  environments and their respective objects - the output of a previous call to ls.all.
+#' @param start a character the environment name where to start (default .GlobalEnv).
 #' @keywords internal
 .cleanup <- function(initial, start = '.GlobalEnv'){
     objs <- .ls.all(start)
