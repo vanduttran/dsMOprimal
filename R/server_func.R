@@ -233,7 +233,9 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
 #' @returns t(x) \%*\% (x \%*\% t(x))[,1]
 #' @export
 singularProd <- function(x) {
-    return (crossprod(tcrossprod(x)[, 1, drop=F], x))
+    lapply(x, function(xx) {
+        return (crossprod(tcrossprod(xx)[, 1, drop=F], xx))
+    })
 }
 
 
@@ -783,10 +785,8 @@ crossAssign <- function(conns, symbol, value, value.call, async = T) {
                           async=async)
     } else {
         valued <- .decode.arg(value)
-        #variablesd <- .decode.arg(variables)
         datashield.assign(conns=conns, symbol=symbol, 
                           value=ifelse(value.call, as.symbol(valued), valued), 
-                          #variables=variablesd, 
                           async=async)
     }
 }
