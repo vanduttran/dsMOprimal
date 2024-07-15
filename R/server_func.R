@@ -563,7 +563,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
 
 #' @title Matrix triple product
 #' @description Calculate the triple product x \%*\% y \%*\% t(x)
-#' @param x A numeric matrix
+#' @param x A list of numeric matrices
 #' @param mate Encoded value of a vector of mate servers' names
 #' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
 #' @param mc.cores Number of cores for parallel computing. Default: 1
@@ -578,23 +578,26 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
     
-    tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-        y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
-
-        stopifnot(isSymmetric(y))
-        # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
-        tp <- tcrossprod(x, tcrossprod(x, y))
-        tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
-        etcpblocks <- lapply(tcpblocks, function(tcpb) {
-            return (lapply(tcpb, function(tcp) {
-                return (.encode.arg(write_to_raw(tcp)))
-                #.encode.arg(tcp)
-            }))
+    tpcs <- lapply(1:length(x), function(i) {
+        tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
+            #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
+            y <- get(paste("pushed", pid, sep='_'), pos=1)
+            stopifnot(isSymmetric(y[[i]]))
+            # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
+            tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
+            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
+            etcpblocks <- lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    return (.encode.arg(write_to_raw(tcp)))
+                    #.encode.arg(tcp)
+                }))
+            })
+            return (etcpblocks)
         })
-        return (etcpblocks)
+        names(tps) <- pids
+        return (tps)
     })
-    names(tps) <- pids
-    return (tps)
+    return (tpcss)
 }
 
 
