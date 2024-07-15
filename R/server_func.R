@@ -697,6 +697,10 @@ dscPush <- function(conns, expr, async = T) {
 #' @export
 pushToDscFD <- function(conns, object, async = T) {
     ## TODO: check for allowed conns
+    print(class(conns))
+    print(length(conns))
+    print(class(conns[[1]]))
+    print("WTH")
     stopifnot(is.list(conns) && length(conns)==1 &&
                   class(conns[[1]])=="OpalConnection")
     print(datashield.symbols(conns))
@@ -710,7 +714,8 @@ pushToDscFD <- function(conns, object, async = T) {
         stop("object is not a list of lists of lists")
     
     chunkList <- object
-    
+    print(chunkList)
+    print("OK")
     dsc <- lapply(chunkList, function(clomics) {
         return (lapply(clomics, function(clrow) {
             return (lapply(clrow, function(clcol) {
