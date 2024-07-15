@@ -229,13 +229,14 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
 
 #' @title Singular product
 #' @description Product of t(x) and first column of x \%*\% t(x)
-#' @param x A numeric matrix
+#' @param x A list of numeric matrices
 #' @returns t(x) \%*\% (x \%*\% t(x))[,1]
 #' @export
 singularProd <- function(x) {
-    lapply(x, function(xx) {
+    sp <- lapply(x, function(xx) {
         return (crossprod(tcrossprod(xx)[, 1, drop=F], xx))
     })
+    return (sp)
 }
 
 
@@ -444,7 +445,6 @@ matrix2DscMate <- function(value) {
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
     #tcp <- .decode.arg(valued)
     #tcp <- do.call(rbind, .decode.arg(valued))
-    
     tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("tcp"))
@@ -577,21 +577,18 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     nblocks <- ceiling(nrow(x[[1]])/chunk)
     sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
-    print(length(x))
-    print(pids)
-    print("WTH")
-    print(ls())
-    print(ls(pos=1))
-    print(ls(envir = .GlobalEnv))
-    print(ls(envir=parent.frame()))
+
     tpcs <- lapply(1:length(x), function(i) {
         tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
             #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
             y <- get(paste("pushed", pid, sep='_'), pos=1)
             stopifnot(isSymmetric(y[[i]]))
-            # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
+            ## NB. this computation of tcpblocks could be done more efficiently
+            ## with y being a chunked matrix in bigmemory
             tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
-            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks, sepcol=sepblocks)
+            tcpblocks <- .partitionMatrix(tp,
+                                          seprow=sepblocks,
+                                          sepcol=sepblocks)
             etcpblocks <- lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     return (.encode.arg(write_to_raw(tcp)))
@@ -662,7 +659,10 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
+    print(expr)
+    print(as.symbol(expr))
     if (grepl("^pushToDscFD\\(", expr)) {
+        print(datashield.symbols(conns))
         datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
     } else {
         stop(paste0("Failed to execute: ", expr))
@@ -714,7 +714,7 @@ pushToDscFD <- function(conns, object, async = T) {
         return (lapply(clomics, function(clrow) {
             return (lapply(clrow, function(clcol) {
                 expr <- list(as.symbol("matrix2DscFD"), clcol)
-                print(as.call(expr))
+                #print(as.call(expr))
                 clcoldsc <- datashield.aggregate(conns=conns,
                                                  expr=as.call(expr),
                                                  async=async)
