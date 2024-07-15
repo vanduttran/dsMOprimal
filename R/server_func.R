@@ -423,9 +423,9 @@ matrix2DscFD <- function(value) {
     # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
     #tcp <- .decode.arg(valued)
     #tcp <- do.call(rbind, .decode.arg(valued))
-    
-    tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     save(value, "/tmp/value.RData")
+    tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
+    save(value, "/tmp/tcp.RData")
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     save(dscbigmatrix, "/tmp/dsc.RData")
     rm(list=c("tcp"))
