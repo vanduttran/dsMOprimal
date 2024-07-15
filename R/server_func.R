@@ -574,9 +574,9 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     pids <- .decode.arg(mate)
     
-    nblocks <- ceiling(nrow(x)/chunk)
-    sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
-    sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
+    nblocks <- ceiling(nrow(x[[1]])/chunk)
+    sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
+    sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
     print(length(x))
     print(pids)
     print("WTH")
