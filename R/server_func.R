@@ -577,7 +577,10 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
     nblocks <- ceiling(nrow(x)/chunk)
     sepblocks <- rep(ceiling(nrow(x)/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x) - sum(sepblocks))
-    
+    print(length(x))
+    print(pids)
+    print("WTH")
+    print(ls())
     tpcs <- lapply(1:length(x), function(i) {
         tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
             #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
@@ -585,7 +588,7 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
             stopifnot(isSymmetric(y[[i]]))
             # NB. this computation of tcpblocks could be done more efficiently with y being a chunked matrix in bigmemory
             tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
-            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks)
+            tcpblocks <- .partitionMatrix(tp, seprow=sepblocks, sepcol=sepblocks)
             etcpblocks <- lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     return (.encode.arg(write_to_raw(tcp)))
