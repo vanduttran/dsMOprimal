@@ -776,12 +776,19 @@ pushToDscFD <- function(conns, object, async = T) {
 #' @importFrom DSI datashield.assign
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, async = T) {
-    valued <- .decode.arg(value)
-    #variablesd <- .decode.arg(variables)
-    datashield.assign(conns=conns, symbol=symbol, 
-                      value=ifelse(value.call, as.symbol(valued), valued), 
-                      #variables=variablesd, 
-                      async=async)
+    if (is.call(value)) {
+        datashield.assign(conns=conns,
+                          symbol=symbol,
+                          value=value,
+                          async=async)
+    } else {
+        valued <- .decode.arg(value)
+        #variablesd <- .decode.arg(variables)
+        datashield.assign(conns=conns, symbol=symbol, 
+                          value=ifelse(value.call, as.symbol(valued), valued), 
+                          #variables=variablesd, 
+                          async=async)
+    }
 }
 
 
@@ -872,6 +879,7 @@ crossAssignFunc <- function(conns, func, symbol) {
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
+    .printTime(".federateCov login-ed")
     
     ## create data X with funcPreProc
     tryCatch({
