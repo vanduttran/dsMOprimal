@@ -664,6 +664,7 @@ crossAggregateDual <- function(conns, expr, async = T) {
     if (grepl("^pushToDscFD\\(", expr)) {
         print(datashield.symbols(conns))
         datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+        print(datashield.errors())
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
