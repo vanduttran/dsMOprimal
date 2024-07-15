@@ -30,6 +30,7 @@ AggregateMethods:
     crossAggregateDual,
     matrix2DscFD,
     pushToDscFD,
+    pushToDscMate,
     mapColor,
     federatePCA,
     federateRCCA
