@@ -14,7 +14,7 @@ Authors@R:
              family = "Giuliani",
              role = c("ctb")))
 Depends: R (>= 4.0.0), DSI, DSOpal
-Imports: bigmemory, parallel, fda, arrow
+Imports: RCurl, jsonlite, arrow, bigmemory, parallel, fda
 Suggests: dsSwissKnifeClient
 Description: Server side functions on X'X sum of squares and cross products matrices.
 AggregateMethods:

@@ -336,7 +336,8 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
             sepblocksrow <- c(sepblocksrow, nrow(x[[i]]) - sum(sepblocksrow))
             
             tcpblocks <- .partitionMatrix(tcrossprod(x[[i]]),
-                                          seprow=sepblocksrow)
+                                          seprow=sepblocksrow,
+                                          sepcol=sepblocksrow)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
                     #tcpbin <- writeBin(as.vector(tcp), raw())
@@ -703,9 +704,11 @@ pushToDscFD <- function(conns, object, async = T) {
         return (lapply(clomics, function(clrow) {
             return (lapply(clrow, function(clcol) {
                 expr <- list(as.symbol("matrix2DscFD"), clcol)
+                print(as.call(expr))
                 clcoldsc <- datashield.aggregate(conns=conns,
                                                  expr=as.call(expr),
                                                  async=async)
+                print(datashield.errors())
                 return (clcoldsc[[1]])
             }))
         }))
@@ -896,6 +899,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                        ' --- ', datashield.errors(),
                        ' --- ', datashield.logout(opals)))
     })
+    .printTime("Input data processed")
     
     ## compute X'X on opals
     tryCatch({
