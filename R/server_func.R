@@ -728,8 +728,8 @@ pushToDscFD <- function(conns, object, async = T) {
 #' @param async See DSI::datashield.assign options. Default, TRUE.
 #' @returns Bigmemory description of the pushed object on \code{conns}.
 #' @importFrom DSI datashield.assign
-#' @keywords internal
-.pushToDscMate <- function(conns, object, sourcename, async = T) {
+#' @export
+pushToDscMate <- function(conns, object, sourcename, async = T) {
     ## TODO: check for allowed conns
     stopifnot(is.list(conns) &&
                   length(setdiff(unique(sapply(conns, class)),
@@ -1126,7 +1126,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     ## send loadings back to non-FD servers
     tryCatch({
         opals <- fedCov$conns
-        .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
+        pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
         ## compute X*loadings_FD'
         datashield.assign(opals, "scores", 
@@ -1338,7 +1338,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 tryCatch({
                     mopals <- fedCov$conns
                     ## send coefs back to non-FD servers
-                    .pushToDscMate(conns=mopals, object=loadings,
+                    pushToDscMate(conns=mopals, object=loadings,
                                    sourcename='FD', async=T)
                     
                     ## centeredData for foldslef
@@ -1537,7 +1537,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     
         opals <- fedCov$conns
         ## send coefs back to non-FD servers
-        .pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
+        pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
         ## compute X*coefs'
         datashield.assign(opals, "scores", 
