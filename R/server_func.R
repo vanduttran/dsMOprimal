@@ -715,9 +715,17 @@ pushToDscFD <- function(conns, object, async = T) {
         lapply(x, class))), "list")) > 0)
         stop("object is not a list of lists of lists")
     
-    chunkList <- object
+    if (!is.list(object[[1]][[1]][[1]])) {
+        chunkList <- object
+    } else {
+        chunkList <- lapply(object, function(x) {
+            if (length(x) > 1) stop("Cannot push object of wrong format.")
+            return (x[[1]])
+        })
+    }
     print(chunkList)
     print("OK")
+    
     dsc <- lapply(chunkList, function(clomics) {
         return (lapply(clomics, function(clrow) {
             return (lapply(clrow, function(clcol) {
