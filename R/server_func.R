@@ -775,23 +775,25 @@ pushToDscFD <- function(conns, object, async = T) {
                     clcoldsc <- datashield.aggregate(conns=conns,
                                                      expr=as.call(expr),
                                                      async=async)
-                    print(datashield.errors())
+                    #print(datashield.errors())
                     return (clcoldsc[[1]])
                 }))
             }))
         })
         names(dsc) <- names(chunkList)
     } else {
+        print(chunkList)
         dsc <- lapply(chunkList, function(clnodes) {
             return (lapply(clnodes, function(clomics) {
                 return (lapply(clomics, function(clrow) {
                     return (lapply(clrow, function(clcol) {
                         expr <- list(as.symbol("matrix2DscFD"), clcol)
                         #print(as.call(expr))
+                        print(class(clcol))
                         clcoldsc <- datashield.aggregate(conns=conns,
                                                          expr=as.call(expr),
                                                          async=async)
-                        print(datashield.errors())
+                        #print(datashield.errors())
                         return (clcoldsc[[1]])
                     }))
                 }))
