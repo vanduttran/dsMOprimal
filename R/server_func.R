@@ -661,12 +661,8 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
-    print(expr)
-    print(as.symbol(expr))
     if (grepl("^pushToDscFD\\(", expr)) {
-        print(datashield.symbols(conns))
         datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
-        print(datashield.errors())
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
