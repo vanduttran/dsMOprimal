@@ -362,13 +362,13 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
                                         nblocksrow-1)
                     sepblocksrow <- c(sepblocksrow,
                                       nrow(x[[i]]) - sum(sepblocksrow))
-                    nblockscol <- ceiling(nrow(y[[i]])/chunk)
-                    sepblockscol <- rep(ceiling(nrow(y[[i]])/nblockscol),
+                    nblockscol <- ceiling(nrow(y[[k]][[i]])/chunk)
+                    sepblockscol <- rep(ceiling(nrow(y[[k]][[i]])/nblockscol),
                                         nblockscol-1)
                     sepblockscol <- c(sepblockscol,
-                                      nrow(y[[i]]) - sum(sepblockscol))
+                                      nrow(y[[k]][[i]]) - sum(sepblockscol))
                     
-                    tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[i]]),
+                    tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[k]][[i]]),
                                                   seprow=sepblocksrow,
                                                   sepcol=sepblockscol)
                     return (lapply(tcpblocks, function(tcpb) {
