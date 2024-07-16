@@ -616,26 +616,25 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
 
 
 #' @title Matrix triple product
-#' @description Calculate the triple product x \%*\% y \%*\% t(x)
-#' @param x A list of numeric matrices
-#' @param mate Encoded value of a vector of mate servers' names
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default: 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @description Calculate the triple product x \%*\% y \%*\% t(x).
+#' @param x A list of numeric matrices.
+#' @param mate Mate server name, from which y was pushed.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
 #' @importFrom parallel mclapply
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
-    pids <- .decode.arg(mate)
-    
     nblocks <- ceiling(nrow(x[[1]])/chunk)
     sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
 
     tpcs <- lapply(1:length(x), function(i) {
-        tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
+        #tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
             #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
-            y <- get(paste("pushed", pid, sep='_'), pos=1)
+            y <- get(paste("pushed", mate, sep='_'), pos=1)
             stopifnot(isSymmetric(y[[i]]))
             ## NB. this computation of tcpblocks could be done more efficiently
             ## with y being a chunked matrix in bigmemory
@@ -650,9 +649,9 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
                 }))
             })
             return (etcpblocks)
-        })
-        names(tps) <- pids
-        return (tps)
+        #})
+        #names(tps) <- pids
+        #return (tps)
     })
     names(tpcs) <- names(x)
     
@@ -765,32 +764,43 @@ pushToDscFD <- function(conns, object, async = T) {
         lapply(x, class))), "list")) > 0)
         stop("object is not a list of lists of lists")
     
+    chunkList <- object
+    
     if (!is.list(object[[1]][[1]][[1]])) {
-        chunkList <- object
-    } else {
-        chunkList <- lapply(object, function(x) {
-            if (length(x) > 1) stop("Cannot push object of wrong format.")
-            return (x[[1]])
+        dsc <- lapply(chunkList, function(clomics) {
+            return (lapply(clomics, function(clrow) {
+                return (lapply(clrow, function(clcol) {
+                    expr <- list(as.symbol("matrix2DscFD"), clcol)
+                    #print(as.call(expr))
+                    clcoldsc <- datashield.aggregate(conns=conns,
+                                                     expr=as.call(expr),
+                                                     async=async)
+                    print(datashield.errors())
+                    return (clcoldsc[[1]])
+                }))
+            }))
         })
+        names(dsc) <- names(chunkList)
+    } else {
+        dsc <- lapply(chunkList, function(clnodes) {
+            return (lapply(clnodes, function(clomics) {
+                return (lapply(clomics, function(clrow) {
+                    return (lapply(clrow, function(clcol) {
+                        expr <- list(as.symbol("matrix2DscFD"), clcol)
+                        #print(as.call(expr))
+                        clcoldsc <- datashield.aggregate(conns=conns,
+                                                         expr=as.call(expr),
+                                                         async=async)
+                        print(datashield.errors())
+                        return (clcoldsc[[1]])
+                    }))
+                }))
+            })
+        })
+        names(dsc) <- names(chunkList)
     }
     print(chunkList)
     print("OK")
-    
-    dsc <- lapply(chunkList, function(clomics) {
-        return (lapply(clomics, function(clrow) {
-            return (lapply(clrow, function(clcol) {
-                expr <- list(as.symbol("matrix2DscFD"), clcol)
-                #print(as.call(expr))
-                clcoldsc <- datashield.aggregate(conns=conns,
-                                                 expr=as.call(expr),
-                                                 async=async)
-                print(datashield.errors())
-                return (clcoldsc[[1]])
-            }))
-        }))
-    })
-    names(dsc) <- names(chunkList)
-    
     return (dsc)
 }
 
