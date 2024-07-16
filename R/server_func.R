@@ -795,7 +795,7 @@ pushToDscFD <- function(conns, object, async = T) {
                         return (clcoldsc[[1]])
                     }))
                 }))
-            })
+            }))
         })
         names(dsc) <- names(chunkList)
     }
