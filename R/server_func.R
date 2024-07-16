@@ -600,6 +600,8 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
         names(tps) <- pids
         return (tps)
     })
+    names(tpcs) <- names(x)
+    
     return (tpcs)
 }
 
