@@ -350,29 +350,83 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
                 }))
             }))
         })
+        names(etcpblocks) <- names(x)
     } else {
         if (!is.list(y) || is.data.frame(y))
             stop('y should be a list of matrices.')
-        if (length(x)==1 || length(x)==length(y)) {
+        if (is.list(y[[1]])) {
+            etcpblocks <- lapply(1:length(y), function(k) {
+                etcpblockk <- lapply(1:length(x), function(i) {
+                    nblocksrow <- ceiling(nrow(x[[i]])/chunk)
+                    sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow),
+                                        nblocksrow-1)
+                    sepblocksrow <- c(sepblocksrow,
+                                      nrow(x[[i]]) - sum(sepblocksrow))
+                    nblockscol <- ceiling(nrow(y[[i]])/chunk)
+                    sepblockscol <- rep(ceiling(nrow(y[[i]])/nblockscol),
+                                        nblockscol-1)
+                    sepblockscol <- c(sepblockscol,
+                                      nrow(y[[i]]) - sum(sepblockscol))
+                    
+                    tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[i]]),
+                                                  seprow=sepblocksrow,
+                                                  sepcol=sepblockscol)
+                    return (lapply(tcpblocks, function(tcpb) {
+                        return (lapply(tcpb, function(tcp) {
+                            return (.encode.arg(write_to_raw(tcp)))
+                        }))
+                    }))
+                })
+                names(etcpblockk) <- names(x)
+                return (etcpblockk)
+            })
+            names(etcpblocks) <- names(y)
+        } else if (all(names(x)==names(y))) {
             etcpblocks <- lapply(1:length(x), function(i) {
-                ix <- min(i, length(x))
-                nblocksrow <- ceiling(nrow(x[[ix]])/chunk)
-                sepblocksrow <- rep(ceiling(nrow(x[[ix]])/nblocksrow),
+                nblocksrow <- ceiling(nrow(x[[i]])/chunk)
+                sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow),
                                     nblocksrow-1)
                 sepblocksrow <- c(sepblocksrow,
-                                  nrow(x[[ix]]) - sum(sepblocksrow))
+                                  nrow(x[[i]]) - sum(sepblocksrow))
+                nblockscol <- ceiling(nrow(y[[i]])/chunk)
+                sepblockscol <- rep(ceiling(nrow(y[[i]])/nblockscol),
+                                    nblockscol-1)
+                sepblockscol <- c(sepblockscol,
+                                  nrow(y[[i]]) - sum(sepblockscol))
                 
-                tcpblocks <- .partitionMatrix(tcrossprod(x[[ix]], y[[i]]),
+                tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[i]]),
                                               seprow=sepblocksrow,
-                                              sepcol=nrow(y[[i]]))
+                                              sepcol=sepblockscol)
                 return (lapply(tcpblocks, function(tcpb) {
                     return (lapply(tcpb, function(tcp) {
                         return (.encode.arg(write_to_raw(tcp)))
                     }))
                 }))
             })
-        } else {
-            stop("x should be of length 1 of length(y).")
+            names(etcpblocks) <- names(x)
+        }
+        # if (length(x)==1 || 
+        #     (length(x)==length(y) && all(names(x)==names(y)))) {
+        #     etcpblocks <- lapply(1:length(y), function(i) {
+        #         ix <- min(i, length(x))
+        #         nblocksrow <- ceiling(nrow(x[[ix]])/chunk)
+        #         sepblocksrow <- rep(ceiling(nrow(x[[ix]])/nblocksrow),
+        #                             nblocksrow-1)
+        #         sepblocksrow <- c(sepblocksrow,
+        #                           nrow(x[[ix]]) - sum(sepblocksrow))
+        #         
+        #         tcpblocks <- .partitionMatrix(tcrossprod(x[[ix]], y[[i]]),
+        #                                       seprow=sepblocksrow,
+        #                                       sepcol=nrow(y[[i]]))
+        #         return (lapply(tcpblocks, function(tcpb) {
+        #             return (lapply(tcpb, function(tcp) {
+        #                 return (.encode.arg(write_to_raw(tcp)))
+        #             }))
+        #         }))
+        #     })
+        # } else if () 
+        else {
+            stop("Wrong format of x and y.")
         }
     }
     return (etcpblocks)
@@ -645,7 +699,7 @@ crossLogout <- function(conns) {
 crossAggregatePrimal <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^singularProd\\(", expr)) {
-        datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+        return (datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async))
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -662,7 +716,7 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^pushToDscFD\\(", expr)) {
-        datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async)
+        return (datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async))
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -1181,10 +1235,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 lapply(scoresLoc, function(sl) sl[[qtabi]])
             )
         }
-    }, error=function(e) {
+    }, error = function(e) {
         print(paste0("LOADINGS MAKING PROCESS: ", e))
         return (paste0("LOADINGS MAKING PROCESS: ", e))
-    }, finally={
+    }, finally = {
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
@@ -1354,6 +1408,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                             }))
                         }))
                     })
+                names(loadings) <- querytables
                 
                 ## compute scores on foldslef[[m]]
                 tryCatch({
@@ -1412,10 +1467,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                     cvy <- do.call(rbind, lapply(scoresLoc, function(sl)
                         sl$ycoef))
                     ## TODO: would rownames be necessary?
-                }, error=function(e) {
+                }, error = function(e) {
                     print(paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
                     return (paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
-                }, finally={
+                }, finally = {
                     datashield.assign(mopals, 'crossEnd',
                                       as.symbol("crossLogout(FD)"), async=T)
                     datashield.logout(mopals)
@@ -1426,7 +1481,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
             }
             return (cor(xscore, yscore, use = "pairwise"))
         })
-    }, finally=datashield.logout(opals))
+    }, finally = datashield.logout(opals))
     
     cv.score.grid <- cbind(grid, cv.score)
     mat <- matrix(cv.score, nrow=length(grid1), ncol=length(grid2))
@@ -1555,7 +1610,8 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                     }))
                 }))
             })
-    
+        names(loadings) <- querytables
+        
         opals <- fedCov$conns
         ## send coefs back to non-FD servers
         pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
@@ -1589,10 +1645,10 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         cvx <- do.call(rbind, lapply(scoresLoc, function(sl) sl$xcoef))
         cvy <- do.call(rbind, lapply(scoresLoc, function(sl) sl$ycoef))
         ## TODO: would rownames be necessary?
-    }, error=function(e) {
+    }, error = function(e) {
         print(paste0("COEF PUSH PROCESS: ", e))
         return (paste0("COEF PUSH PROCESS: ", e))
-    }, finally={
+    }, finally = {
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
