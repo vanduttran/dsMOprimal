@@ -636,7 +636,7 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
             #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
             y <- get(paste("pushed", mate, sep='_'), pos=1)
             print(y[[i]][1:3,1:3])
-            stopifnot(isSymmetric(y[[i]]))
+            stopifnot(isSymmetric(y[[i]], check.attributes=F))
             ## NB. this computation of tcpblocks could be done more efficiently
             ## with y being a chunked matrix in bigmemory
             tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
