@@ -278,7 +278,7 @@ loadings <- function(x, y, operator = 'crossprod') {
 #' @export
 crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
-    if (!is.null(y)) {
+    if (is.null(y)) {
         xblocks <- lapply(x, function(xx) {
             nblockscol <- ceiling(ncol(xx)/chunk)
             sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
@@ -341,7 +341,7 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500) {
             }))
         })
         names(xblocks) <- sapply(1:ncol(xpairs), function(xc) {
-            paste(c(names(x)[xpairs[1,xc]], names(y)[xpairs[1,xc]]),
+            paste(c(names(x)[xpairs[1,xc]], names(y)[xpairs[2,xc]]),
                   collapse='__')
         })
     }
