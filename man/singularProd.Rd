@@ -7,7 +7,7 @@
 singularProd(x)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A list of numeric matrices}
 }
 \value{
 t(x) \%*\% (x \%*\% t(x))[,1]

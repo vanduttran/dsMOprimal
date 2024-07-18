@@ -7,17 +7,18 @@
 tripleProdChunk(x, mate, chunk = 500, mc.cores = 1)
 }
 \arguments{
-\item{x}{A numeric matrix}
+\item{x}{A list of numeric matrices.}
 
-\item{mate}{Encoded value of a vector of mate servers' names}
+\item{mate}{Mate server name, from which y was pushed.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default: 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 \code{x \%*\% t(y)}
 }
 \description{
-Calculate the triple product x \%*\% y \%*\% t(x)
+Calculate the triple product x \%*\% y \%*\% t(x).
 }

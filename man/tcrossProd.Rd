@@ -18,5 +18,5 @@ Default, 500.}
 \code{x \%*\% t(y)}
 }
 \description{
-Calculates the cross product x \%*\% t(y)
+Calculates the cross product x \%*\% t(y).
 }
