@@ -9,7 +9,8 @@ rebuildMatrixVar(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1)
 \arguments{
 \item{symbol}{Generic variable name}
 
-\item{len1}{First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.}
+\item{len1}{First-order length of lists of matrix blocks. Variables were
+generated as symbol__1__1__1, symbol__1__1__2, etc.}
 
 \item{len2}{Second-order length of lists of matrix blocks.}
 
@@ -23,5 +24,6 @@ rebuildMatrixVar(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1)
 The complete symmetric matrix
 }
 \description{
-Rebuild a symmetric matrix from its partition through variables in the environment
+Rebuild a symmetric matrix from its partition through variables
+in the environment
 }

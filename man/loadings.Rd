@@ -19,4 +19,5 @@ operator(x, y)
 \description{
 Loadings of features in a new feature basis
 }
+\keyword{TOREMOVE}
 \keyword{internal}

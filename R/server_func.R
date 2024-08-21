@@ -247,7 +247,7 @@ singularProd <- function(x) {
 #' @param y A numeric matrix for the new basis of the same nrow to x.
 #' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
 #' @returns operator(x, y)
-#' @keywords internal
+#' @keywords internal TOREMOVE
 loadings <- function(x, y, operator = 'crossprod') {
     operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
     yd <- .decode.arg(y)
@@ -359,7 +359,8 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500) {
 #' @importFrom arrow write_to_raw
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500) {
-    if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices.')
+    if (!is.list(x) || is.data.frame(x))
+        stop('x should be a list of matrices.')
     if (is.null(y)) {
         etcpblocks <- lapply(1:length(x), function(i) {
             nblocksrow <- ceiling(nrow(x[[i]])/chunk)
@@ -448,10 +449,6 @@ tcrossProd <- function(x, y = NULL, chunk = 500) {
 #' @importFrom bigmemory as.big.matrix describe
 #' @export
 matrix2DscFD <- function(value) {
-    #valued <- .decode.arg(value)
-    # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    #tcp <- .decode.arg(valued)
-    #tcp <- do.call(rbind, .decode.arg(valued))
     tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("tcp"))
@@ -467,10 +464,6 @@ matrix2DscFD <- function(value) {
 #' @importFrom bigmemory as.big.matrix describe
 #' @export
 matrix2DscMate <- function(value) {
-    #valued <- .decode.arg(value)
-    # TOIMPROVE: use .decode.arg(valued) instead with input from .encode.arg(serialize.it=T)
-    #tcp <- .decode.arg(valued)
-    #tcp <- do.call(rbind, .decode.arg(valued))
     tcp <- as.matrix(read_ipc_stream(.decode.arg(value)))
     dscbigmatrix <- describe(as.big.matrix(tcp, backingfile = ""))
     rm(list=c("tcp"))
@@ -480,8 +473,9 @@ matrix2DscMate <- function(value) {
 
 #' @title Matrix reconstruction
 #' @description Rebuild a matrix from its partition.
-#' @param matblocks List of lists of matrix blocks, obtained from .partitionMatrix.
-#' @param mc.cores Number of cores for parallel computing. Default. 1.
+#' @param matblocks List of lists of matrix blocks, obtained from
+#' .partitionMatrix.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The reconstructed matrix.
 #' @importFrom parallel mclapply
 #' @keywords internal
@@ -493,11 +487,16 @@ matrix2DscMate <- function(value) {
             tcp <- do.call(rbind, uptcp)
         } else {
             ## without the first layer of blocks
-            no1tcp <- mclapply(2:length(uptcp), mc.cores=mc.cores, function(i) {
-                cbind(do.call(cbind, lapply(1:(i-1), function(j) {
-                    t(matblocks[[j]][[i-j+1]])
-                })), uptcp[[i]])
-            })
+            no1tcp <- mclapply(
+                2:length(uptcp),
+                mc.cores=mc.cores,
+                function(i) {
+                    cbind(do.call(cbind,
+                                  lapply(1:(i-1),
+                                         function(j) {
+                                             t(matblocks[[j]][[i-j+1]])
+                                         })), uptcp[[i]])
+                })
             ## with the first layer of blocks
             tcp <- rbind(uptcp[[1]], do.call(rbind, no1tcp))
             rm(list=c("no1tcp"))
@@ -540,7 +539,7 @@ matrix2DscMate <- function(value) {
 #' @param mc.cores Number of cores for parallel computing. Default: 1
 #' @returns The complete symmetric matrix
 #' @importFrom parallel mclapply
-#' @keywords internal
+#' @keywords internal TOREMOVE
 .rebuildMatrixEnc <- function(blocks, mc.cores = 1) {
     ## decode matrix blocks
     matblocks <- mclapply(blocks, mc.cores=mc.cores, function(y) {
@@ -554,9 +553,11 @@ matrix2DscMate <- function(value) {
 
 
 #' @title Symmetric matrix reconstruction
-#' @description Rebuild a symmetric matrix from its partition through variables in the environment
+#' @description Rebuild a symmetric matrix from its partition through variables
+#' in the environment
 #' @param symbol Generic variable name
-#' @param len1 First-order length of lists of matrix blocks. Variables were generated as symbol__1__1__1, symbol__1__1__2, etc.
+#' @param len1 First-order length of lists of matrix blocks. Variables were
+#' generated as symbol__1__1__1, symbol__1__1__2, etc.
 #' @param len2 Second-order length of lists of matrix blocks.
 #' @param len3 Third-order length of lists of matrix blocks.
 #' @param querytables Names to be assigned to the result. 
@@ -572,8 +573,10 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
     matblocks <- mclapply(1:len1, mc.cores=mc.cores, function(i) {
         lapply(1:len2[i], function(j) {
             lapply(1:len3[[i]][j], function(k) {
-                dscblock <- get(paste(c(symbol, i, j, k), collapse="__"),
+                varname <- paste(c(symbol, i, j, k), collapse="__")
+                dscblock <- get(varname,
                                 pos=1)
+                rm(varname)
                 return ((attach.big.matrix(dscblock))[,,drop=F])
             })
         })
@@ -607,13 +610,13 @@ tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
         #tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
             #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
             y <- get(paste("pushed", mate, sep='_'), pos=1)
-            print(y[[i]][1:3,1:3])
-            print(x[[i]][1:5,1:3])
+            # print(y[[i]][1:3,1:3])
+            # print(x[[i]][1:5,1:3])
             stopifnot(isSymmetric(y[[i]], check.attributes=F))
             ## NB. this computation of tcpblocks could be done more efficiently
             ## with y being a chunked matrix in bigmemory
             tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
-            print(tp[1:4,1:3])
+            # print(tp[1:4,1:3])
             tcpblocks <- .partitionMatrix(tp,
                                           seprow=sepblocks,
                                           sepcol=sepblocks)
@@ -1200,9 +1203,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         
         command <- list(as.symbol("pushToDscFD"),
                         as.symbol("FD"),
-                        as.symbol('scores'),
+                        as.symbol("scores"),
                         async=T)
-        cat("Command: pushToDscFD(FD, 'scores')", "\n")
+        cat("Command: pushToDscFD(FD, scores)", "\n")
         scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
         .printTime(paste0("scores communicated to FD: "))
         
@@ -1431,9 +1434,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                     
                     command <- list(as.symbol("pushToDscFD"),
                                     as.symbol("FD"),
-                                    as.symbol('scores'),
+                                    as.symbol("scores"),
                                     async=T)
-                    cat("Command: pushToDscFD(FD, 'scores')", "\n")
+                    cat("Command: pushToDscFD(FD, scores)", "\n")
                     scoresDSC <- datashield.aggregate(mopals, as.call(command),
                                                       async=T)
                     .printTime(paste0("scores communicated to FD: "))
@@ -1613,9 +1616,9 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         
         command <- list(as.symbol("pushToDscFD"),
                         as.symbol("FD"),
-                        as.symbol('scores'),
+                        as.symbol("scores"),
                         async=T)
-        cat("Command: pushToDscFD(FD, 'scores')", "\n")
+        cat("Command: pushToDscFD(FD, scores)", "\n")
         scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
         .printTime(paste0("scores communicated to FD: "))
         

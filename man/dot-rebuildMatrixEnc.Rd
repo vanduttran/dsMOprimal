@@ -17,4 +17,5 @@ The complete symmetric matrix
 \description{
 Rebuild a matrix from its encoded partition
 }
+\keyword{TOREMOVE}
 \keyword{internal}
