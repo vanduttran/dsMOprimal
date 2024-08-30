@@ -11,11 +11,13 @@ crossAssign(conns, symbol, value, value.call, async = T)
 
 \item{symbol}{Name of an R symbol.}
 
-\item{value}{A variable name or an R expression with allowed assign function calls.}
+\item{value}{A variable name or an R expression with allowed assign function
+calls.}
 
-\item{value.call}{A logical value, TRUE if value is function call, FALSE if value is a variable name.}
+\item{value.call}{A logical value, TRUE if value is function call, FALSE
+if value is a variable name.}
 
-\item{async}{See DSI::datashield.assign options. Default: TRUE.}
+\item{async}{See DSI::datashield.assign options. Default, TRUE.}
 }
 \description{
 Call datashield.assign on remote servers.

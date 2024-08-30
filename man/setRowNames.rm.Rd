@@ -9,9 +9,11 @@ setRowNames.rm(x, row.names, envir = .GlobalEnv)
 \arguments{
 \item{x}{A numeric matrix}
 
-\item{row.names}{An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.}
+\item{row.names}{An encoded vector of names with the length of nrow(x), or a
+name of variable in \code{envir}.}
 
-\item{envir}{A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}}
+\item{envir}{A data frame or environment where row.names will be queried if
+it is a variable name. Default, \code{.GlobalEnv}}
 }
 \value{
 Matrix with rownames

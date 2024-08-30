@@ -13,5 +13,6 @@ dsRange(x)
 Approximate range of x
 }
 \description{
-Return random approximated range of a numeric variable in a data frame
+Return random approximated range of a numeric variable in a
+data frame
 }

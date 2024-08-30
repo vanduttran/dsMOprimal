@@ -7,17 +7,19 @@
 center(x, subset = NULL, byColumn = TRUE, scale = FALSE)
 }
 \arguments{
-\item{x}{A numeric matrix or data frame. A list of matrices or data frames can also be provided,
-where they will be concatenated to perform the centering.}
+\item{x}{A numeric matrix or data frame. A list of matrices or data frames
+can also be provided, where they will be cbind-ed to perform the centering.}
 
-\item{subset}{Encoded value of an index vector indicating the subset of individuals to consider. 
-Default, NULL, all individuals are considered.}
+\item{subset}{Encoded value of an index vector indicating the subset of
+individuals to consider. Default, NULL, all individuals are considered.}
 
-\item{byColumn}{A logical value indicating whether the input data is centered by column or row.
-Default, TRUE, centering by column. Constant variables across samples are removed. 
-If FALSE, centering and scaling by row. Constant samples across variables are removed.}
+\item{byColumn}{A logical value indicating whether the input data is
+centered by column or row. Default, TRUE, centering by column. Constant
+variables across samples are removed. If FALSE, centering and scaling by
+row. Constant samples across variables are removed.}
 
-\item{scale}{A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.}
+\item{scale}{A logical value indicating whether the variables should be
+scaled to have unit variance. Default, FALSE.}
 }
 \value{
 The centered matrix.

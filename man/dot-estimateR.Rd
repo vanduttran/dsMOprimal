@@ -17,19 +17,22 @@
 )
 }
 \arguments{
-\item{loginFD}{Login information of the FD server (one of the servers containing cohort data).}
+\item{loginFD}{Login information of the FD server (one of the servers
+containing cohort data).}
 
 \item{logins}{Login information of servers containing cohort data.}
 
-\item{funcPreProc}{Definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of Opal connections),
+\item{funcPreProc}{Definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of Opal connections),
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{querytables}{Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
-The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
-Other assigned R variables in \code{func} are ignored.}
+\item{querytables}{Name (or a vector of two names) of the R symbol(s) to
+assign in the Datashield R session on each server in \code{logins}.
+The assigned R variable(s) will be used as the input raw data to compute
+covariance matrix. Other assigned R variables in \code{func} are ignored.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
@@ -43,6 +46,6 @@ Other assigned R variables in \code{func} are ignored.}
 Optimal values of \code{lambda1} and \code{lambda2}.
 }
 \description{
-Estimate optimized parameters of regulation lambda1 and lambda2
+Estimate optimized regulation parameters lambda1 and lambda2.
 }
 \keyword{internal}

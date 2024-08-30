@@ -12,7 +12,8 @@ dsDim <- function(x) {
 
 
 #' @title Range of a variable in a data frame
-#' @description Return random approximated range of a numeric variable in a data frame
+#' @description Return random approximated range of a numeric variable in a
+#' data frame
 #' @param x A variable of a data frame in form of 'data.frame$variable'.
 #' @returns Approximate range of x
 #' @importFrom stats runif
@@ -56,8 +57,10 @@ dsLevels <- function(x) {
 #' @title Assign rownames
 #' @description Assign row names to a matrix 
 #' @param x A numeric matrix
-#' @param row.names An encoded vector of names with the length of nrow(x), or a name of variable in \code{envir}.
-#' @param envir A data frame or environment where row.names will be queried if it is a variable name. Default, \code{.GlobalEnv}
+#' @param row.names An encoded vector of names with the length of nrow(x), or a
+#' name of variable in \code{envir}.
+#' @param envir A data frame or environment where row.names will be queried if
+#' it is a variable name. Default, \code{.GlobalEnv}
 #' @returns Matrix with rownames
 #' @keywords internal
 setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
@@ -119,14 +122,16 @@ colNames <- function(x) {
 
 #' @title Matrix centering
 #' @description Center matrix columns or rows to 0
-#' @param x A numeric matrix or data frame. A list of matrices or data frames can also be provided,
-#' where they will be concatenated to perform the centering.
-#' @param subset Encoded value of an index vector indicating the subset of individuals to consider. 
-#' Default, NULL, all individuals are considered.
-#' @param byColumn A logical value indicating whether the input data is centered by column or row.
-#' Default, TRUE, centering by column. Constant variables across samples are removed. 
-#' If FALSE, centering and scaling by row. Constant samples across variables are removed.
-#' @param scale  A logical value indicating whether the variables should be scaled to have unit variance. Default, FALSE.
+#' @param x A numeric matrix or data frame. A list of matrices or data frames
+#' can also be provided, where they will be cbind-ed to perform the centering.
+#' @param subset Encoded value of an index vector indicating the subset of
+#' individuals to consider. Default, NULL, all individuals are considered.
+#' @param byColumn A logical value indicating whether the input data is
+#' centered by column or row. Default, TRUE, centering by column. Constant
+#' variables across samples are removed. If FALSE, centering and scaling by
+#' row. Constant samples across variables are removed.
+#' @param scale A logical value indicating whether the variables should be
+#' scaled to have unit variance. Default, FALSE.
 #' @returns The centered matrix.
 #' @export
 # x = list(AAA=matrix(1:12, ncol=4, dimnames=list(letters[1:3], LETTERS[1:4])),
@@ -245,10 +250,11 @@ singularProd <- function(x) {
 #' @description Loadings of features in a new feature basis
 #' @param x A numeric matrix
 #' @param y A numeric matrix for the new basis of the same nrow to x.
-#' @param operator An operation to compute the loadings (\code{crossprod}, \code{cor}). Default, \code{crossprod}
+#' @param operator An operation to compute the loadings (\code{crossprod},
+#' \code{cor}). Default, \code{crossprod}
 #' @returns operator(x, y)
 #' @keywords internal TOREMOVE
-loadings <- function(x, y, operator = 'crossprod') {
+loadingsrm <- function(x, y, operator = 'crossprod') {
     operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
     yd <- .decode.arg(y)
     if (!is.list(yd)) stop("y should be an encoded list.")
@@ -676,7 +682,9 @@ crossLogout <- function(conns) {
 crossAggregatePrimal <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^singularProd\\(", expr)) {
-        return (datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async))
+        return (datashield.aggregate(conns=conns,
+                                     expr=as.symbol(expr),
+                                     async=async))
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -684,16 +692,20 @@ crossAggregatePrimal <- function(conns, expr, async = T) {
 
 
 #' @title Cross aggregate through two-layer connection
-#' @description Call datashield.aggregate on remote servers through two-layer connection.
+#' @description Call datashield.aggregate on remote servers through two-layer
+#' connection.
 #' @param conns A list of Opal connections.
-#' @param expr An encoded expression to evaluate. This is restricted to pushToDscFD.
+#' @param expr An encoded expression to evaluate. This is restricted to
+#' \code{pushToDscFD}.
 #' @param async See DSI::datashield.aggregate options. Default, TRUE.
 #' @importFrom DSI datashield.aggregate
 #' @export
 crossAggregateDual <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     if (grepl("^pushToDscFD\\(", expr)) {
-        return (datashield.aggregate(conns=conns, expr=as.symbol(expr), async=async))
+        return (datashield.aggregate(conns=conns,
+                                     expr=as.symbol(expr),
+                                     async=async))
     } else {
         stop(paste0("Failed to execute: ", expr))
     }
@@ -726,13 +738,8 @@ dscPush <- function(conns, expr, async = T) {
 #' @export
 pushToDscFD <- function(conns, object, async = T) {
     ## TODO: check for allowed conns
-    print(class(conns))
-    print(length(conns))
-    print(class(conns[[1]]))
-    print("WTH")
     stopifnot(is.list(conns) && length(conns)==1 &&
                   class(conns[[1]])=="OpalConnection")
-    print(datashield.symbols(conns))
     ## check object format
     if (!is.list(object))
         stop("object is not a list.")
@@ -760,18 +767,14 @@ pushToDscFD <- function(conns, object, async = T) {
         })
         names(dsc) <- names(chunkList)
     } else {
-        print(chunkList)
         dsc <- lapply(chunkList, function(clnodes) {
             return (lapply(clnodes, function(clomics) {
                 return (lapply(clomics, function(clrow) {
                     return (lapply(clrow, function(clcol) {
                         expr <- list(as.symbol("matrix2DscFD"), clcol)
-                        #print(as.call(expr))
-                        print(class(clcol))
                         clcoldsc <- datashield.aggregate(conns=conns,
                                                          expr=as.call(expr),
                                                          async=async)
-                        #print(datashield.errors())
                         return (clcoldsc[[1]])
                     }))
                 }))
@@ -779,8 +782,7 @@ pushToDscFD <- function(conns, object, async = T) {
         })
         names(dsc) <- names(chunkList)
     }
-    print(chunkList)
-    print("OK")
+
     return (dsc)
 }
 
@@ -837,9 +839,11 @@ pushToDscMate <- function(conns, object, sourcename, async = T) {
 #' @description Call datashield.assign on remote servers.
 #' @param conns A list of Opal connections.
 #' @param symbol Name of an R symbol.
-#' @param value A variable name or an R expression with allowed assign function calls.
-#' @param value.call A logical value, TRUE if value is function call, FALSE if value is a variable name.
-#' @param async See DSI::datashield.assign options. Default: TRUE.
+#' @param value A variable name or an R expression with allowed assign function
+#' calls.
+#' @param value.call A logical value, TRUE if value is function call, FALSE
+#' if value is a variable name.
+#' @param async See DSI::datashield.assign options. Default, TRUE.
 #' @importFrom DSI datashield.assign
 #' @export
 crossAssign <- function(conns, symbol, value, value.call, async = T) {
@@ -860,12 +864,13 @@ crossAssign <- function(conns, symbol, value, value.call, async = T) {
 #' @title Cross assign a preprocessing function
 #' @description Call preprocessing function on remote servers.
 #' @param conns A list of Opal connections.
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded vector of names of R symbols to assign in the Datashield R session on each server in \code{logins}.
-#' The assigned R variables will be used as the input raw data to compute covariance matrix.
-#' Other assigned R variables in \code{func} are ignored.
+#' @param symbol Encoded vector of names of R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
+#' The assigned R variables will be used as the input raw data to compute
+#' covariance matrix. Other assigned R variables in \code{func} are ignored.
 #' @importFrom DSI datashield.logout
 #' @export
 crossAssignFunc <- function(conns, func, symbol) {
@@ -893,7 +898,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         ## filters as side effects
         .cleanup(safe.objs)
     }, error=function(e) {
-        print(paste0("DATA MAKING CROSS PROCESS: ", e))
+        .printTime(paste0("DATA MAKING CROSS PROCESS: ", e))
         datashield.logout(conns)
     })
     return (NULL)
@@ -919,20 +924,25 @@ crossAssignFunc <- function(conns, func, symbol) {
 
 #' @title Federated covariance matrix
 #' @description Compute the covariance matrix for the virtual cohort
-#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
+#' @param loginFD Login information of the FD server (one of the servers
+#' containing cohort data)
 #' @param logins Login information of other servers containing cohort data
-#' @param funcPreProc Definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections),
+#' @param funcPreProc Definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections),
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param querytables Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
-#' The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
-#' Other assigned R variables in \code{func} are ignored.
-#' @param querysubset A list of index vectors indicating the subsets of individuals to consider. 
-#' Default, NULL, all individuals are considered.
-#' @param pair A logical value indicating pairwise cross products are computed. Default, FALSE.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @param connRes A logical value indicating if the connection to \code{logins} is returned. Default, no. 
+#' @param querytables Name (or a vector of two names) of the R symbol(s) to
+#' assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variable(s) will be used as the input raw data to compute
+#' covariance matrix. Other assigned R variables in \code{func} are ignored.
+#' @param querysubset A list of index vectors indicating the subsets of
+#' individuals to consider. Default, NULL, all individuals are considered.
+#' @param pair A logical value indicating pairwise cross products are computed.
+#' Default, FALSE.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
+#' @param connRes A logical value indicating if the connection to \code{logins}
+#' is returned. Default, no. 
 #' @returns Covariance matrix of the virtual cohort
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.symbols datashield.errors
 #' @importFrom parallel mclapply
@@ -944,7 +954,7 @@ crossAssignFunc <- function(conns, func, symbol) {
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
-    .printTime(".federateCov login-ed")
+    .printTime(".federateCov Login-ed")
     
     ## create data X with funcPreProc
     tryCatch({
@@ -965,7 +975,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         ## filters as side effects
         .cleanup(safe.objs)
     }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
+        .printTime(paste0("DATA MAKING PROCESS: ", e))
         return (paste0("DATA MAKING PROCESS: ", e,
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors(),
@@ -1033,7 +1043,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                                            .encode.arg(loginFDdata), "')")),
                           async=T)
     }, error=function(e) {
-        print(paste0("COV MAKING PROCESS: ", e))
+        .printTime(paste0("COV MAKING PROCESS: ", e))
         return (paste0("COV MAKING PROCESS: ", e,
                        ' --- ', datashield.symbols(opals),
                        ' --- ', datashield.errors(),
@@ -1072,16 +1082,23 @@ crossAssignFunc <- function(conns, func, symbol) {
         })
         ## compute X'X on virtual cohort
         rescov <- mclapply(
-            names(crossProdSelf[[1]]),
+            #names(crossProdSelf[[1]]),
+            crossProdNames,
             mc.cores=mc.cores, function(qtabi) {
                 Reduce("+",
                        lapply(crossProdSelf,
                               function(cps)
                                   cps[[qtabi]]))/(sum(nsamples)-1)
             })
-        names(rescov) <- names(crossProdSelf[[1]])
+        names(rescov) <- crossProdNames #names(crossProdSelf[[1]])
         ## set rownames and colnames of X'X
-        if (pair) {
+        for (crn in querytables) {
+            if (is.null(rownames(rescov[[crn]])))
+                rownames(rescov[[crn]]) <- variables[[crn]]
+            if (is.null(colnames(rescov[[crn]])))
+                colnames(rescov[[crn]]) <- variables[[crn]]
+        }
+        #if (pair) {
             for (crn in crossNames) {
                 crntype <- strsplit(crn, split="__")[[1]]
                 if (is.null(rownames(rescov[[crn]])))
@@ -1090,10 +1107,10 @@ crossAssignFunc <- function(conns, func, symbol) {
                 if (is.null(colnames(rescov[[crn]])))
                     colnames(rescov[[crn]]) <- 
                         colnames(rescov[[crntype[2]]])
-            }
+        #    }
         }
     }, error=function(e) {
-        print(paste0("COV PUSH PROCESS: ", e))
+        .printTime(paste0("COV PUSH PROCESS: ", e))
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         return (paste0("COV PUSH PROCESS: ", e,
@@ -1115,17 +1132,28 @@ crossAssignFunc <- function(conns, func, symbol) {
 
 
 #' @title Federated PCA
-#' @description Perform the principal component analysis for the virtual cohort
-#' @param loginFD Login information of the FD server (one of the servers containing cohort data)
-#' @param logins Login information of other servers containing cohort data
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections), 
+#' @description Perform the principal component analysis for the virtual cohort.
+#' @usage federatePCA(loginFD,
+#'                    logins,
+#'                    func,
+#'                    symbol,
+#'                    ncomp = 2,
+#'                    chunk = 500,
+#'                    mc.cores = 1)
+#' @param loginFD Login information of the FD server (one of the servers
+#' containing cohort data).
+#' @param logins Login information of other servers containing cohort data.
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections), 
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param symbol Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
-#' The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
-#' Other assigned R variables in \code{func} are ignored.
+#' @param symbol Encoded vector of names of the R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
+#' The assigned R variable will be used as the input raw data to compute
+#' covariance matrix for PCA. Other assigned R variables in \code{func} are
+#' ignored.
 #' @param ncomp Number of components. Default, 2.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns PCA object
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
@@ -1226,29 +1254,33 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
             )
         }
     }, error = function(e) {
-        print(paste0("LOADINGS MAKING PROCESS: ", e))
+        .printTime(paste0("LOADINGS MAKING PROCESS: ", e))
         return (paste0("LOADINGS MAKING PROCESS: ", e))
     }, finally = {
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     })
+    
     class(pcaObjs) <- "federatePCA"
     return (pcaObjs)
 }
 
 
 #' @title RCCA tuning
-#' @description Estimate optimized parameters of regulation lambda1 and lambda2
-#' @param loginFD Login information of the FD server (one of the servers containing cohort data).
+#' @description Estimate optimized regulation parameters lambda1 and lambda2.
+#' @param loginFD Login information of the FD server (one of the servers
+#' containing cohort data).
 #' @param logins Login information of servers containing cohort data.
-#' @param funcPreProc Definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections),
+#' @param funcPreProc Definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections),
 #' symbol (name of the R symbol) (see datashield.assign).
-#' @param querytables Name (or a vector of two names) of the R symbol(s) to assign in the Datashield R session on each server in \code{logins}.
-#' The assigned R variable(s) will be used as the input raw data to compute covariance matrix.
-#' Other assigned R variables in \code{func} are ignored.
-#' @param chunk Size of chunks into what the resulting matrix is partitioned. Default, 500.
+#' @param querytables Name (or a vector of two names) of the R symbol(s) to
+#' assign in the Datashield R session on each server in \code{logins}.
+#' The assigned R variable(s) will be used as the input raw data to compute
+#' covariance matrix. Other assigned R variables in \code{func} are ignored.
+#' @param chunk Size of chunks into what the resulting matrix is partitioned.
+#' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param nfold n-fold cross-validation. Default, 5.
 #' @param grid1 Tuning values for \code{lambda1}.
@@ -1293,7 +1325,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         ## filters as side effects
         .cleanup(safe.objs)
     }, error=function(e) {
-        print(paste0("DATA MAKING PROCESS: ", e))
+        .printTime(paste0("DATA MAKING PROCESS: ", e))
         datashield.logout(opals)
     })
     
@@ -1458,7 +1490,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         sl$ycoef))
                     ## TODO: would rownames be necessary?
                 }, error = function(e) {
-                    print(paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
+                    .printTime(paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
                     return (paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
                 }, finally = {
                     datashield.assign(mopals, 'crossEnd',
@@ -1486,28 +1518,52 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 grid2       = grid2,
                 mat         = mat)
     #out$call <- match.call()
-    class(out) <- "estimateR"
+    class(out) <- ".estimateR"
     return (out)
 }
 
 
 #' @title Federated RCCA
-#' @description Perform the regularized canonical correlation analysis for the virtual cohort
-#' @param loginFD Login information of the FD server (one of the servers containing cohort data).
+#' @description Perform the regularized canonical correlation analysis for the
+#' virtual cohort.
+#' @usage federateRCCA(loginFD,
+#'                     logins,
+#'                     func,
+#'                     symbol,
+#'                     ncomp = 2,
+#'                     lambda1 = 0,
+#'                     lambda2 = 0,
+#'                     chunk = 500,
+#'                     mc.cores = 1,
+#'                     tune = FALSE,
+#'                     tune_param = .encode.arg(
+#'                         list(nfold = 5,
+#'                              grid1 = seq(0.001, 1, length = 5),
+#'                              grid2 = seq(0.001, 1, length = 5))))
+#' @param loginFD Login information of the FD server (one of the servers
+#' containing cohort data).
 #' @param logins Login information of servers containing cohort data.
-#' @param func Encoded definition of a function for preparation of raw data matrices. 
-#' Two arguments are required: conns (list of Opal connections), 
+#' @param func Encoded definition of a function for preparation of raw data
+#' matrices. Two arguments are required: conns (list of Opal connections), 
 #' symbol (names of the two R symbols) (see datashield.assign).
-#' @param symbol Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
-#' The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
-#' Other assigned R variables in \code{func} are ignored.
+#' @param symbol Encoded vector of names of the two R symbols to assign in the
+#' DataSHIELD R session on each server in \code{logins}.
+#' The two assigned R variables will be used as the input raw data to compute
+#' covariance matrices for CCA. Other assigned R variables in \code{func} are
+#' ignored.
 #' @param ncomp Number of components (covariates). Default, 2.
-#' @param lambda1 Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.
-#' @param lambda2 Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.
-#' @param chunk Size of chunks into what the SSCP matrix is partitioned. Default, 500.
+#' @param lambda1 Non-negative regularized parameter value for first data set.
+#' Default, 0. If there are more variables than samples, it should be > 0.
+#' @param lambda2 Non-negative regularized parameter value for second data set.
+#' Default, 0. If there are more variables than samples, it should be > 0.
+#' @param chunk Size of chunks into what the SSCP matrix is partitioned.
+#' Default, 500.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @param tune Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.
-#' @param tune_param Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} tuning values for \code{lambda1}.
+#' @param tune Logical value indicating whether the tuning for lambda values
+#' will be performed. Default, FALSE, no tuning.
+#' @param tune_param Tuning parameters.
+#' \code{nfold} n-fold cross-validation.
+#' \code{grid1} tuning values for \code{lambda1}.
 #' \code{grid2} tuning values for \code{lambda2}.
 #' @returns RCCA object
 #' @importFrom fda geigen
@@ -1636,7 +1692,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         cvy <- do.call(rbind, lapply(scoresLoc, function(sl) sl$ycoef))
         ## TODO: would rownames be necessary?
     }, error = function(e) {
-        print(paste0("COEF PUSH PROCESS: ", e))
+        .printTime(paste0("COEF PUSH PROCESS: ", e))
         return (paste0("COEF PUSH PROCESS: ", e))
     }, finally = {
         datashield.assign(opals, 'crossEnd',
@@ -1700,26 +1756,36 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                           tcrossprod(rccaObj$ycoef, invdiagcovcvy))
     
     rccaObj$scores <- list(xscores=cvx,
-                       yscores=cvy,
-                       corr.X.xscores=xxscores,
-                       corr.Y.xscores=yxscores,
-                       corr.X.yscores=xyscores,
-                       corr.Y.yscores=yyscores)
+                           yscores=cvy,
+                           corr.X.xscores=xxscores,
+                           corr.Y.xscores=yxscores,
+                           corr.X.yscores=xyscores,
+                           corr.Y.yscores=yyscores)
     class(rccaObj) <- "federateRCCA"
     return (rccaObj)
 }
 
 
 #' @title Map data values to color codes
-#' @description Produce color codes for plotting
-#' @param x A factor or a numeric vector
+#' @description Produce color codes for plotting.
+#' @usage mapColor(x,
+#'                 range.min = NA,
+#'                 range.max = NA,
+#'                 levels = NA,
+#'                 nbreaks = 10,
+#'                 colors = .encode.arg(c('orange', 'blue')),
+#'                 ...)
+#' @param x A factor or a numeric vector.
 #' @param range.min Global minimum of x, including other nodes.
 #' Default, \code{min(x)}.
 #' @param range.max Global maximum of x, including other nodes.
 #' Default, \code{max(x)}.
-#' @param levels Encoded value of a character vector indicating the global levels of x, when x is a factor. Default: \code{.encode.arg(levels(x))}.
-#' @param nbreaks An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.
-#' @param colors Encoded value of a vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{.encode.arg(c('orange', 'blue'))}.
+#' @param levels Encoded value of a character vector indicating the global
+#' levels of x, when x is a factor. Default, \code{.encode.arg(levels(x))}.
+#' @param nbreaks An integer indicating the number of intervals into which x is
+#' to be cut, less than \code{length(x)/10}, when x is numeric.
+#' @param colors Encoded value of a vector of colors to interpolate, must be a
+#' valid argument to col2rgb(). Default, \code{.encode.arg(c('orange', 'blue'))}.
 #' @param ... arguments to pass to \code{colorRampPalette}
 #' @returns Color codes
 #' @importFrom grDevices colorRampPalette

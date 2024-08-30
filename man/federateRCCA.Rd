@@ -4,54 +4,64 @@
 \alias{federateRCCA}
 \title{Federated RCCA}
 \usage{
-federateRCCA(
-  loginFD,
-  logins,
-  func,
-  symbol,
-  ncomp = 2,
-  lambda1 = 0,
-  lambda2 = 0,
-  chunk = 500,
-  mc.cores = 1,
-  tune = FALSE,
-  tune_param = .encode.arg(list(nfold = 5, grid1 = seq(0.001, 1, length = 5), grid2 =
-    seq(0.001, 1, length = 5)))
-)
+federateRCCA(loginFD,
+                    logins,
+                    func,
+                    symbol,
+                    ncomp = 2,
+                    lambda1 = 0,
+                    lambda2 = 0,
+                    chunk = 500,
+                    mc.cores = 1,
+                    tune = FALSE,
+                    tune_param = .encode.arg(
+                        list(nfold = 5,
+                             grid1 = seq(0.001, 1, length = 5),
+                             grid2 = seq(0.001, 1, length = 5))))
 }
 \arguments{
-\item{loginFD}{Login information of the FD server (one of the servers containing cohort data).}
+\item{loginFD}{Login information of the FD server (one of the servers
+containing cohort data).}
 
 \item{logins}{Login information of servers containing cohort data.}
 
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of Opal connections), 
+\item{func}{Encoded definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of Opal connections), 
 symbol (names of the two R symbols) (see datashield.assign).}
 
-\item{symbol}{Encoded vector of names of the two R symbols to assign in the Datashield R session on each server in \code{logins}.
-The two assigned R variables will be used as the input raw data to compute covariance matrices for CCA.
-Other assigned R variables in \code{func} are ignored.}
+\item{symbol}{Encoded vector of names of the two R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
+The two assigned R variables will be used as the input raw data to compute
+covariance matrices for CCA. Other assigned R variables in \code{func} are
+ignored.}
 
 \item{ncomp}{Number of components (covariates). Default, 2.}
 
-\item{lambda1}{Non-negative regularized parameter value for first data set. Default, 0. If there are more variables than samples, it should be > 0.}
+\item{lambda1}{Non-negative regularized parameter value for first data set.
+Default, 0. If there are more variables than samples, it should be > 0.}
 
-\item{lambda2}{Non-negative regularized parameter value for second data set. Default, 0. If there are more variables than samples, it should be > 0.}
+\item{lambda2}{Non-negative regularized parameter value for second data set.
+Default, 0. If there are more variables than samples, it should be > 0.}
 
-\item{chunk}{Size of chunks into what the SSCP matrix is partitioned. Default, 500.}
+\item{chunk}{Size of chunks into what the SSCP matrix is partitioned.
+Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 
-\item{tune}{Logical value indicating whether the tuning for lambda values will be performed. Default, FALSE, no tuning.}
+\item{tune}{Logical value indicating whether the tuning for lambda values
+will be performed. Default, FALSE, no tuning.}
 
-\item{tune_param}{Tuning parameters. \code{nfold} n-fold cross-validation. \code{grid1} tuning values for \code{lambda1}.
+\item{tune_param}{Tuning parameters.
+\code{nfold} n-fold cross-validation.
+\code{grid1} tuning values for \code{lambda1}.
 \code{grid2} tuning values for \code{lambda2}.}
 }
 \value{
 RCCA object
 }
 \description{
-Perform the regularized canonical correlation analysis for the virtual cohort
+Perform the regularized canonical correlation analysis for the
+virtual cohort.
 }
 \examples{
 \dontrun{

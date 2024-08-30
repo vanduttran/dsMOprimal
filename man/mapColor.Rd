@@ -4,18 +4,16 @@
 \alias{mapColor}
 \title{Map data values to color codes}
 \usage{
-mapColor(
-  x,
-  range.min = NA,
-  range.max = NA,
-  levels = NA,
-  nbreaks = 10,
-  colors = .encode.arg(c("orange", "blue")),
-  ...
-)
+mapColor(x,
+                range.min = NA,
+                range.max = NA,
+                levels = NA,
+                nbreaks = 10,
+                colors = .encode.arg(c('orange', 'blue')),
+                ...)
 }
 \arguments{
-\item{x}{A factor or a numeric vector}
+\item{x}{A factor or a numeric vector.}
 
 \item{range.min}{Global minimum of x, including other nodes.
 Default, \code{min(x)}.}
@@ -23,11 +21,14 @@ Default, \code{min(x)}.}
 \item{range.max}{Global maximum of x, including other nodes.
 Default, \code{max(x)}.}
 
-\item{levels}{Encoded value of a character vector indicating the global levels of x, when x is a factor. Default: \code{.encode.arg(levels(x))}.}
+\item{levels}{Encoded value of a character vector indicating the global
+levels of x, when x is a factor. Default, \code{.encode.arg(levels(x))}.}
 
-\item{nbreaks}{An integer indicating the number of intervals into which x is to be cut, less than \code{length(x)/10}, when x is numeric.}
+\item{nbreaks}{An integer indicating the number of intervals into which x is
+to be cut, less than \code{length(x)/10}, when x is numeric.}
 
-\item{colors}{Encoded value of a vector of colors to interpolate, must be a valid argument to col2rgb(). Default: \code{.encode.arg(c('orange', 'blue'))}.}
+\item{colors}{Encoded value of a vector of colors to interpolate, must be a
+valid argument to col2rgb(). Default, \code{.encode.arg(c('orange', 'blue'))}.}
 
 \item{...}{arguments to pass to \code{colorRampPalette}}
 }
@@ -35,5 +36,5 @@ Default, \code{max(x)}.}
 Color codes
 }
 \description{
-Produce color codes for plotting
+Produce color codes for plotting.
 }

@@ -4,32 +4,34 @@
 \alias{federatePCA}
 \title{Federated PCA}
 \usage{
-federatePCA(
-  loginFD,
-  logins,
-  func,
-  symbol,
-  ncomp = 2,
-  chunk = 500,
-  mc.cores = 1
-)
+federatePCA(loginFD,
+                   logins,
+                   func,
+                   symbol,
+                   ncomp = 2,
+                   chunk = 500,
+                   mc.cores = 1)
 }
 \arguments{
-\item{loginFD}{Login information of the FD server (one of the servers containing cohort data)}
+\item{loginFD}{Login information of the FD server (one of the servers
+containing cohort data).}
 
-\item{logins}{Login information of other servers containing cohort data}
+\item{logins}{Login information of other servers containing cohort data.}
 
-\item{func}{Encoded definition of a function for preparation of raw data matrices. 
-Two arguments are required: conns (list of Opal connections), 
+\item{func}{Encoded definition of a function for preparation of raw data
+matrices. Two arguments are required: conns (list of Opal connections), 
 symbol (name of the R symbol) (see datashield.assign).}
 
-\item{symbol}{Encoded name of the R symbol to assign in the Datashield R session on each server in \code{logins}.
-The assigned R variable will be used as the input raw data to compute covariance matrix for PCA.
-Other assigned R variables in \code{func} are ignored.}
+\item{symbol}{Encoded vector of names of the R symbols to assign in the
+DataSHIELD R session on each server in \code{logins}.
+The assigned R variable will be used as the input raw data to compute
+covariance matrix for PCA. Other assigned R variables in \code{func} are
+ignored.}
 
 \item{ncomp}{Number of components. Default, 2.}
 
-\item{chunk}{Size of chunks into what the resulting matrix is partitioned. Default, 500.}
+\item{chunk}{Size of chunks into what the resulting matrix is partitioned.
+Default, 500.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
@@ -37,7 +39,7 @@ Other assigned R variables in \code{func} are ignored.}
 PCA object
 }
 \description{
-Perform the principal component analysis for the virtual cohort
+Perform the principal component analysis for the virtual cohort.
 }
 \examples{
 \dontrun{
