@@ -1755,12 +1755,13 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     yyscores <- crossprod(t(crossprod(invdiagcovy, Cyy)),
                           tcrossprod(rccaObj$ycoef, invdiagcovcvy))
     
-    rccaObj$scores <- list(xscores=cvx,
-                           yscores=cvy,
-                           corr.X.xscores=xxscores,
-                           corr.Y.xscores=yxscores,
-                           corr.X.yscores=xyscores,
-                           corr.Y.yscores=yyscores)
+    rccaObj$scores <- list(xscores=cvx[, 1:ncomp],
+                           yscores=cvy[, 1:ncomp],
+                           corr.X.xscores=xxscores[, 1:ncomp],
+                           corr.Y.xscores=yxscores[, 1:ncomp],
+                           corr.X.yscores=xyscores[, 1:ncomp],
+                           corr.Y.yscores=yyscores[, 1:ncomp])
+    
     class(rccaObj) <- "federateRCCA"
     return (rccaObj)
 }
