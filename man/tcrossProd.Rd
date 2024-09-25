@@ -4,7 +4,7 @@
 \alias{tcrossProd}
 \title{Matrix cross product}
 \usage{
-tcrossProd(x, y = NULL, chunk = 500)
+tcrossProd(x, y = NULL, chunk = 500L)
 }
 \arguments{
 \item{x}{A list of numeric matrices.}
@@ -12,7 +12,7 @@ tcrossProd(x, y = NULL, chunk = 500)
 \item{y}{A list of numeric matrices. Default, NULL, y = x.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 }
 \value{
 \code{x \%*\% t(y)}

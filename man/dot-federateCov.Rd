@@ -11,7 +11,7 @@
   querytables,
   querysubset = NULL,
   pair = FALSE,
-  chunk = 500,
+  chunk = 500L,
   mc.cores = 1,
   connRes = FALSE
 )
@@ -38,7 +38,7 @@ individuals to consider. Default, NULL, all individuals are considered.}
 Default, FALSE.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 

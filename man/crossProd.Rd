@@ -4,7 +4,7 @@
 \alias{crossProd}
 \title{Matrix cross product}
 \usage{
-crossProd(x, y = NULL, pair = FALSE, chunk = 500)
+crossProd(x, y = NULL, pair = FALSE, chunk = 500L)
 }
 \arguments{
 \item{x}{A list of numeric matrices.}
@@ -15,7 +15,7 @@ crossProd(x, y = NULL, pair = FALSE, chunk = 500)
 Default, FALSE. Ignored if \code{y} is provided.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 }
 \value{
 A list of cross product matrices.

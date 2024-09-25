@@ -9,7 +9,7 @@
   logins,
   funcPreProc,
   querytables,
-  chunk = 500,
+  chunk = 500L,
   mc.cores = 1,
   nfold = 5,
   grid1 = seq(0.001, 1, length = 5),
@@ -32,7 +32,7 @@ The assigned R variable(s) will be used as the input raw data to compute
 covariance matrix. Other assigned R variables in \code{func} are ignored.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 

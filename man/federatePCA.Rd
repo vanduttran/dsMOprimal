@@ -9,7 +9,7 @@ federatePCA(loginFD,
                    func,
                    symbol,
                    ncomp = 2,
-                   chunk = 500,
+                   chunk = 500L,
                    mc.cores = 1)
 }
 \arguments{
@@ -31,7 +31,7 @@ ignored.}
 \item{ncomp}{Number of components. Default, 2.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }

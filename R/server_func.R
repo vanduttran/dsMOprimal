@@ -245,31 +245,6 @@ singularProd <- function(x) {
 }
 
 
-## TOCHECK: check y, check number of queries for security issue
-#' @title Loadings
-#' @description Loadings of features in a new feature basis
-#' @param x A numeric matrix
-#' @param y A numeric matrix for the new basis of the same nrow to x.
-#' @param operator An operation to compute the loadings (\code{crossprod},
-#' \code{cor}). Default, \code{crossprod}
-#' @returns operator(x, y)
-#' @keywords internal TOREMOVE
-loadingsrm <- function(x, y, operator = 'crossprod') {
-    operator <- match.arg(operator, choices=c('crossprod', 'cor', "prod"))
-    yd <- .decode.arg(y)
-    if (!is.list(yd)) stop("y should be an encoded list.")
-    lds <- lapply(yd, function(yyd) {
-        if (is.list(yyd)) yyd <- do.call(rbind, yyd)
-        return (switch(operator,
-                       cor=cor(x, yyd),
-                       prod=crossprod(t(x), yyd),
-                       crossprod=crossprod(x, yyd)))
-    })
-    
-    return (lds)
-}
-
-
 #' @title Matrix cross product
 #' @description Calculates the cross product of given matrices
 #' @param x A list of numeric matrices.
@@ -277,12 +252,12 @@ loadingsrm <- function(x, y, operator = 'crossprod') {
 #' @param pair A logical value indicating pairwise cross products are computed.
 #' Default, FALSE. Ignored if \code{y} is provided.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @returns A list of cross product matrices.
 #' @importFrom utils combn
 #' @importFrom arrow write_to_raw
 #' @export
-crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500) {
+crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
     if (is.null(y)) {
         xblocks <- lapply(x, function(xx) {
@@ -360,11 +335,11 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500) {
 #' @param x A list of numeric matrices.
 #' @param y A list of numeric matrices. Default, NULL, y = x.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
 #' @export
-tcrossProd <- function(x, y = NULL, chunk = 500) {
+tcrossProd <- function(x, y = NULL, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x))
         stop('x should be a list of matrices.')
     if (is.null(y)) {
@@ -519,10 +494,11 @@ matrix2DscMate <- function(value) {
 }
 
 
-#' @title Symmetric matrix reconstruction
-#' @description Rebuild a symmetric matrix from its partition bigmemory objects
-#' @param dscblocks List of lists of bigmemory objects pointed to matrix blocks
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @title Matrix reconstruction
+#' @description Rebuild a matrix from its partition bigmemory objects.
+#' @param dscblocks List of lists of bigmemory objects pointed to matrix
+#' blocks.
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns The complete symmetric matrix
 #' @importFrom parallel mclapply
 #' @importFrom bigmemory attach.big.matrix
@@ -539,28 +515,9 @@ matrix2DscMate <- function(value) {
 }
 
 
-#' @title Symmetric matrix reconstruction
-#' @description Rebuild a matrix from its encoded partition
-#' @param blocks List of list of encoded matrix blocks
-#' @param mc.cores Number of cores for parallel computing. Default: 1
-#' @returns The complete symmetric matrix
-#' @importFrom parallel mclapply
-#' @keywords internal TOREMOVE
-.rebuildMatrixEnc <- function(blocks, mc.cores = 1) {
-    ## decode matrix blocks
-    matblocks <- mclapply(blocks, mc.cores=mc.cores, function(y) {
-        lapply(y, function(x) {
-            return (do.call(rbind, .decode.arg(x)))
-        })
-    })
-    tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
-    return (tcp)
-}
-
-
-#' @title Symmetric matrix reconstruction
-#' @description Rebuild a symmetric matrix from its partition through variables
-#' in the environment
+#' @title Matrix reconstruction
+#' @description Rebuild a matrix from its partition through variables
+#' in the environment.
 #' @param symbol Generic variable name
 #' @param len1 First-order length of lists of matrix blocks. Variables were
 #' generated as symbol__1__1__1, symbol__1__1__2, etc.
@@ -601,41 +558,32 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
 #' @param x A list of numeric matrices.
 #' @param mate Mate server name, from which y was pushed.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
 #' @importFrom parallel mclapply
 #' @export
-tripleProdChunk <- function(x, mate, chunk = 500, mc.cores = 1) {
+tripleProdChunk <- function(x, mate, chunk = 500L, mc.cores = 1) {
     nblocks <- ceiling(nrow(x[[1]])/chunk)
     sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
 
     tpcs <- lapply(1:length(x), function(i) {
-        #tps <- mclapply(pids, mc.cores=mc.cores, function(pid) {
-            #y <- get(paste("crossProdSelf", pid, sep='_'), pos=1)#, envir = .GlobalEnv) #parent.frame())
-            y <- get(paste("pushed", mate, sep='_'), pos=1)
-            # print(y[[i]][1:3,1:3])
-            # print(x[[i]][1:5,1:3])
-            stopifnot(isSymmetric(y[[i]], check.attributes=F))
-            ## NB. this computation of tcpblocks could be done more efficiently
-            ## with y being a chunked matrix in bigmemory
-            tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
-            # print(tp[1:4,1:3])
-            tcpblocks <- .partitionMatrix(tp,
-                                          seprow=sepblocks,
-                                          sepcol=sepblocks)
-            etcpblocks <- lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    return (.encode.arg(write_to_raw(tcp)))
-                    #.encode.arg(tcp)
-                }))
-            })
-            return (etcpblocks)
-        #})
-        #names(tps) <- pids
-        #return (tps)
+        y <- get(paste("pushed", mate, sep='_'), pos=1)
+        stopifnot(isSymmetric(y[[i]], check.attributes=F))
+        ## NB. this computation of tcpblocks could be done more efficiently
+        ## with y being a chunked matrix in bigmemory
+        tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
+        tcpblocks <- .partitionMatrix(tp,
+                                      seprow=sepblocks,
+                                      sepcol=sepblocks)
+        etcpblocks <- lapply(tcpblocks, function(tcpb) {
+            return (lapply(tcpb, function(tcp) {
+                return (.encode.arg(write_to_raw(tcp)))
+            }))
+        })
+        return (etcpblocks)
     })
     names(tpcs) <- names(x)
     
@@ -908,7 +856,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @title Sum matrices
 #' @description Compute the sum of matrices stored in bigmemory objects
 #' @param dsc A list of big memory descriptions
-#' @param mc.cores Number of cores for parallel computing. Default: 1
+#' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns Sum of matrices stored in dsc.
 #' @importFrom bigmemory attach.big.matrix
 #' @importFrom parallel mclapply
@@ -939,21 +887,23 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @param pair A logical value indicating pairwise cross products are computed.
 #' Default, FALSE.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param connRes A logical value indicating if the connection to \code{logins}
 #' is returned. Default, no. 
 #' @returns Covariance matrix of the virtual cohort
-#' @importFrom DSI datashield.aggregate datashield.assign datashield.logout datashield.symbols datashield.errors
+#' @importFrom DSI datashield.aggregate datashield.assign
+#' datashield.logout datashield.symbols datashield.errors
 #' @importFrom parallel mclapply
 #' @importFrom utils combn
 #' @keywords internal
 .federateCov <- function(loginFD, logins, funcPreProc, querytables,
                          querysubset = NULL, pair = FALSE,
-                         chunk = 500, mc.cores = 1, connRes = FALSE) {
+                         chunk = 500L, mc.cores = 1, connRes = FALSE) {
     loginFDdata <- .decode.arg(loginFD)
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
+    nnode <- length(opals)
     .printTime(".federateCov Login-ed")
     
     ## create data X with funcPreProc
@@ -998,7 +948,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                               async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
-            lapply(names(opals), function(opn) {
+            mclapply(names(opals), mc.cores=nnode, function(opn) {
                 datashield.assign(
                     opals[opn],
                     "centeredData",
@@ -1138,7 +1088,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #'                    func,
 #'                    symbol,
 #'                    ncomp = 2,
-#'                    chunk = 500,
+#'                    chunk = 500L,
 #'                    mc.cores = 1)
 #' @param loginFD Login information of the FD server (one of the servers
 #' containing cohort data).
@@ -1153,7 +1103,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' ignored.
 #' @param ncomp Number of components. Default, 2.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns PCA object
 #' @importFrom DSI datashield.aggregate datashield.assign datashield.logout
@@ -1172,7 +1122,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' }
 #' @export
 federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
-                        chunk = 500, mc.cores = 1) {
+                        chunk = 500L, mc.cores = 1) {
     .printTime("federatePCA started")
     if (ncomp < 2) {
         print("ncomp should be at least 2. ncomp will be set to 2.")
@@ -1280,7 +1230,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' The assigned R variable(s) will be used as the input raw data to compute
 #' covariance matrix. Other assigned R variables in \code{func} are ignored.
 #' @param chunk Size of chunks into what the resulting matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param nfold n-fold cross-validation. Default, 5.
 #' @param grid1 Tuning values for \code{lambda1}.
@@ -1293,7 +1243,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' @importFrom arrow write_to_raw
 #' @keywords internal
 .estimateR <- function(loginFD, logins, funcPreProc, querytables,
-                       chunk = 500, mc.cores = 1,
+                       chunk = 500L, mc.cores = 1,
                        nfold = 5,
                        grid1 = seq(0.001, 1, length = 5),
                        grid2 = seq(0.001, 1, length = 5)) {
@@ -1302,7 +1252,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     logindata   <- .decode.arg(logins)
     
     opals <- .login(logins=logindata)
-    nNode <- length(opals)
+    nnode <- length(opals)
     
     ## create data X with funcPreProc
     tryCatch({
@@ -1359,14 +1309,14 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         ## random Mfold partitions to leave out
         foldspar <- split(
             unlist(mclapply(names(opals),
-                            mc.cores=min(nNode, mc.cores),
+                            mc.cores=min(nnode, mc.cores),
                             function(opn) {     
                                 paste(opn, 1:nsamples[opn], sep="_")
                             }))[sample(1:sum(nsamples))], 
             rep(1:nfold, length = sum(nsamples)))
         foldslef <- lapply(foldspar, function(fl) {
             setNames(mclapply(names(opals),
-                              mc.cores=min(nNode, mc.cores),
+                              mc.cores=min(nnode, mc.cores),
                               function(opn) {
                                   sort(as.numeric(sub(fl[grep(opn, fl)],
                                                       pattern=paste0(opn,"_"),
@@ -1376,7 +1326,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         ## remaining individuals on each cohort
         foldsrem <- lapply(foldslef, function(fl) {
             setNames(mclapply(names(opals),
-                              mc.cores=min(nNode, mc.cores),
+                              mc.cores=min(nnode, mc.cores),
                               function(opn) {
                                   setdiff(1:nsamples[opn], fl[[opn]])
                               }), names(opals))
@@ -1440,29 +1390,32 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                                    sourcename='FD', async=T)
                     
                     ## centeredData for foldslef
-                    invisible(lapply(names(mopals), function(opn) {
-                        datashield.assign(
-                            mopals[opn],
-                            "centeredDatam",
-                            as.call(c(as.symbol("center"),
-                                      x=as.call(c(as.symbol("list"),
-                                                  setNames(
-                                                      lapply(querytables,
-                                                             as.symbol),
-                                                      querytables)
-                                      )),
-                                      subset=.encode.arg(foldslef[[m]][[opn]])
-                                      )),
-                            async=T)
-                    }))
+                    invisible(mclapply(
+                        names(mopals), mc.cores=length(mopals), function(opn) {
+                            datashield.assign(
+                                mopals[opn],
+                                "centeredDatam",
+                                as.call(c(as.symbol("center"),
+                                          x=as.call(c(as.symbol("list"),
+                                                      setNames(
+                                                          lapply(querytables,
+                                                                 as.symbol),
+                                                          querytables)
+                                          )),
+                                          subset=.encode.arg(
+                                              foldslef[[m]][[opn]])
+                                )),
+                                async=T)
+                        }))
                     
                     ## compute X*coefs'
-                    datashield.assign(mopals, "scores", 
-                                      as.call(list(as.symbol("tcrossProd"),
-                                                   x=as.symbol("centeredDatam"),
-                                                   y=as.symbol("pushed_FD"),
-                                                   chunk=chunk)),
-                                      async=T)
+                    datashield.assign(
+                        mopals, "scores", 
+                        as.call(list(as.symbol("tcrossProd"),
+                                     x=as.symbol("centeredDatam"),
+                                     y=as.symbol("pushed_FD"),
+                                     chunk=chunk)),
+                        async=T)
                     
                     command <- list(as.symbol("pushToDscFD"),
                                     as.symbol("FD"),
@@ -1488,7 +1441,6 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         sl$xcoef))
                     cvy <- do.call(rbind, lapply(scoresLoc, function(sl)
                         sl$ycoef))
-                    ## TODO: would rownames be necessary?
                 }, error = function(e) {
                     .printTime(paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
                     return (paste0("ESTIMATE COEF PUSH PROCESS: ", m, e))
@@ -1517,7 +1469,6 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 grid1       = grid1,
                 grid2       = grid2,
                 mat         = mat)
-    #out$call <- match.call()
     class(out) <- ".estimateR"
     return (out)
 }
@@ -1533,7 +1484,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #'                     ncomp = 2,
 #'                     lambda1 = 0,
 #'                     lambda2 = 0,
-#'                     chunk = 500,
+#'                     chunk = 500L,
 #'                     mc.cores = 1,
 #'                     tune = FALSE,
 #'                     tune_param = .encode.arg(
@@ -1557,7 +1508,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' @param lambda2 Non-negative regularized parameter value for second data set.
 #' Default, 0. If there are more variables than samples, it should be > 0.
 #' @param chunk Size of chunks into what the SSCP matrix is partitioned.
-#' Default, 500.
+#' Default, 500L.
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @param tune Logical value indicating whether the tuning for lambda values
 #' will be performed. Default, FALSE, no tuning.
@@ -1584,7 +1535,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' @export
 federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                          lambda1 = 0, lambda2 = 0,
-                         chunk = 500, mc.cores = 1,
+                         chunk = 500L, mc.cores = 1,
                          tune = FALSE,
                          tune_param = .encode.arg(list(
                              nfold = 5,

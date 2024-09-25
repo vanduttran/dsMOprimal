@@ -2,19 +2,20 @@
 % Please edit documentation in R/server_func.R
 \name{.rebuildMatrixDsc}
 \alias{.rebuildMatrixDsc}
-\title{Symmetric matrix reconstruction}
+\title{Matrix reconstruction}
 \usage{
 .rebuildMatrixDsc(dscblocks, mc.cores = 1)
 }
 \arguments{
-\item{dscblocks}{List of lists of bigmemory objects pointed to matrix blocks}
+\item{dscblocks}{List of lists of bigmemory objects pointed to matrix
+blocks.}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 The complete symmetric matrix
 }
 \description{
-Rebuild a symmetric matrix from its partition bigmemory objects
+Rebuild a matrix from its partition bigmemory objects.
 }
 \keyword{internal}

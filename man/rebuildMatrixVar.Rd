@@ -2,7 +2,7 @@
 % Please edit documentation in R/server_func.R
 \name{rebuildMatrixVar}
 \alias{rebuildMatrixVar}
-\title{Symmetric matrix reconstruction}
+\title{Matrix reconstruction}
 \usage{
 rebuildMatrixVar(symbol, len1, len2, len3, querytables = NULL, mc.cores = 1)
 }
@@ -24,6 +24,6 @@ generated as symbol__1__1__1, symbol__1__1__2, etc.}
 The complete symmetric matrix
 }
 \description{
-Rebuild a symmetric matrix from its partition through variables
-in the environment
+Rebuild a matrix from its partition through variables
+in the environment.
 }

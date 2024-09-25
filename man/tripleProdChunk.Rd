@@ -4,7 +4,7 @@
 \alias{tripleProdChunk}
 \title{Matrix triple product}
 \usage{
-tripleProdChunk(x, mate, chunk = 500, mc.cores = 1)
+tripleProdChunk(x, mate, chunk = 500L, mc.cores = 1)
 }
 \arguments{
 \item{x}{A list of numeric matrices.}
@@ -12,7 +12,7 @@ tripleProdChunk(x, mate, chunk = 500, mc.cores = 1)
 \item{mate}{Mate server name, from which y was pushed.}
 
 \item{chunk}{Size of chunks into what the resulting matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }

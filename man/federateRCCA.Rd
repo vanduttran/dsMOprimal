@@ -11,7 +11,7 @@ federateRCCA(loginFD,
                     ncomp = 2,
                     lambda1 = 0,
                     lambda2 = 0,
-                    chunk = 500,
+                    chunk = 500L,
                     mc.cores = 1,
                     tune = FALSE,
                     tune_param = .encode.arg(
@@ -44,7 +44,7 @@ Default, 0. If there are more variables than samples, it should be > 0.}
 Default, 0. If there are more variables than samples, it should be > 0.}
 
 \item{chunk}{Size of chunks into what the SSCP matrix is partitioned.
-Default, 500.}
+Default, 500L.}
 
 \item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 

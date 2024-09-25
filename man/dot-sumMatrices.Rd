@@ -9,7 +9,7 @@
 \arguments{
 \item{dsc}{A list of big memory descriptions}
 
-\item{mc.cores}{Number of cores for parallel computing. Default: 1}
+\item{mc.cores}{Number of cores for parallel computing. Default, 1.}
 }
 \value{
 Sum of matrices stored in dsc.
