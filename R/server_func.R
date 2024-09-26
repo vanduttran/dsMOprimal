@@ -220,6 +220,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     indcol <- lapply(1:length(sepcol), function(i) {
         return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
     })
+    .printTime("begin partition")
     parMat <- lapply(1:length(indrow), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
             xij <- x[indrow[[i]][1]:indrow[[i]][2],
@@ -227,7 +228,7 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
             return (arrow_table(as.data.frame(xij)))
         })
     })
-    
+    .printTime("end partition")
     return (parMat)
 }
 
@@ -267,10 +268,7 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
             tcpblocks <- .partitionMatrix(crossprod(xx), seprow=sepblockscol)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    #tcpbin <- writeBin(as.vector(tcp), raw())
-                    #return (.encode.arg(tcpbin))
                     return (.encode.arg(write_to_raw(tcp)))
-                    #.encode.arg(tcp)
                 }))
             }))
         })
@@ -353,10 +351,7 @@ tcrossProd <- function(x, y = NULL, chunk = 500L) {
                                           sepcol=sepblocksrow)
             return (lapply(tcpblocks, function(tcpb) {
                 return (lapply(tcpb, function(tcp) {
-                    #tcpbin <- writeBin(as.vector(tcp), raw())
-                    #return (.encode.arg(tcpbin))
                     return (.encode.arg(write_to_raw(tcp)))
-                    #.encode.arg(tcp, serialize.it = F)
                 }))
             }))
         })
@@ -537,8 +532,7 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
         lapply(1:len2[i], function(j) {
             lapply(1:len3[[i]][j], function(k) {
                 varname <- paste(c(symbol, i, j, k), collapse="__")
-                dscblock <- get(varname,
-                                pos=1)
+                dscblock <- get(varname, pos=1)
                 rm(varname)
                 return ((attach.big.matrix(dscblock))[,,drop=F])
             })
@@ -704,11 +698,9 @@ pushToDscFD <- function(conns, object, async = T) {
             return (lapply(clomics, function(clrow) {
                 return (lapply(clrow, function(clcol) {
                     expr <- list(as.symbol("matrix2DscFD"), clcol)
-                    #print(as.call(expr))
                     clcoldsc <- datashield.aggregate(conns=conns,
                                                      expr=as.call(expr),
                                                      async=async)
-                    #print(datashield.errors())
                     return (clcoldsc[[1]])
                 }))
             }))
@@ -802,8 +794,8 @@ crossAssign <- function(conns, symbol, value, value.call, async = T) {
                           async=async)
     } else {
         valued <- .decode.arg(value)
-        datashield.assign(conns=conns, symbol=symbol, 
-                          value=ifelse(value.call, as.symbol(valued), valued), 
+        datashield.assign(conns=conns, symbol=symbol,
+                          value=ifelse(value.call, as.symbol(valued), valued),
                           async=async)
     }
 }
@@ -975,6 +967,8 @@ crossAssignFunc <- function(conns, func, symbol) {
         variables <- datashield.aggregate(opals[1],
                                           as.symbol('colNames(centeredData)'),
                                           async=T)[[1]]
+
+        .printTime("Dimension retrieved")
         
         ## compute X'X
         datashield.assign(opals, "crossProdSelf", 
@@ -983,6 +977,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                                        pair=pair,
                                        chunk=chunk)),
                           async=T)
+        .printTime("X'X computed")
         
         ## connection from non-FD servers to FD-assigned server:
         ## user and password for login between servers are required
@@ -1032,7 +1027,6 @@ crossAssignFunc <- function(conns, func, symbol) {
         })
         ## compute X'X on virtual cohort
         rescov <- mclapply(
-            #names(crossProdSelf[[1]]),
             crossProdNames,
             mc.cores=mc.cores, function(qtabi) {
                 Reduce("+",
@@ -1040,7 +1034,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                               function(cps)
                                   cps[[qtabi]]))/(sum(nsamples)-1)
             })
-        names(rescov) <- crossProdNames #names(crossProdSelf[[1]])
+        names(rescov) <- crossProdNames
         ## set rownames and colnames of X'X
         for (crn in querytables) {
             if (is.null(rownames(rescov[[crn]])))
@@ -1048,16 +1042,15 @@ crossAssignFunc <- function(conns, func, symbol) {
             if (is.null(colnames(rescov[[crn]])))
                 colnames(rescov[[crn]]) <- variables[[crn]]
         }
-        #if (pair) {
-            for (crn in crossNames) {
-                crntype <- strsplit(crn, split="__")[[1]]
-                if (is.null(rownames(rescov[[crn]])))
-                    rownames(rescov[[crn]]) <- 
-                        rownames(rescov[[crntype[1]]])
-                if (is.null(colnames(rescov[[crn]])))
-                    colnames(rescov[[crn]]) <- 
-                        colnames(rescov[[crntype[2]]])
-        #    }
+        for (crn in crossNames) {
+            crntype <- strsplit(crn, split="__")[[1]]
+            if (is.null(rownames(rescov[[crn]])))
+                rownames(rescov[[crn]]) <- 
+                    rownames(rescov[[crntype[1]]])
+            if (is.null(colnames(rescov[[crn]])))
+                colnames(rescov[[crn]]) <- 
+                    colnames(rescov[[crntype[2]]])
+            
         }
     }, error=function(e) {
         .printTime(paste0("COV PUSH PROCESS: ", e))
