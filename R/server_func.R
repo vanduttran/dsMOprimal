@@ -701,11 +701,11 @@ pushToDscFD <- function(conns, object, async = T) {
                     clcoldsc <- datashield.aggregate(conns=conns,
                                                      expr=as.call(expr),
                                                      async=async)
+                    .printTime(datashield.errors())
                     return (clcoldsc[[1]])
                 }))
             }))
         })
-        names(dsc) <- names(chunkList)
     } else {
         dsc <- lapply(chunkList, function(clnodes) {
             return (lapply(clnodes, function(clomics) {
@@ -715,13 +715,14 @@ pushToDscFD <- function(conns, object, async = T) {
                         clcoldsc <- datashield.aggregate(conns=conns,
                                                          expr=as.call(expr),
                                                          async=async)
+                        .printTime(datashield.errors())
                         return (clcoldsc[[1]])
                     }))
                 }))
             }))
         })
-        names(dsc) <- names(chunkList)
     }
+    names(dsc) <- names(chunkList)
 
     return (dsc)
 }
@@ -1053,7 +1054,8 @@ crossAssignFunc <- function(conns, func, symbol) {
             
         }
     }, error=function(e) {
-        .printTime(paste0("COV PUSH PROCESS: ", e))
+        .printTime(paste0("COV PUSH PROCESS: ", e,
+                          ' --- ', datashield.errors()))
         datashield.assign(opals, 'crossEnd',
                           as.symbol("crossLogout(FD)"), async=T)
         return (paste0("COV PUSH PROCESS: ", e,
