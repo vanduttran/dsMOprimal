@@ -255,7 +255,7 @@ singularProd <- function(x) {
 #' @returns A list of cross product matrices.
 #' @importFrom utils combn
 #' @importFrom arrow write_to_raw
-#' @importFrom parallel mclapply
+#' @importFrom parallel mclapply detectCores
 #' @export
 crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
@@ -361,7 +361,7 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
 #' Default, 500L.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
-#' @importFrom parallel mclapply
+#' @importFrom parallel mclapply detectCores
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x))
@@ -606,29 +606,32 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
 #' @param mc.cores Number of cores for parallel computing. Default, 1.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
-#' @importFrom parallel mclapply
+#' @importFrom parallel mclapply detectCores
 #' @export
 tripleProdChunk <- function(x, mate, chunk = 500L, mc.cores = 1) {
     nblocks <- ceiling(nrow(x[[1]])/chunk)
     sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
 
-    tpcs <- lapply(1:length(x), function(i) {
-        y <- get(paste("pushed", mate, sep='_'), pos=1)
-        stopifnot(isSymmetric(y[[i]], check.attributes=F))
-        ## NB. this computation of tcpblocks could be done more efficiently
-        ## with y being a chunked matrix in bigmemory
-        tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
-        tcpblocks <- .partitionMatrix(tp,
-                                      seprow=sepblocks,
-                                      sepcol=sepblocks)
-        etcpblocks <- lapply(tcpblocks, function(tcpb) {
-            return (lapply(tcpb, function(tcp) {
-                return (.encode.arg(write_to_raw(tcp)))
-            }))
+    tpcs <- mclapply(
+        1:length(x),
+        mc.cores=min(length(x), detectCores()),
+        function(i) {
+            y <- get(paste("pushed", mate, sep='_'), pos=1)
+            stopifnot(isSymmetric(y[[i]], check.attributes=F))
+            ## NB. this computation of tcpblocks could be done more efficiently
+            ## with y being a chunked matrix in bigmemory
+            tp <- tcrossprod(x[[i]], tcrossprod(x[[i]], y[[i]]))
+            tcpblocks <- .partitionMatrix(tp,
+                                          seprow=sepblocks,
+                                          sepcol=sepblocks)
+            etcpblocks <- lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    return (.encode.arg(write_to_raw(tcp)))
+                }))
+            })
+            return (etcpblocks)
         })
-        return (etcpblocks)
-    })
     names(tpcs) <- names(x)
     
     return (tpcs)
