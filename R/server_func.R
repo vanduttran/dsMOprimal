@@ -220,7 +220,6 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     indcol <- lapply(1:length(sepcol), function(i) {
         return (c(ifelse(i==1, 0, cssepcol[i-1])+1, cssepcol[i]))
     })
-    .printTime("begin partition")
     parMat <- lapply(1:length(indrow), function(i) {
         lapply(ifelse(isSymmetric(x), i, 1):length(indcol), function(j) {
             xij <- x[indrow[[i]][1]:indrow[[i]][2],
@@ -228,7 +227,6 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
             return (arrow_table(as.data.frame(xij)))
         })
     })
-    .printTime("end partition")
     return (parMat)
 }
 
@@ -257,41 +255,61 @@ singularProd <- function(x) {
 #' @returns A list of cross product matrices.
 #' @importFrom utils combn
 #' @importFrom arrow write_to_raw
+#' @importFrom parallel mclapply
 #' @export
 crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x)) stop('x should be a list of matrices')
     if (is.null(y)) {
-        xblocks <- lapply(x, function(xx) {
-            nblockscol <- ceiling(ncol(xx)/chunk)
-            sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
-            sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
-            tcpblocks <- .partitionMatrix(crossprod(xx), seprow=sepblockscol)
-            return (lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    return (.encode.arg(write_to_raw(tcp)))
-                }))
-            }))
-        })
-        if (pair) {
-            xpairs <- combn(1:length(x), 2)
-            xblocks.cross <- lapply(1:ncol(xpairs), function(xc) {
-                x1 <- x[[xpairs[1,xc]]]
-                x2 <- x[[xpairs[2,xc]]]
-                nblocksrow <- ceiling(ncol(x1)/chunk)
-                sepblocksrow <- rep(ceiling(ncol(x1)/nblocksrow), nblocksrow-1)
-                sepblocksrow <- c(sepblocksrow, ncol(x1) - sum(sepblocksrow))
-                nblockscol <- ceiling(ncol(x2)/chunk)
-                sepblockscol <- rep(ceiling(ncol(x2)/nblockscol), nblockscol-1)
-                sepblockscol <- c(sepblockscol, ncol(x2) - sum(sepblockscol))
-                tcpblocks <- .partitionMatrix(crossprod(x1, x2), 
-                                              seprow=sepblocksrow, 
-                                              sepcol=sepblockscol)
+        xblocks <- mclapply(
+            1:length(x),
+            mc.cores=min(length(x), detectCores()),
+            function(i) {
+                nblockscol <- ceiling(ncol(x[[i]])/chunk)
+                sepblockscol <- rep(ceiling(ncol(x[[i]])/nblockscol),
+                                    nblockscol-1)
+                sepblockscol <- c(sepblockscol,
+                                  ncol(x[[i]]) - sum(sepblockscol))
+                
+                tcpblocks <- .partitionMatrix(crossprod(x[[i]]),
+                                              seprow=sepblockscol)
+                
                 return (lapply(tcpblocks, function(tcpb) {
                     return (lapply(tcpb, function(tcp) {
                         return (.encode.arg(write_to_raw(tcp)))
                     }))
                 }))
             })
+        if (pair) {
+            xpairs <- combn(1:length(x), 2)
+            xblocks.cross <- mclapply(
+                1:ncol(xpairs),
+                mc.cores=min(ncol(xpairs), detectCores()),
+                function(xc) {
+                    x1 <- x[[xpairs[1,xc]]]
+                    x2 <- x[[xpairs[2,xc]]]
+                    
+                    nblocksrow <- ceiling(ncol(x1)/chunk)
+                    sepblocksrow <- rep(ceiling(ncol(x1)/nblocksrow),
+                                        nblocksrow-1)
+                    sepblocksrow <- c(sepblocksrow,
+                                      ncol(x1) - sum(sepblocksrow))
+                    
+                    nblockscol <- ceiling(ncol(x2)/chunk)
+                    sepblockscol <- rep(ceiling(ncol(x2)/nblockscol),
+                                        nblockscol-1)
+                    sepblockscol <- c(sepblockscol,
+                                      ncol(x2) - sum(sepblockscol))
+                    
+                    tcpblocks <- .partitionMatrix(crossprod(x1, x2), 
+                                                  seprow=sepblocksrow, 
+                                                  sepcol=sepblockscol)
+                    
+                    return (lapply(tcpblocks, function(tcpb) {
+                        return (lapply(tcpb, function(tcp) {
+                            return (.encode.arg(write_to_raw(tcp)))
+                        }))
+                    }))
+                })
             names(xblocks.cross) <- sapply(1:ncol(xpairs), function(xc) {
                 paste(names(x)[xpairs[,xc]], collapse='__')
             })
@@ -301,24 +319,31 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
         if (!is.list(y) || is.data.frame(y))
             stop('y should be a list of matrices.')
         xpairs <- t(expand.grid(1:length(x), 1:length(y)))
-        xblocks <- lapply(1:ncol(xpairs), function(xc) {
-            x1 <- x[[xpairs[1,xc]]]
-            x2 <- y[[xpairs[2,xc]]]
-            nblocksrow <- ceiling(ncol(x1)/chunk)
-            sepblocksrow <- rep(ceiling(ncol(x1)/nblocksrow), nblocksrow-1)
-            sepblocksrow <- c(sepblocksrow, ncol(x1) - sum(sepblocksrow))
-            nblockscol <- ceiling(ncol(x2)/chunk)
-            sepblockscol <- rep(ceiling(ncol(x2)/nblockscol), nblockscol-1)
-            sepblockscol <- c(sepblockscol, ncol(x2) - sum(sepblockscol))
-            tcpblocks <- .partitionMatrix(crossprod(x1, x2), 
-                                          seprow=sepblocksrow, 
-                                          sepcol=sepblockscol)
-            return (lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    return (.encode.arg(write_to_raw(tcp)))
+        xblocks <- mclapply(
+            1:ncol(xpairs),
+            mc.cores=min(ncol(xpairs), detectCores()),
+            function(xc) {
+                x1 <- x[[xpairs[1,xc]]]
+                x2 <- y[[xpairs[2,xc]]]
+                
+                nblocksrow <- ceiling(ncol(x1)/chunk)
+                sepblocksrow <- rep(ceiling(ncol(x1)/nblocksrow), nblocksrow-1)
+                sepblocksrow <- c(sepblocksrow, ncol(x1) - sum(sepblocksrow))
+                
+                nblockscol <- ceiling(ncol(x2)/chunk)
+                sepblockscol <- rep(ceiling(ncol(x2)/nblockscol), nblockscol-1)
+                sepblockscol <- c(sepblockscol, ncol(x2) - sum(sepblockscol))
+                
+                tcpblocks <- .partitionMatrix(crossprod(x1, x2), 
+                                              seprow=sepblocksrow, 
+                                              sepcol=sepblockscol)
+                
+                return (lapply(tcpblocks, function(tcpb) {
+                    return (lapply(tcpb, function(tcp) {
+                        return (.encode.arg(write_to_raw(tcp)))
+                    }))
                 }))
-            }))
-        })
+            })
         names(xblocks) <- sapply(1:ncol(xpairs), function(xc) {
             paste(c(names(x)[xpairs[1,xc]], names(y)[xpairs[2,xc]]),
                   collapse='__')
@@ -336,78 +361,103 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
 #' Default, 500L.
 #' @returns \code{x \%*\% t(y)}
 #' @importFrom arrow write_to_raw
+#' @importFrom parallel mclapply
 #' @export
 tcrossProd <- function(x, y = NULL, chunk = 500L) {
     if (!is.list(x) || is.data.frame(x))
         stop('x should be a list of matrices.')
     if (is.null(y)) {
-        etcpblocks <- lapply(1:length(x), function(i) {
-            nblocksrow <- ceiling(nrow(x[[i]])/chunk)
-            sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow), nblocksrow-1)
-            sepblocksrow <- c(sepblocksrow, nrow(x[[i]]) - sum(sepblocksrow))
-            
-            tcpblocks <- .partitionMatrix(tcrossprod(x[[i]]),
-                                          seprow=sepblocksrow,
-                                          sepcol=sepblocksrow)
-            return (lapply(tcpblocks, function(tcpb) {
-                return (lapply(tcpb, function(tcp) {
-                    return (.encode.arg(write_to_raw(tcp)))
+        etcpblocks <- mclapply(
+            1:length(x),
+            mc.cores=min(length(x), detectCores()),
+            function(i) {
+                nblocksrow <- ceiling(nrow(x[[i]])/chunk)
+                sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow),
+                                    nblocksrow-1)
+                sepblocksrow <- c(sepblocksrow,
+                                  nrow(x[[i]]) - sum(sepblocksrow))
+                
+                tcpblocks <- .partitionMatrix(tcrossprod(x[[i]]),
+                                              seprow=sepblocksrow,
+                                              sepcol=sepblocksrow)
+                
+                return (lapply(tcpblocks, function(tcpb) {
+                    return (lapply(tcpb, function(tcp) {
+                        return (.encode.arg(write_to_raw(tcp)))
+                    }))
                 }))
-            }))
         })
         names(etcpblocks) <- names(x)
     } else {
         if (!is.list(y) || is.data.frame(y))
             stop('y should be a list of matrices.')
         if (is.list(y[[1]])) {
-            etcpblocks <- lapply(1:length(y), function(k) {
-                etcpblockk <- lapply(1:length(x), function(i) {
+            etcpblocks <- mclapply(
+                1:length(y),
+                mc.cores=min(length(y), detectCores()),
+                function(k) {
+                    etcpblockk <- mclapply(
+                        1:length(x),
+                        mc.cores=min(length(x), detectCores()),
+                        function(i) {
+                            nblocksrow <- ceiling(nrow(x[[i]])/chunk)
+                            sepblocksrow <- rep(
+                                ceiling(nrow(x[[i]])/nblocksrow),
+                                nblocksrow-1)
+                            sepblocksrow <- c(
+                                sepblocksrow,
+                                nrow(x[[i]]) - sum(sepblocksrow))
+                            
+                            nblockscol <- ceiling(nrow(y[[k]][[i]])/chunk)
+                            sepblockscol <- rep(
+                                ceiling(nrow(y[[k]][[i]])/nblockscol),
+                                nblockscol-1)
+                            sepblockscol <- c(
+                                sepblockscol,
+                                nrow(y[[k]][[i]]) - sum(sepblockscol))
+                            
+                            tcpblocks <- .partitionMatrix(
+                                tcrossprod(x[[i]], y[[k]][[i]]),
+                                seprow=sepblocksrow,
+                                sepcol=sepblockscol)
+                            
+                            return (lapply(tcpblocks, function(tcpb) {
+                                return (lapply(tcpb, function(tcp) {
+                                    return (.encode.arg(write_to_raw(tcp)))
+                                }))
+                            }))
+                        })
+                    names(etcpblockk) <- names(x)
+                    return (etcpblockk)
+                })
+            names(etcpblocks) <- names(y)
+        } else if (all(names(x)==names(y))) {
+            etcpblocks <- mclapply(
+                1:length(x),
+                mc.cores=min(length(x), detectCores()),
+                function(i) {
                     nblocksrow <- ceiling(nrow(x[[i]])/chunk)
                     sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow),
                                         nblocksrow-1)
                     sepblocksrow <- c(sepblocksrow,
                                       nrow(x[[i]]) - sum(sepblocksrow))
-                    nblockscol <- ceiling(nrow(y[[k]][[i]])/chunk)
-                    sepblockscol <- rep(ceiling(nrow(y[[k]][[i]])/nblockscol),
+                    
+                    nblockscol <- ceiling(nrow(y[[i]])/chunk)
+                    sepblockscol <- rep(ceiling(nrow(y[[i]])/nblockscol),
                                         nblockscol-1)
                     sepblockscol <- c(sepblockscol,
-                                      nrow(y[[k]][[i]]) - sum(sepblockscol))
+                                      nrow(y[[i]]) - sum(sepblockscol))
                     
-                    tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[k]][[i]]),
+                    tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[i]]),
                                                   seprow=sepblocksrow,
                                                   sepcol=sepblockscol)
+                    
                     return (lapply(tcpblocks, function(tcpb) {
                         return (lapply(tcpb, function(tcp) {
                             return (.encode.arg(write_to_raw(tcp)))
                         }))
                     }))
                 })
-                names(etcpblockk) <- names(x)
-                return (etcpblockk)
-            })
-            names(etcpblocks) <- names(y)
-        } else if (all(names(x)==names(y))) {
-            etcpblocks <- lapply(1:length(x), function(i) {
-                nblocksrow <- ceiling(nrow(x[[i]])/chunk)
-                sepblocksrow <- rep(ceiling(nrow(x[[i]])/nblocksrow),
-                                    nblocksrow-1)
-                sepblocksrow <- c(sepblocksrow,
-                                  nrow(x[[i]]) - sum(sepblocksrow))
-                nblockscol <- ceiling(nrow(y[[i]])/chunk)
-                sepblockscol <- rep(ceiling(nrow(y[[i]])/nblockscol),
-                                    nblockscol-1)
-                sepblockscol <- c(sepblockscol,
-                                  nrow(y[[i]]) - sum(sepblockscol))
-                
-                tcpblocks <- .partitionMatrix(tcrossprod(x[[i]], y[[i]]),
-                                              seprow=sepblocksrow,
-                                              sepcol=sepblockscol)
-                return (lapply(tcpblocks, function(tcpb) {
-                    return (lapply(tcpb, function(tcp) {
-                        return (.encode.arg(write_to_raw(tcp)))
-                    }))
-                }))
-            })
             names(etcpblocks) <- names(x)
         } else {
             stop("Wrong format of x and y.")
@@ -701,7 +751,7 @@ pushToDscFD <- function(conns, object, async = T) {
                     clcoldsc <- datashield.aggregate(conns=conns,
                                                      expr=as.call(expr),
                                                      async=async)
-                    .printTime(datashield.errors())
+                    .printTime(paste0("pushToDscFD ", datashield.errors()))
                     return (clcoldsc[[1]])
                 }))
             }))
@@ -715,7 +765,7 @@ pushToDscFD <- function(conns, object, async = T) {
                         clcoldsc <- datashield.aggregate(conns=conns,
                                                          expr=as.call(expr),
                                                          async=async)
-                        .printTime(datashield.errors())
+                        .printTime(paste0("pushToDscFD ", datashield.errors()))
                         return (clcoldsc[[1]])
                     }))
                 }))
@@ -924,7 +974,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                        ' --- ', datashield.errors(),
                        ' --- ', datashield.logout(opals)))
     })
-    .printTime("Input data processed")
+    .printTime(".federateCov Input data processed")
     
     ## compute X'X on opals
     tryCatch({
@@ -969,7 +1019,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                                           as.symbol('colNames(centeredData)'),
                                           async=T)[[1]]
 
-        .printTime("Dimension retrieved")
+        .printTime(".federateCov Dimension retrieved")
         
         ## compute X'X
         datashield.assign(opals, "crossProdSelf", 
@@ -978,7 +1028,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                                        pair=pair,
                                        chunk=chunk)),
                           async=T)
-        .printTime("X'X computed")
+        .printTime(".federateCov X'X computed")
         
         ## connection from non-FD servers to FD-assigned server:
         ## user and password for login between servers are required
@@ -1003,7 +1053,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                         as.symbol("FD"),
                         as.symbol("crossProdSelf"),
                         async=T)
-        cat("Command: pushToDscFD(FD, 'crossProdSelf')", "\n")
+        .printTime("Command: pushToDscFD(FD, 'crossProdSelf')")
         crossProdSelfDSC <- datashield.aggregate(opals,
                                                  as.call(command),
                                                  async=T)
