@@ -79,7 +79,7 @@ setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
 
 #' @title Row names
 #' @description Assign row names to a matrix 
-#' @param x A matrix or a data frame
+#' @param x A matrix, a data frame, or a list of matrices or data frames.
 #' @param row.names An encoded vector of names with the length of nrow(x)
 #' @returns Matrix with row names
 #' @export
@@ -89,7 +89,14 @@ setRowNames <- function(x, row.names) {
         stop("Cannot assign row.names of length different from nrow(x).")
     if (any(duplicated(rn)))
         stop("Repeated rownames.")
-    rownames(x) <- rn
+    if (is.list(x) && !is.data.frame(x)) {
+        x <- lapply(x, function(xx) {
+            rownames(xx) <- rn
+            return (xx)
+        })
+    } else {
+        rownames(x) <- rn
+    }
     return (x)
 }
 
@@ -640,11 +647,12 @@ tripleProdChunk <- function(x, mate, chunk = 500L, mc.cores = 1) {
 
 #' @title Cross login
 #' @description Call datashield.login on remote servers
-#' @param logins An encoded dataframe with server, url, user, password, driver, and options fields.
-#' @returns Object(s) of class DSConnection
+#' @param logins An encoded dataframe with server, url, user, password, driver,
+#' and options fields.
+#' @returns Object(s) of class DSConnection.
 #' @export
 crossLogin <- function(logins) {
-    require(DSOpal)
+    #require(DSOpal)
     loginfo <- .decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
@@ -662,7 +670,7 @@ crossLogin <- function(logins) {
 #' @importFrom DSI datashield.logout
 #' @export
 crossLogout <- function(conns) {
-    require(DSOpal)
+    #require(DSOpal)
     datashield.logout(conns)
 }
 
@@ -714,8 +722,8 @@ crossAggregateDual <- function(conns, expr, async = T) {
 #' @param async See DSI::datashield.aggregate options. Default, TRUE.
 #' @returns Returned value of given expression on opal
 #' @importFrom DSI datashield.aggregate
-#' @export
-dscPush <- function(conns, expr, async = T) {
+#' @keywords internal
+dscPushrm <- function(conns, expr, async = T) {
     expr <- .decode.arg(expr)
     stopifnot(grepl("^as.call", expr))
     expr <- eval(str2expression(expr))
@@ -907,7 +915,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 #' @importFrom bigmemory attach.big.matrix
 #' @importFrom parallel mclapply
 #' @keywords internal
-.sumMatrices <- function(dsc = NULL, mc.cores = 1) {
+.sumMatricesrm <- function(dsc = NULL, mc.cores = 1) {
     dscmat <- mclapply(dsc, mc.cores=mc.cores, function(dscblocks) {
         y <- (attach.big.matrix(dscblocks))[,,drop=F]
         return (y)

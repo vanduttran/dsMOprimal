@@ -7,10 +7,11 @@
 crossLogin(logins)
 }
 \arguments{
-\item{logins}{An encoded dataframe with server, url, user, password, driver, and options fields.}
+\item{logins}{An encoded dataframe with server, url, user, password, driver,
+and options fields.}
 }
 \value{
-Object(s) of class DSConnection
+Object(s) of class DSConnection.
 }
 \description{
 Call datashield.login on remote servers

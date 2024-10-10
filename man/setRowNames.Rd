@@ -7,7 +7,7 @@
 setRowNames(x, row.names)
 }
 \arguments{
-\item{x}{A matrix or a data frame}
+\item{x}{A matrix, a data frame, or a list of matrices or data frames.}
 
 \item{row.names}{An encoded vector of names with the length of nrow(x)}
 }
