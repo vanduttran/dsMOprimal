@@ -54,29 +54,6 @@ dsLevels <- function(x) {
 }
 
 
-#' @title Assign rownames
-#' @description Assign row names to a matrix 
-#' @param x A numeric matrix
-#' @param row.names An encoded vector of names with the length of nrow(x), or a
-#' name of variable in \code{envir}.
-#' @param envir A data frame or environment where row.names will be queried if
-#' it is a variable name. Default, \code{.GlobalEnv}
-#' @returns Matrix with rownames
-#' @keywords internal
-setRowNames.rm <- function(x, row.names, envir = .GlobalEnv) {
-    if (length(row.names)==1) {
-        if (grepl("base64$", row.names)) rn <- .decode.arg(row.names)
-        else {
-            if (typeof(envir)!='environment') envir <- as.environment(envir)
-            rn <- get(row.names, envir=envir)
-        }
-        if (nrow(x) == length(rn)) rownames(x) <- rn
-        else stop("Cannot assign row.names of length different from nrow(x)")
-    } else stop("Wrong row.names provided!")
-    return (x)
-}
-
-
 #' @title Row names
 #' @description Assign row names to a matrix 
 #' @param x A matrix, a data frame, or a list of matrices or data frames.
@@ -715,22 +692,6 @@ crossAggregateDual <- function(conns, expr, async = T) {
 }
 
 
-#' @title Description of a pushed value
-#' @description Description of a pushed value
-#' @param conns A list of Opal connections.
-#' @param expr An encoded expression to evaluate.
-#' @param async See DSI::datashield.aggregate options. Default, TRUE.
-#' @returns Returned value of given expression on opal
-#' @importFrom DSI datashield.aggregate
-#' @keywords internal
-dscPushrm <- function(conns, expr, async = T) {
-    expr <- .decode.arg(expr)
-    stopifnot(grepl("^as.call", expr))
-    expr <- eval(str2expression(expr))
-    return (datashield.aggregate(conns=conns, expr=expr, async=async))
-}
-
-
 #' @title Bigmemory description of a pushed object
 #' @description Bigmemory description of a pushed object
 #' @param conns A list of Opal connections. Only one connection is accepted.
@@ -904,23 +865,6 @@ crossAssignFunc <- function(conns, func, symbol) {
         datashield.logout(conns)
     })
     return (NULL)
-}
-
-
-#' @title Sum matrices
-#' @description Compute the sum of matrices stored in bigmemory objects
-#' @param dsc A list of big memory descriptions
-#' @param mc.cores Number of cores for parallel computing. Default, 1.
-#' @returns Sum of matrices stored in dsc.
-#' @importFrom bigmemory attach.big.matrix
-#' @importFrom parallel mclapply
-#' @keywords internal
-.sumMatricesrm <- function(dsc = NULL, mc.cores = 1) {
-    dscmat <- mclapply(dsc, mc.cores=mc.cores, function(dscblocks) {
-        y <- (attach.big.matrix(dscblocks))[,,drop=F]
-        return (y)
-    })
-    return (Reduce("+", dscmat))
 }
 
 
