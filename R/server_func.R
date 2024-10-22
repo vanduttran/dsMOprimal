@@ -118,11 +118,6 @@ colNames <- function(x) {
 #' scaled to have unit variance. Default, FALSE.
 #' @returns The centered matrix.
 #' @export
-# x = list(AAA=matrix(1:12, ncol=4, dimnames=list(letters[1:3], LETTERS[1:4])),
-#          BBB=matrix(rnorm(15), ncol=5, dimnames=list(letters[1:3], LETTERS[5:9])))
-# y[[1]][,3] = 1
-# y[[2]][5] = NA
-# y[[2]][1,] = 1
 center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
     ## convert x to numeric matrix
     if (is.list(x) && !is.data.frame(x)) {
@@ -140,7 +135,9 @@ center <- function(x, subset = NULL, byColumn = TRUE, scale = FALSE) {
              3 rows (samples).")
     if (min(lengths(rn))!=max(lengths(rn)))
         stop("Input data should have the same number of rows (samples).")
-    if (max(apply(do.call(cbind, rn), 1, function(rni) length(unique(rni)))) > 1)
+    if (max(apply(do.call(cbind, rn),
+                  1,
+                  function(rni) length(unique(rni)))) > 1)
         stop("Input data blocks should have the same order or rows (samples).")
     if (length(cn) > 1 && length(Reduce(intersect, cn)) > 0)
         stop("Input data blocks should have different column names.")
@@ -596,10 +593,11 @@ tripleProdChunk <- function(x, mate, chunk = 500L, mc.cores = 1) {
     nblocks <- ceiling(nrow(x[[1]])/chunk)
     sepblocks <- rep(ceiling(nrow(x[[1]])/nblocks), nblocks-1)
     sepblocks <- c(sepblocks, nrow(x[[1]]) - sum(sepblocks))
-
+    mc.cores <- min(mc.cores, detectCores())
+    
     tpcs <- mclapply(
         1:length(x),
-        mc.cores=min(length(x), detectCores()),
+        mc.cores=min(length(x), mc.cores),
         function(i) {
             y <- get(paste("pushed", mate, sep='_'), pos=1)
             stopifnot(isSymmetric(y[[i]], check.attributes=F))
@@ -626,10 +624,9 @@ tripleProdChunk <- function(x, mate, chunk = 500L, mc.cores = 1) {
 #' @description Call datashield.login on remote servers
 #' @param logins An encoded dataframe with server, url, user, password, driver,
 #' and options fields.
-#' @returns Object(s) of class DSConnection.
+#' @returns Object(s) of class OpalConnection.
 #' @export
 crossLogin <- function(logins) {
-    #require(DSOpal)
     loginfo <- .decode.arg(logins)
     myDf <- data.frame(server=loginfo$server,
                        url=loginfo$url,
@@ -647,7 +644,6 @@ crossLogin <- function(logins) {
 #' @importFrom DSI datashield.logout
 #' @export
 crossLogout <- function(conns) {
-    #require(DSOpal)
     datashield.logout(conns)
 }
 
@@ -714,7 +710,7 @@ pushToDscFD <- function(conns, object, async = T) {
         stop("object is not a list of lists of lists")
     
     chunkList <- object
-    
+    ## TODO: mclapply
     if (!is.list(object[[1]][[1]][[1]])) {
         dsc <- lapply(chunkList, function(clomics) {
             return (lapply(clomics, function(clrow) {
@@ -902,6 +898,8 @@ crossAssignFunc <- function(conns, func, symbol) {
     logindata   <- .decode.arg(logins)
     opals <- .login(logins=logindata)
     nnode <- length(opals)
+    mc.cores <- min(mc.cores, detectCores())
+    mc.nodes <- min(mc.cores, nnode)
     .printTime(".federateCov Login-ed")
     
     ## create data X with funcPreProc
@@ -946,7 +944,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                               async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
-            mclapply(names(opals), mc.cores=nnode, function(opn) {
+            invisible(mclapply(names(opals), mc.cores=mc.nodes, function(opn) {
                 datashield.assign(
                     opals[opn],
                     "centeredData",
@@ -959,7 +957,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                               )),
                               subset=.encode.arg(querysubset[[opn]]))),
                     async=T)
-            })
+            }))
         }
         
         ## number of samples
@@ -1024,13 +1022,18 @@ crossAssignFunc <- function(conns, func, symbol) {
         }
         crossProdNames <- c(querytables, crossNames)
         ## rebuild X'X
-        crossProdSelf <- lapply(crossProdSelfDSC, function(dscblocks) {
-            cps <- lapply(dscblocks, function(dscblocki) {
-                return (.rebuildMatrixDsc(dscblocki, mc.cores=mc.cores))
+        crossProdSelf <- mclapply(
+            names(opals),
+            mc.cores=mc.nodes,
+            function(opn) {
+                cps <- lapply(crossProdSelfDSC[[opn]], function(dscblocki) {
+                    return (.rebuildMatrixDsc(
+                        dscblocki,
+                        mc.cores=max(1, floor(mc.cores/mc.nodes))))
+                })
+                if (is.null(names(cps))) names(cps) <- crossProdNames
+                return (cps)
             })
-            if (is.null(names(cps))) names(cps) <- crossProdNames
-            return (cps)
-        })
         ## compute X'X on virtual cohort
         rescov <- mclapply(
             crossProdNames,
@@ -1130,45 +1133,55 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
     }
     funcPreProc <- .decode.arg(func)
     querytables <- .decode.arg(symbol)
-
+    ntab <- length(querytables)
+    mc.cores <- min(mc.cores, detectCores())
+    
     ## compute covariance matrices for the virtual cohort
     fedCov <- .federateCov(loginFD, logins, funcPreProc, querytables,
                            chunk=chunk, mc.cores=mc.cores, connRes=T)
     
     ## pca object
-    pcaObjs <- mclapply(fedCov$cov, mc.cores=mc.cores, function(covmat) {
-        pcaObj <- princomp(covmat=covmat)
-        
-        nsdevpos <- length(which(pcaObj$sdev > 1e-6))
-        if (nsdevpos <= ncomp) {
-            print(paste0("Security issue: maximum ", nsdevpos - 1, 
-                         " components could be inquired."))
-            ncomp <- nsdevpos - 1
-            if (ncomp < 2) stop("Less than 2 components were found.")
-        }
-        
-        pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
-        return (pcaObj)
-    })
+    pcaObjs <- mclapply(
+        querytables,
+        mc.cores=min(ntab, mc.cores),
+        function(tab) {
+            pcaObj <- princomp(covmat=fedCov$cov[[tab]])
+            
+            nsdevpos <- length(which(pcaObj$sdev > 1e-6))
+            if (nsdevpos <= ncomp) {
+                print(paste0("Security issue: maximum ", nsdevpos - 1, 
+                             " components could be inquired."))
+                ncomp <- nsdevpos - 1
+                if (ncomp < 2) stop("Less than 2 components were found.")
+            }
+            
+            pcaObj$loadings <- pcaObj$loadings[, 1:ncomp, drop=F]
+            return (pcaObj)
+        })
+    names(pcaObjs) <- querytables
     
     ## pca loadings
-    loadings <- mclapply(pcaObjs, mc.cores=mc.cores, function(pcaObj) {
-        xx <- t(pcaObj$loadings)
-        nblockscol <- ceiling(ncol(xx)/chunk)
-        sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
-        sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
-        tcpblocks <- .partitionMatrix(xx, seprow=ncomp, sepcol=sepblockscol)
-        return (lapply(tcpblocks, function(tcpb) {
-            return (lapply(tcpb, function(tcp) {
-                return (.encode.arg(write_to_raw(tcp)))
+    loadings <- mclapply(
+        querytables,
+        mc.cores=min(ntab, mc.cores),
+        function(tab) {
+            xx <- t(pcaObjs[[tab]]$loadings)
+            nblockscol <- ceiling(ncol(xx)/chunk)
+            sepblockscol <- rep(ceiling(ncol(xx)/nblockscol), nblockscol-1)
+            sepblockscol <- c(sepblockscol, ncol(xx) - sum(sepblockscol))
+            tcpblocks <- .partitionMatrix(xx, seprow=ncomp, sepcol=sepblockscol)
+            return (lapply(tcpblocks, function(tcpb) {
+                return (lapply(tcpb, function(tcp) {
+                    return (.encode.arg(write_to_raw(tcp)))
+                }))
             }))
-        }))
-    })
+        })
     names(loadings) <- querytables
     
     ## send loadings back to non-FD servers
     tryCatch({
         opals <- fedCov$conns
+        nnode <- length(opals)
         pushToDscMate(conns=opals, object=loadings, sourcename='FD', async=T)
         
         ## compute X*loadings'
@@ -1187,15 +1200,26 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
         scoresDSC <- datashield.aggregate(opals, as.call(command), async=T)
         .printTime(paste0("scores communicated to FD: "))
         
-        scoresLoc <- lapply(scoresDSC, function(dscblocks) {
-            cps <- lapply(dscblocks, function(dscblocki) {
-                cpsi <- .rebuildMatrixDsc(dscblocki, mc.cores=mc.cores)
-                colnames(cpsi) <- paste0("Comp.", 1:ncomp)
-                return (cpsi)
+        mc.nodes <- min(nnode, mc.cores)
+        scoresLoc <- mclapply(
+            names(opals),
+            mc.cores=mc.nodes,
+            function(opn) {
+                mc.tabs <- max(1, min(ntab, floor(mc.cores/mc.nodes)))
+                cps <- mclapply(
+                    querytables,
+                    mc.cores=mc.tabs,
+                    function(tab) {
+                        cpsi <- .rebuildMatrixDsc(
+                            scoresDSC[[opn]][[tab]],
+                            mc.cores=max(1,
+                                         floor(mc.cores/(mc.nodes*mc.tabs))))
+                        colnames(cpsi) <- paste0("Comp.", 1:ncomp)
+                        return (cpsi)
+                    })
+                names(cps) <- querytables
+                return (cps)
             })
-            names(cps) <- querytables
-            return (cps)
-        })
         gc()
         for (qtabi in querytables) {
             pcaObjs[[qtabi]]$scores <- do.call(

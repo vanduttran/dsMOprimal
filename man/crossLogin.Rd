@@ -11,7 +11,7 @@ crossLogin(logins)
 and options fields.}
 }
 \value{
-Object(s) of class DSConnection.
+Object(s) of class OpalConnection.
 }
 \description{
 Call datashield.login on remote servers
