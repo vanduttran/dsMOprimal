@@ -533,7 +533,10 @@ matrix2DscMate <- function(value) {
     ## access to matrix blocks 
     matblocks <- mclapply(dscblocks, mc.cores=mc.cores, function(y) {
         lapply(y, function(x) {
-            return ((attach.big.matrix(x))[,,drop=F])
+            bmx <- (attach.big.matrix(x))[,,drop=F]
+            rm(x)
+            gc()
+            return (bmx)
         })
     })
     tcp <- .rebuildMatrix(matblocks, mc.cores=mc.cores)
@@ -564,8 +567,11 @@ rebuildMatrixVar <- function(symbol, len1, len2, len3,
             lapply(1:len3[[i]][j], function(k) {
                 varname <- paste(c(symbol, i, j, k), collapse="__")
                 dscblock <- get(varname, pos=1)
+                bmk <- (attach.big.matrix(dscblock))[,,drop=F]
                 rm(varname)
-                return ((attach.big.matrix(dscblock))[,,drop=F])
+                rm(dscblock)
+                gc()
+                return (bmk)
             })
         })
     })
@@ -1077,8 +1083,7 @@ crossAssignFunc <- function(conns, func, symbol) {
                           as.symbol("crossLogout(FD)"), async=T)
         datashield.logout(opals)
     }
-    gc(reset=F)
-            
+
     return (list(cov=rescov,
                  conns=opals))
 }
@@ -1220,7 +1225,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 names(cps) <- querytables
                 return (cps)
             })
-        gc()
+        names(scoresLoc) <- names(opals)
         for (qtabi in querytables) {
             pcaObjs[[qtabi]]$scores <- do.call(
                 rbind,
@@ -1460,7 +1465,6 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         names(cps) <- c("xcoef", "ycoef")
                         return (cps)
                     })
-                    gc()
                     cvx <- do.call(rbind, lapply(scoresLoc, function(sl)
                         sl$xcoef))
                     cvy <- do.call(rbind, lapply(scoresLoc, function(sl)
@@ -1494,6 +1498,7 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                 grid2       = grid2,
                 mat         = mat)
     class(out) <- ".estimateR"
+    
     return (out)
 }
 
@@ -1662,7 +1667,6 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
             names(cps) <- c("xcoef", "ycoef")
             return (cps)
         })
-        gc()
         cvx <- do.call(rbind, lapply(scoresLoc, function(sl) sl$xcoef))
         cvy <- do.call(rbind, lapply(scoresLoc, function(sl) sl$ycoef))
         ## TODO: would rownames be necessary?
@@ -1789,5 +1793,6 @@ mapColor <- function(x, range.min = NA, range.max = NA, levels = NA,
     } else {
         stop("A numeric vector or a factor is required.")
     }
+    
     return (colbreaks)
 }
