@@ -260,6 +260,7 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
                     }))
                 }))
             })
+        names(xblocks) <- names(x)
         if (pair) {
             xpairs <- combn(1:length(x), 2)
             xblocks.cross <- mclapply(
