@@ -1052,6 +1052,7 @@ crossAssignFunc <- function(conns, func, symbol) {
         names(rescov) <- crossProdNames
         .printTime(names(rescov))
         .printTime(names(variables))
+        print(lapply(rescov, class))
         print(lapply(rescov, dim))
         print(lapply(variables, length))
         ## set rownames and colnames of X'X
