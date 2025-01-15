@@ -330,6 +330,11 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
                   collapse='__')
         })
     }
+    print("#####")
+    print(lapply(xblocks, class))
+    print(lapply(xblocks, length))
+    print(lapply(xblocks, dim))
+    print("###")
     return (xblocks)
 }
 
