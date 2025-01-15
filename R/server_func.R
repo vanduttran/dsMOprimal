@@ -1050,6 +1050,10 @@ crossAssignFunc <- function(conns, func, symbol) {
                                   cps[[qtabi]]))/(sum(nsamples)-1)
             })
         names(rescov) <- crossProdNames
+        .printTime(names(rescov))
+        .printTime(names(variables))
+        print(lapply(rescov, dim))
+        print(lapply(variables, length))
         ## set rownames and colnames of X'X
         for (crn in querytables) {
             if (is.null(rownames(rescov[[crn]])))
