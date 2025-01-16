@@ -948,7 +948,11 @@ crossAssignFunc <- function(conns, func, symbol) {
                                                     setNames(
                                                         lapply(querytables,
                                                                as.symbol),
-                                                        querytables))))),
+                                                        querytables))),
+                                        subset=NULL,
+                                        byColumn=TRUE,
+                                        scale=FALSE
+                              )),
                               async=T)
         } else {
             stopifnot(all(names(opals)==names(querysubset)))
@@ -963,7 +967,10 @@ crossAssignFunc <- function(conns, func, symbol) {
                                                      as.symbol),
                                               querytables)
                               )),
-                              subset=.encode.arg(querysubset[[opn]]))),
+                              subset=.encode.arg(querysubset[[opn]]),
+                              byColumn=TRUE,
+                              scale=FALSE
+                    )),
                     async=T)
             }))
         }
@@ -1321,7 +1328,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                                                 setNames(
                                                     lapply(querytables,
                                                            as.symbol),
-                                                    querytables)))
+                                                    querytables))),
+                                    subset=NULL,
+                                    byColumn=TRUE,
+                                    scale=FALSE
                           )),
                           async=T)
         
@@ -1435,7 +1445,9 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                                                           querytables)
                                           )),
                                           subset=.encode.arg(
-                                              foldslef[[m]][[opn]])
+                                              foldslef[[m]][[opn]]),
+                                          byColumn=TRUE,
+                                          scale=FALSE
                                 )),
                                 async=T)
                         }))
