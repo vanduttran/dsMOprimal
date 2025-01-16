@@ -331,11 +331,7 @@ crossProd <- function(x, y = NULL, pair = FALSE, chunk = 500L) {
                   collapse='__')
         })
     }
-    print("#####")
-    print(lapply(xblocks, class))
-    print(lapply(xblocks, length))
-    print(lapply(xblocks, dim))
-    print("###")
+
     return (xblocks)
 }
 
@@ -1056,12 +1052,6 @@ crossAssignFunc <- function(conns, func, symbol) {
                                   cps[[qtabi]]))/(sum(nsamples)-1)
             })
         names(rescov) <- crossProdNames
-        .printTime(names(rescov))
-        .printTime(names(variables))
-        print(lapply(rescov, class))
-        print(lapply(rescov, length))
-        print(lapply(rescov, dim))
-        print(lapply(variables, length))
         ## set rownames and colnames of X'X
         for (crn in querytables) {
             if (is.null(rownames(rescov[[crn]])))
@@ -1144,6 +1134,7 @@ crossAssignFunc <- function(conns, func, symbol) {
 federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         chunk = 500L, mc.cores = 1) {
     .printTime("federatePCA started")
+    options(datashield.errors.print = TRUE)
     if (ncomp < 2) {
         print("ncomp should be at least 2. ncomp will be set to 2.")
         ncomp <- 2
@@ -1566,8 +1557,10 @@ federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
 #' @examples
 #' \dontrun{
 #' dataProc <- function(conns, symbol) {
-#'     datashield.assign(conns, symbol[1], 'test.CNSIM', variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'))
-#'     datashield.assign(conns, symbol[2], 'test.CNSIM', variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
+#'     datashield.assign(conns, symbol[1], 'test.CNSIM',
+#'                       variables=c('LAB_TSC', 'LAB_TRIG', 'LAB_HDL'))
+#'     datashield.assign(conns, symbol[2], 'test.CNSIM',
+#'                       variables=c('LAB_GLUC_ADJUSTED', 'PM_BMI_CONTINUOUS'))
 #' }
 #' federateRCCA(.encode.arg(loginFD), .encode.arg(logins), 
 #'              .encode.arg(dataProc, serialize.it = T), 
@@ -1583,6 +1576,7 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                              grid1 = seq(0.001, 1, length = 5), 
                              grid2 = seq(0.001, 1, length = 5)))) {
     .printTime("federateRCCA started")
+    options(datashield.errors.print = TRUE)
     if (ncomp < 2) {
         print("ncomp should be at least 2. ncomp will be set to 2.")
         ncomp <- 2
