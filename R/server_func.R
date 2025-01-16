@@ -1141,7 +1141,6 @@ crossAssignFunc <- function(conns, func, symbol) {
 federatePCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                         chunk = 500L, mc.cores = 1) {
     .printTime("federatePCA started")
-    options(datashield.errors.print = TRUE)
     if (ncomp < 2) {
         print("ncomp should be at least 2. ncomp will be set to 2.")
         ncomp <- 2
@@ -1588,7 +1587,6 @@ federateRCCA <- function(loginFD, logins, func, symbol, ncomp = 2,
                              grid1 = seq(0.001, 1, length = 5), 
                              grid2 = seq(0.001, 1, length = 5)))) {
     .printTime("federateRCCA started")
-    options(datashield.errors.print = TRUE)
     if (ncomp < 2) {
         print("ncomp should be at least 2. ncomp will be set to 2.")
         ncomp <- 2
